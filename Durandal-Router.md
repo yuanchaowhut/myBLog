@@ -1,0 +1,900 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [1 案例代码](#1-%E6%A1%88%E4%BE%8B%E4%BB%A3%E7%A0%81)
+- [2 路由流程](#2-%E8%B7%AF%E7%94%B1%E6%B5%81%E7%A8%8B)
+  - [2.1 应用程序入口](#21-%E5%BA%94%E7%94%A8%E7%A8%8B%E5%BA%8F%E5%85%A5%E5%8F%A3)
+  - [2.2 路由的初始化（shell.js）](#22-%E8%B7%AF%E7%94%B1%E7%9A%84%E5%88%9D%E5%A7%8B%E5%8C%96shelljs)
+    - [2.2.1 路由配置及路由处理器准备](#221-%E8%B7%AF%E7%94%B1%E9%85%8D%E7%BD%AE%E5%8F%8A%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86%E5%99%A8%E5%87%86%E5%A4%87)
+    - [2.2.2 激活(router/histroy)](#222-%E6%BF%80%E6%B4%BBrouterhistroy)
+      - [1. router.activate调用栈](#1-routeractivate%E8%B0%83%E7%94%A8%E6%A0%88)
+      - [2. router.activate](#2-routeractivate)
+      - [3. history.activate （历史记录跟踪机制）](#3-historyactivate-%E5%8E%86%E5%8F%B2%E8%AE%B0%E5%BD%95%E8%B7%9F%E8%B8%AA%E6%9C%BA%E5%88%B6)
+      - [4. router.loadUrl](#4-routerloadurl)
+        - [路由处理器有两种类型：404、非404](#%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86%E5%99%A8%E6%9C%89%E4%B8%A4%E7%A7%8D%E7%B1%BB%E5%9E%8B404%E9%9D%9E404)
+        - [路由处理器的作用](#%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86%E5%99%A8%E7%9A%84%E4%BD%9C%E7%94%A8)
+      - [5. dequeueInstruction（异步）](#5-dequeueinstruction%E5%BC%82%E6%AD%A5)
+      - [6. ensureActivation](#6-ensureactivation)
+      - [7. activateRoute](#7-activateroute)
+  - [2.3 路由页面渲染的时机](#23-%E8%B7%AF%E7%94%B1%E9%A1%B5%E9%9D%A2%E6%B8%B2%E6%9F%93%E7%9A%84%E6%97%B6%E6%9C%BA)
+    - [2.3.1 computedObservable:router.activeItem](#231-computedobservablerouteractiveitem)
+    - [2.3.2 路由页面渲染（异步）](#232-%E8%B7%AF%E7%94%B1%E9%A1%B5%E9%9D%A2%E6%B8%B2%E6%9F%93%E5%BC%82%E6%AD%A5)
+- [3 路由切换流程](#3-%E8%B7%AF%E7%94%B1%E5%88%87%E6%8D%A2%E6%B5%81%E7%A8%8B)
+- [4 嵌套路由(子路由)处理](#4-%E5%B5%8C%E5%A5%97%E8%B7%AF%E7%94%B1%E5%AD%90%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86)
+  - [4.1 递归加载](#41-%E9%80%92%E5%BD%92%E5%8A%A0%E8%BD%BD)
+  - [4.2 路径处理](#42-%E8%B7%AF%E5%BE%84%E5%A4%84%E7%90%86)
+  - [4.3 嵌套路由的绑定](#43-%E5%B5%8C%E5%A5%97%E8%B7%AF%E7%94%B1%E7%9A%84%E7%BB%91%E5%AE%9A)
+    - [4.3.1 ko.bindingHandlers.router.update对谁添加订阅？](#431-kobindinghandlersrouterupdate%E5%AF%B9%E8%B0%81%E6%B7%BB%E5%8A%A0%E8%AE%A2%E9%98%85)
+    - [4.3.2 ko.bindingHandlers.router.update参数中的valueAccessor是什么鬼？](#432-kobindinghandlersrouterupdate%E5%8F%82%E6%95%B0%E4%B8%AD%E7%9A%84valueaccessor%E6%98%AF%E4%BB%80%E4%B9%88%E9%AC%BC)
+- [5 动态路由](#5-%E5%8A%A8%E6%80%81%E8%B7%AF%E7%94%B1)
+  - [5.1 动态路由的routerPattern](#51-%E5%8A%A8%E6%80%81%E8%B7%AF%E7%94%B1%E7%9A%84routerpattern)
+  - [5.2 路径匹配](#52-%E8%B7%AF%E5%BE%84%E5%8C%B9%E9%85%8D)
+- [6 补充](#6-%E8%A1%A5%E5%85%85)
+  - [6.1 rootRouter.install的执行](#61-rootrouterinstall%E7%9A%84%E6%89%A7%E8%A1%8C)
+  - [6.2 为什么ko.bindingHandlers.router.update会对activeItem添加订阅？](#62-%E4%B8%BA%E4%BB%80%E4%B9%88kobindinghandlersrouterupdate%E4%BC%9A%E5%AF%B9activeitem%E6%B7%BB%E5%8A%A0%E8%AE%A2%E9%98%85)
+  - [6.3 require加载资源后进行缓存，但是system.acquire().then()依然异步](#63-require%E5%8A%A0%E8%BD%BD%E8%B5%84%E6%BA%90%E5%90%8E%E8%BF%9B%E8%A1%8C%E7%BC%93%E5%AD%98%E4%BD%86%E6%98%AFsystemacquirethen%E4%BE%9D%E7%84%B6%E5%BC%82%E6%AD%A5)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+
+
+# 1 案例代码
+1. durandal官方案例：HTML Samples
+2. 部分代码调整：屏蔽过度动画选项（transition）以减少代码追踪难度（异步的过程），包括嵌套路由和动态路由的相关关页面都需要进行屏蔽<br/>
+
+app/shell.html
+```
+<div class="page-host" data-bind="router: { transition:'entrance', cacheViews:false }"></div>
+//改为
+<div class="page-host" data-bind="router"></div>
+```
+    
+app/ko/index.html<br/>
+
+```
+<!--ko router: { transition:'entrance', cacheViews:true }--><!--/ko-->
+//改为
+<!--ko router--><!--/ko-->
+```
+
+# 2 路由流程
+## 2.1 应用程序入口
+
+```
+//main.js
+app.setRoot('app/shell');
+```
+
+
+1. setRoot的过程见：durandal-生命周期
+2. shell‘组件’：是整个案例应用的入口，并且包含了一个根路由
+3. 在该组件(shell.js)中包含了activate生命周期回调，路由的初始化（路由配置，初始路由页面的绑定等）工作都是在这里做的
+
+```
+//shell.js 部分代码
+activate: function () {
+    var rootRooter = router.map([//...]);
+    return rootRooter.buildNavigationModel()
+        .mapUnknownRoutes('hello/index', 'not-found')
+        .activate();
+}
+```
+
+## 2.2 路由的初始化（shell.js）
+### 2.2.1 路由配置及路由处理器准备 
+```
+var rootRooter = router.map.buildNavigationModel().mapUnknownRoutes('hello/index', 'not-found');
+```
+
+1. router.map：生成路由配置（router.routes、router.handlers)<br/>
+router.map 调 router.mapRoute 调 configureRoute
+
+```
+function configureRoute(config){
+    //...
+    router.routes.push(config);
+    router.route(config.routePattern, function(fragment, queryString) {
+        var paramInfo = createParams(config.routePattern, fragment, queryString);
+        queueInstruction({
+            fragment: fragment,
+            queryString:queryString,
+            config: config,
+            params: paramInfo.params,
+            queryParams:paramInfo.queryParams
+        });
+    });
+    //...
+}
+```
+
+
+router.route
+
+```
+router.route = function(routePattern, callback) {
+    router.handlers.push({ routePattern: routePattern, callback: callback });
+};
+```
+
+
+2. router.buildNavigationModel<br/>
+>Builds an observable array designed to bind a navigation UI to. The model will exist in the `navigationModel` property.
+- 对于路由的生效是无关紧要的，主要是用来构建界面导航的
+
+3. router.navigationModel(nav);<br/>
+router.mapUnknownRoutes：404
+
+### 2.2.2 激活(router/histroy)
+
+```
+rootRooter.activate(); // 路由激活入口
+```
+
+
+#### 1. router.activate调用栈
+
+```
+1. router.activate 
+2. history.activate
+3. history.loadUrl
+4. router.loadUrl（关键：匹配合适的【路由处理器】（也就是上一步骤生成的router.handlers），其实也就确定了待路由的页面）
+5. 路由处理器调用 dequeueInstruction 
+6. dequeueInstruction中通过requirejs加载待路由页面的[model].js （得确定该路由页面是存在的，才进行后面的路由页面的绑定）
+    1. 成功：ensureActivation -> 激活（关键在于computedObservable：router.activeItem） 
+    2. 失败：cancelNavigation
+```
+
+
+#### 2. router.activate
+>Activates the router and the underlying history tracking mechanism.
+- 作用
+1. 路由激活
+2. 历史记录跟踪机制（通过何种方式实现呢？）
+
+```
+//router.js
+rootRouter.activate = function(options) {
+    return system.defer(function(dfd) {
+        startDeferred = dfd;
+        rootRouter.options = system.extend({ routeHandler: rootRouter.loadUrl }, rootRouter.options, options);
+        //...
+        history.activate(rootRouter.options); 
+        //...
+        //代理 a 标签点击事件相关代码
+        //...
+    })
+}
+```
+
+
+
+1. 代理 a 标签点击事件相关代码（这里的作用是什么呢？？）
+2. preventDefault：阻止元素发生默认的行为，比如点击a标签防止链接打开
+3. isDefaultPrevented：判断是否已经调用过event.preventDefault()函数
+
+```
+$(document).delegate("a", 'click', function(evt){
+    
+    // ignore default prevented since these are not supposed to behave like links anyway
+    if(evt.isDefaultPrevented()){
+        return;
+    }
+
+    if(history._hasPushState){
+        if(!evt.altKey && !evt.ctrlKey && !evt.metaKey && !evt.shiftKey && rootRouter.targetIsThisWindow(evt)){
+            var href = $(this).attr("href");
+
+            // Ensure the protocol is not part of URL, meaning its relative.
+            // Stop the event bubbling to ensure the link will not cause a page refresh.
+            if (href != null && !(href.charAt(0) === "#" || /^[a-z]+:/i.test(href))) {
+                rootRouter.explicitNavigation = true;
+                evt.preventDefault();
+
+                if (rootStripper) {
+                    href = href.replace(rootStripper, "");
+                }
+
+                history.navigate(href);
+            }
+        }
+    }else{
+        rootRouter.explicitNavigation = true;
+    }
+});
+```
+
+
+#### 3. history.activate （历史记录跟踪机制）
+1. 监听hashChange事件
+2. 【初始路由(根路由)】准备的入口
+
+```
+//history.js
+history.activate = function(options) {
+    //...
+    var fragment = history.getFragment(); 
+    history.root = ('/' + history.root + '/').replace(rootStripper, '/');
+    $(window).on('hashchange', history.checkUrl); // 监听hashChange事件
+    history.fragment = fragment;
+    
+    // $& 是匹配到的字符串，匹配不以反斜杠为结尾，则在匹配的目标位置加一个 ‘/’
+    var atRoot = loc.pathname.replace(/[^\/]$/, '$&/') === history.root; 
+    return history.loadUrl(options.startRoute); // 这里开始为根路由（首次路由）做准备
+    //...
+}
+```
+
+```
+//history.js
+history.loadUrl = function(fragmentOverride) {
+    var fragment = history.fragment = history.getFragment(fragmentOverride);
+    
+    return history.options.routeHandler ? //关键：routeHandler：router.loadUrl
+        history.options.routeHandler(fragment) :
+        false;
+};
+```
+
+
+#### 4. router.loadUrl
+路由处理器的作用：作为下面两个动作的【连接点】
+1. url变化（页面初始化、hashChange）：浏览器输入刷新或者url变化
+2. 路由激活：获取路由页面，填充路由dom
+```
+//router.js
+router.loadUrl = function(fragment) {
+    var handlers = router.handlers, // router.map的目的之一就是添加 handler
+        queryString = null,
+        coreFragment = fragment,
+        queryIndex = fragment.indexOf('?');
+    
+    if (queryIndex != -1) {
+        coreFragment = fragment.substring(0, queryIndex);
+        queryString = fragment.substr(queryIndex + 1);
+    }
+    
+    coreFragment = coreFragment.replace(trailingSlash, '');
+
+    // 子路由的路径处理
+    if (router.relativeToParentRouter) {
+        //...
+    }
+    
+    //匹配合适的路由模式，使用对应的路由处理器进行处理
+    for (var i = 0; i < handlers.length; i++) {
+        var current = handlers[i];
+        if (current.routePattern.test(coreFragment)) {
+            current.callback(coreFragment, queryString); // 调用路由处理器
+            return true;
+        }
+    }
+}
+```
+
+
+##### 路由处理器有两种类型：404、非404
+1. 404：通过router.mapUnknownRoutes也会生成相应的路由处理器，在补充部分介绍（mapUnknownRoutes） 
+2. 非404： 通过router.map生成的路由处理器是下面代码
+
+```
+//router.js
+function(fragment, queryString) {
+    var paramInfo = createParams(config.routePattern, fragment, queryString);
+    queueInstruction({
+        fragment: fragment,
+        queryString:queryString,
+        config: config,
+        params: paramInfo.params,
+        queryParams:paramInfo.queryParams
+    });
+}
+```
+
+
+
+##### 路由处理器的作用
+1. 处理相关的参数，以下两类参数会被匹配出来作为 paramInfo<br/>
+    1. url参数（如url：...?name=yusong&age=29，后面参数则会被提取出来
+    2. 动态路由相关的匹配参数
+> 如：route：keyed-master-details/:id*detailsurl：#keyed-master-details/1/first则url中的 1 会被作为参数筛选出来，对于动态路由这是关键信息
+
+2. 尝试激活路由页面，入口在：queueInstruction
+
+queueInstruction
+
+```
+//router.js
+function queueInstruction(instruction) {
+    queue.unshift(instruction);
+    dequeueInstruction();
+}
+```
+
+#### 5. dequeueInstruction（异步）
+> 之所以异步：是因为system.acquire().then(success)的成功回调函数的调用是放在setTimeout中的
+
+获取路由页面的model.js<br/>
+    1. 成功：ensureActivation：尝试激活路由页面（router.activeItem:computedObservable）<br/>
+    2. 失败：cancelNavigation：取消此次路由切换
+
+```
+//router.js
+function dequeueInstruction() {
+    //...
+    system.acquire(instruction.config.moduleId).then(function(m) { // 获取路由页面的[model].js
+        var instance = system.resolveObject(m);
+    
+        if(instruction.config.viewUrl) {
+            instance.viewUrl = instruction.config.viewUrl;
+        }
+    
+        ensureActivation(activeItem, instance, instruction);
+    }).fail(function(err) {
+        cancelNavigation(null, instruction);
+        system.error('Failed to load routed module (' + instruction.config.moduleId + '). Details: ' + err.message, err);
+    });
+    //...
+}
+```
+
+
+
+#### 6. ensureActivation
+
+```
+//router.js
+ function dequeueInstruction() {     
+     activateRoute(activator, instance, instruction); // 激活路由
+}
+```
+
+
+
+#### 7. activateRoute
+1. 异步获取路由页面的model.js成功后，标志着该路由页面存在，接着判断是否可以更新路由（逻辑在activator.activateItem方法中），如果可以，则进入【成功回调】
+2. activator.activateItem()方法的调用栈中绑定或者更新了 computedObservable:router.activeItem 的数据 
+
+```
+//router.js
+function activateRoute(activator, instance, instruction) {
+    //...
+    activator.activateItem(instance, instruction.params, options).then(function(succeeded) { // 成功回调
+        //...
+        if (succeeded) {
+            //...
+            completeNavigation(instance, instruction, mode);
+            //...
+            if (startDeferred) { // 关键步骤
+                startDeferred.resolve(); // 这里标志着【生命周期-activate回调】的结束，继续 shell'组件'的绑定工作,回到composition.js tryActivate()
+                startDeferred = null;
+            }
+        }    
+        //...
+    }).fail(function (err) {
+        system.error(err);
+    })
+     //...
+}
+```
+
+- startDeferred 就是rootRouter.activate返回给shell.js的activate生命周期回调的promise对象的‘原件’
+
+```
+rootRouter.activate = function (options) { 
+    return system.defer(function (dfd) {
+        startDeferred = dfd;
+        //...
+     }).promise() // 这里返回的promise副本的含义，是不希望外部回调改变状态
+}
+```
+
+
+
+- activateRoute方法中的 startDeferred.resolve() 标志着shell.js的 activate声明周期 的结束，继续进行页面的绑定（进入successCallback），同时也标志着路由页面的【成功绑定】，注意只是相关对象/变量的绑定，路由页面的内容尚未渲染
+
+```
+// composition.js
+function tryActivate(context, successCallback, skipActivation, element) {
+    //...
+    if (system.isArray(context.activationData)) {
+        result = context.model.activate.apply(context.model, context.activationData);
+    } else {
+        result = context.model.activate(context.activationData);
+    } 
+    if (result && result.then) { // 这里的result就是startDeferred的promise副本（见rootRouter.activate()返回值）
+        result.then(successCallback, function (reason) { // startDeferred.resolve()，就会走这里的成功回调
+            onError(context, reason, element);
+            successCallback();
+        });
+    } 
+    //...
+}
+```
+
+
+## 2.3 路由页面渲染的时机
+1. 上面说到router.js activateRoute中，执行了startDeferred.resolve() 操作后，继续进行shell组件的绑定(使用ko进行绑定的)，knockout绑定过程中遇到下面 dom 
+
+```
+<div class="page-host" data-bind="router"></div>
+```
+
+
+2. 然后，调用ko.bindingHandlers.router进行实质的路由页面的渲染（异步）
+>composition.compose()之所以是异步的：是因为会通过system.acquire().then()获取html文件的过程
+
+```
+rootRouter.install = function(){
+    ko.bindingHandlers.router = {
+        init: function() {
+            return { controlsDescendantBindings: true };  // 不对子节点进行绑定，详见ko源码分析
+        },
+        update: function(element, valueAccessor, allBindingsAccessor, viewModel, bindingContext) {
+            var settings = ko.utils.unwrapObservable(valueAccessor()) || {};
+            //...
+            var theRouter = ko.utils.unwrapObservable(settings.router || viewModel.router) || rootRouter;
+            //...
+            composition.compose(element, settings, bindingContext); // 异步，具体过程参考durandal-生命周期
+        }
+    };
+ 
+    ko.virtualElements.allowedBindings.router = true;  //支持注释写法
+};
+```
+
+### 2.3.1 computedObservable:router.activeItem
+router.activeItem作为computedObservable对象意义非凡
+1. 在 ko.bindingHandlers.router.update 执行了 theRouter.activeItem() ，这会使得 ko.bindingHandlers.router.update 向  theRouter.activeItem添加【订阅】
+2. 当theRouter.activeItem数据变化时，则会触发  ko.bindingHandlers.router.update 执行
+3. router.activeItem属性的实际引用是在activator.js中创建的computed对象
+4. 该computedObservable写入的过程发生在 router.js-activateRoute()的调用栈中，最终在activator.js-activate() 方法中进行数据更新(最新的路由配置)
+
+```
+// activator.js
+function activate(newItem, activeItem, callback, activationData) {
+    //...
+    activeItem(newItem);
+    //...
+}
+```
+
+### 2.3.2 路由页面渲染（异步）
+1. 页面加载的具体过程：composition.compose（见durandal-生命周期），这个过程是异步的
+1. composition.compose调用时model.js已经准备好了，但是视图(view)可能没有准备好，因此这里需要异步的去加载视图即html页面
+1. system.acquire为了保证代码运行的一致性，将回调放在了setTimeout中（es6中的promise的polyfill多是基于setTimeout来模拟异步）
+
+```
+//system.js
+acquire: function() {
+    //...
+    return this.defer(function(dfd) {
+        require(modules, function() {yiding
+            var args = arguments; 
+            // 关键：总是异步,及时require缓存了资源，因此会同步获取到资源，但是为了保持【代码运行的一致性】，使用setTimeout模拟异步
+            setTimeout(function() {  
+                if(args.length > 1 || arrayRequest){
+                    dfd.resolve(slice.call(args, 0));
+                }else{
+                    dfd.resolve(args[0]);
+                }
+            }, 1);
+        }, function(err){
+            dfd.reject(err);
+        });
+    }).promise();
+    //...
+}
+```
+ 
+# 3 路由切换流程
+> 上面的过程是页面初始化时（第一次进入页面）的过程，但是路由的重要体现还在于页面部分刷新（或者无刷新）的url地址变更，这一部分说下点击a标签触发的页面部分刷新的流程
+
+>点击a标签触发会hashChange事件，最终会导致 computedObservable:router.activeItem更新数据（最新的路由配置），之前说到 ko.bindingHandlers.router.update 对其添加了订阅，此时会触发udpate执行，便更新了路由页面
+
+```
+//histroy.js
+$(window).on('hashchange', history.checkUrl);
+```
+
+
+
+
+```
+//histroy.js
+history.checkUrl = function() {
+    var current = history.getFragment();
+    if (current === history.fragment && history.iframe) {
+        current = history.getFragment(history.getHash(history.iframe));
+    }
+
+    if (current === history.fragment) {
+        return false;
+    }
+
+    if (history.iframe) {
+        history.navigate(current, false);
+    }
+    
+    history.loadUrl();
+};
+```
+
+
+
+```
+//histroy.js
+history.loadUrl = function(fragmentOverride) {
+    var fragment = history.fragment = history.getFragment(fragmentOverride);
+
+    return history.options.routeHandler ?
+        history.options.routeHandler(fragment) :
+        false;
+};
+```
+
+> history.activate 调用 history.loadUrl 调用 router.loadUrl
+
+> router.loadUrl：根据当前url获取相应的路由处理器（之后的执行逻辑和初始化时基本一致） 进行处理
+
+# 4 嵌套路由(子路由)处理
+app\ko\index.js
+
+```
+define(['plugins/router', 'knockout'], function(router, ko) {
+    var childRouter = router.createChildRouter()
+        .makeRelative({
+            moduleId:'ko',
+            fromParent:true
+        }).map([...]).buildNavigationModel();
+
+    return {
+        router: childRouter, //关键，必须返回，这一层级路由的‘管理者’
+        //...
+    };
+});
+```
+
+ 
+1. router.createChildRouter() ：使用【父】路由（不一定是根路由）创建子路由
+2. router.makeRelative，设置相关属性如relativeToParentRouter，事件监听等
+3. router.map：生成路由处理器并存储在当前的childRouter对象中（不会交由根路由管理），每一级别的路由都是各自为政，因此后面子路由的路由处理器的匹配也是在childRouter对象中进行的
+
+```
+function activateRoute(activator, instance, instruction) {
+    //...
+    activator.activateItem(instance, instruction.params, options).then(function (succeeded) {
+        if (withChild) {
+            instance.router.loadUrl(fullFragment); // instance就是ko/index返回的model，instance.router就是上面的childRouter
+        }
+    }
+    //...
+}
+```
+
+router.js - router.createChildRouter ：
+每个路由都拥有创建子路由的方法，谁创建子路由，谁就是子路由的parent
+是hasChildRouter判断的重要依据
+
+```
+var createRouter = function (name) {
+    var router = {};
+    router.createChildRouter = function (name) {
+        var childRouter = createRouter(name);
+        childRouter.parent = router;
+        return childRouter;
+    };
+    return router;
+};
+```
+
+
+
+## 4.1 递归加载
+1.  activateItem 是在 router.loadUrl 调用栈中的，下面在拥有子路由的情况下，会去调用  instance.router.loadUrl => 递归的过程
+2.  对于嵌套路由来说，当根路由进入到activator.activateItem的成功回调后，会递归计算所有的嵌套路由（异步：体现在获取路由页面的js的过程（dequeueInstruction:system.acquire().then()）是异步的）
+> 如：shell.js中的路由为根路由，ko/index是子路由，如果当前浏览器路径为：#knockout-samples/betterList
+在进行匹配过程中会递归的把所有的嵌套路由的路由页面全部计算出来，即每一个路由对应的路由页面
+这里先加载ko/index.js(作为shell组件的路由页面），但与此同时 ko/index本身也是拥有路由功能 ，因此会去加载 ko\betterList\index.js
+
+```
+//router.js activateRoute()
+activator.activateItem(instance, instruction.params, options).then(function(succeeded) {
+    //...
+    var withChild = hasChildRouter(instance, router);
+    //...
+    if (withChild) {// 拥有子路由
+        instance.router.trigger('router:route:before-child-routes', instance, instruction, router);
+    
+        var fullFragment = instruction.fragment;
+        if (instruction.queryString) {
+            fullFragment += "?" + instruction.queryString;
+        }
+    
+        instance.router.loadUrl(fullFragment); // 如果是子路由时，则加载子路由
+    }
+    //...
+}
+
+
+function hasChildRouter(instance, parentRouter) {
+    return instance.router && instance.router.parent == parentRouter;
+}
+```
+
+
+
+## 4.2 路径处理
+嵌套路由-路径处理是基于父路由的
+对于ko/index.js的父路由是根路由，其配置在shell.js
+{route: 'knockout-samples*details', moduleId: 'ko/index', title: 'Knockout Samples', nav: true},
+
+会生成如下路由模式（正则）：routerPattern属性
+
+上面看到routerPattern使用小括号的方式用来获取子路由信息，当前路径为：#knockout-samples/betterList，得到子路由的路径为：betterList
+
+处理子路由，后面的流程和处理根路由基本一致
+
+```
+//router.js activateRoute()
+instance.router.loadUrl(fullFragment);
+```
+ 使用子路由的路由实例加载子路由，即ko/index.js返回的childRouter
+
+
+
+```
+router.loadUrl = function(fragment) {
+    //...
+    if(router.relativeToParentRouter){ // 规范子路由的形式（反斜杠的处理）
+        var instruction = this.parent.activeInstruction();
+        coreFragment = queryIndex == -1 ? instruction.params.join('/') : instruction.params.slice(0, -1).join('/');
+    
+        if(coreFragment && coreFragment.charAt(0) == '/'){
+            coreFragment = coreFragment.substr(1);
+        }
+    
+        if(!coreFragment){
+            coreFragment = '';
+        }
+    
+        coreFragment = coreFragment.replace('//', '/').replace('//', '/');
+    }
+    //...
+}
+```
+
+
+
+## 4.3 嵌套路由的绑定
+### 4.3.1 ko.bindingHandlers.router.update对谁添加订阅？
+首先可以可定的是，向router.activeItem添加订阅，但是真正的问题在于这里的router是哪个组件创造出来的路由实例呢？？？
+既然代码走到ko.bindingHandlers.router.update说明在你使用的组件页面中包含路由dom，即你这个组件具备路由功能，那么update函数中的theRouter默认是指向你组件[model].js返回的router指向的路由。
+对于 shell.js 来说，就是根路由
+对于 ko/index.js 就是 返回的childRouter
+对于 keyedMasterDetail/master.html 就是返回的 childRouter
+
+```
+ko.bindingHandlers.router = {
+    init:fn,
+    update:function(element, valueAccessor, allBindingsAccessor, viewModel, bindingContext){
+        var settings = ko.utils.unwrapObservable(valueAccessor()) || {}; //4.3.2
+         //...
+        var theRouter = ko.utils.unwrapObservable(settings.router || viewModel.router) || rootRouter; // viewModel就是拥有路由的‘组件’：如shell.js、ko/index.js
+        settings.model = theRouter.activeItem(); //添加订阅，订阅的过程在ko中
+        //...
+    }
+}
+```
+
+
+### 4.3.2 ko.bindingHandlers.router.update参数中的valueAccessor是什么鬼？
+首先这是ko使用 new Function() 形式生成的函数,生成的依据就是你的data-bind后面的内容
+如果是下面形式，那么 valueAccessor()返回 undefined
+
+```
+<div class="page-host" data-bind="router"></div>
+```
+
+
+valueAccessor主要是针对下面形式，然后你会发现valueAccessor()的返回值就是定义时的值（其实，这种形式的作用是为了拿到当前绑定上下文[bindingContext]的最新数据，详情参考ko源码）
+
+```
+<div class="page-host" data-bind="router: { transition:'entrance', cacheViews:false }"></div>
+```
+
+# 5 动态路由
+app\keyedMasterDetail\master.js
+
+```
+var childRouter = router
+    .createChildRouter()
+    .makeRelative({moduleId: 'keyedMasterDetail', fromParent: true, dynamicHash: ':id'})// 关键信息：dynamicHash，fromParent
+    .map([
+        {route: ['first', ''], moduleId: 'first', title: 'First', nav: true, hash: '#first'},
+        {route: 'second', moduleId: 'second', title: 'Second', nav: true},
+        {route: 'third', moduleId: 'third', title: 'Third', nav: true}
+    ]).buildNavigationModel();
+```
+
+
+
+router.makeRelative 对动态路由的特殊处理
+
+```
+router.makeRelative = function(settings){
+    //...
+    if (settings.dynamicHash) {
+        router.on('router:route:after-config').then(function (config) {
+            config.routePattern = routeStringToRegExp(config.route ? settings.dynamicHash + '/' + config.route : settings.dynamicHash);
+            config.dynamicHash = config.dynamicHash || ko.observable(config.hash);
+        });
+    
+        router.on('router:route:before-child-routes').then(function(instance, instruction, parentRouter) {
+            var childRouter = instance.router;
+    
+            for(var i = 0; i < childRouter.routes.length; i++) {
+                var route = childRouter.routes[i];
+                var params = instruction.params.slice(0);
+    
+                route.hash = childRouter.convertRouteToHash(route.route)
+                    .replace(namedParam, function(match) {
+                        return params.length > 0 ? params.shift() : match;
+                    });
+    
+                route.dynamicHash(route.hash);
+            }
+        });
+    }
+    //...
+}
+```
+
+
+
+## 5.1 动态路由的routerPattern
+makeRelative中的【dynamicHash】选项，动态路由的routerPattern的生成区别于嵌套路由，需要单独处理生成正确的routerPatter，这里通过事件监听的方式来处理
+
+```
+router.makeRelative({moduleId: 'keyedMasterDetail', fromParent: true, dynamicHash: ':id'})
+```
+
+router配置项生成
+router.map() ->mapRouter -> configurateRouter -> 触发 "router:route:after-config" 事件
+
+
+
+以动态路由中其中一个为例
+
+```
+{route: 'third', moduleId: 'third', title: 'Third', nav: true}
+```
+
+
+生成的routerPattern如下：第一个小括号就是用来获取【动态】数据的
+
+```
+routerPatter：/^([^\/]+)\/third$/i
+```
+
+
+
+## 5.2 路径匹配
+动态路由的处理和嵌套路由的情况基本一致，区别在于routerPattern生成的策略不同，自然生成routerPattern也是有区别的，动态路由的重要特点在进行路由匹配的过程中会生成【动态数据】（如下面的:id）
+
+```
+//shell.js
+{
+    route: 'keyed-master-details/:id*details',
+    moduleId: 'keyedMasterDetail/master',
+    title: 'Keyed Master Detail',
+    hash: '#keyed-master-details/:id'
+}
+```
+
+生成的routerPattern
+
+routerPattern的两个小括号
+1. 第一个小括号是用来提取【动态】信息的，也是动态路由的本质（相同的页面，但是【参数】不同）
+2. 第二个小括号用来获取路由页面的【路径】，这里获取才是真正有效的路径
+
+# 6 补充
+## 6.1 rootRouter.install的执行
+> ko.bindingHandlers.router 是包裹在rootRouter.install方法中，在router.js中并未执行该方法
+
+app.configurePlugins：配置组件，缓存到变量allPluginIds ， allPluginConfigs中
+
+```
+//main.js
+app.configurePlugins({
+    router: true, // 支持路由功能的关键
+    dialog: true,
+    widget: {
+        kinds: ['expander']
+    }
+});
+```
+
+
+app.start：加载配置的插件，其实就包含了上述配置的路由功能
+
+```
+//main.js
+app.start().then(function () {
+    viewLocator.useConvention();
+    app.setRoot('shell');
+});
+
+
+//app.js
+start: function() {
+    //...
+    return system.defer(function (dfd) {
+        $(function() {
+            loadPlugins().then(function(){
+                dfd.resolve(); 
+            });
+        });
+    }).promise();
+},
+
+
+function loadPlugins(){
+    return system.defer(function(dfd){
+        //...
+        system.acquire(allPluginIds).then(function(loaded){
+            for(var i = 0; i < loaded.length; i++){
+                var currentModule = loaded[i];
+                currentModule.install(config); // 此时则会调用 rootRouter.install 从而 使得系统具备路由功能
+                //...
+            }
+            dfd.resolve();
+        }).fail(function(err){
+            //...
+        });
+    }).promise();
+}
+```
+
+
+
+
+## 6.2 为什么ko.bindingHandlers.router.update会对activeItem添加订阅？ 
+## 6.3 require加载资源后进行缓存，但是system.acquire().then()依然异步
+下面是reuqire进行缓存的相关代码
+
+```
+function newContext(contextName) {
+    var defined = {}, //缓存已经定义了的资源
+    //...
+    Module.prototype = { 
+        check: function () { 
+            //...
+            if (this.map.isDefine && !this.ignore) {
+                defined[id] = exports; // 缓存
+                //...
+            }
+            //...
+        } 
+    }
+    //...
+}
+```
+system.acquire
+```
+acquire: function() {
+    //...
+    return this.defer(function(dfd) {
+        require(modules, function() {
+            var args = arguments;
+            setTimeout(function() {
+                //...
+            }, 1);
+        }, function(err){
+            //...
+        });
+    }).promise();
+},
+```
+
+

@@ -2,33 +2,34 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [<div style='text-align:center'>Durandal-生命周期<span style='font-size:0.6em;color:grey'>（余 松）</span></div>](#div-styletext-aligncenterdurandal-%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9Fspan-stylefont-size06emcolorgrey%E4%BD%99-%E6%9D%BEspandiv)
-  - [准备](#%E5%87%86%E5%A4%87)
-    - [system.acquire](#systemacquire)
-    - [system.defer](#systemdefer)
-  - [生命周期](#%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F)
-    - [setRoot入口](#setroot%E5%85%A5%E5%8F%A3)
-    - [整体过程](#%E6%95%B4%E4%BD%93%E8%BF%87%E7%A8%8B)
-      - [生命周期-activate的入口：tryActivate](#%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F-activate%E7%9A%84%E5%85%A5%E5%8F%A3tryactivate)
-      - [生命周期-binding和bindingComplete的入口：binder.bind](#%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F-binding%E5%92%8Cbindingcomplete%E7%9A%84%E5%85%A5%E5%8F%A3binderbind)
-      - [生命周期-attached，compositionComplete的入口：composition.finalize](#%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F-attachedcompositioncomplete%E7%9A%84%E5%85%A5%E5%8F%A3compositionfinalize)
-        - [attached回调](#attached%E5%9B%9E%E8%B0%83)
-        - [compositionComplete回调](#compositioncomplete%E5%9B%9E%E8%B0%83)
-      - [生命周期-detached](#%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F-detached)
-  - [补充](#%E8%A1%A5%E5%85%85)
-    - [composition.addBindingHandler](#compositionaddbindinghandler)
-    - [获取html](#%E8%8E%B7%E5%8F%96html)
-        - [加载html文件入口](#%E5%8A%A0%E8%BD%BDhtml%E6%96%87%E4%BB%B6%E5%85%A5%E5%8F%A3)
-        - [requirejs模块加载完毕后的相关代码](#requirejs%E6%A8%A1%E5%9D%97%E5%8A%A0%E8%BD%BD%E5%AE%8C%E6%AF%95%E5%90%8E%E7%9A%84%E7%9B%B8%E5%85%B3%E4%BB%A3%E7%A0%81)
-    - [ko移除dom相关代码](#ko%E7%A7%BB%E9%99%A4dom%E7%9B%B8%E5%85%B3%E4%BB%A3%E7%A0%81)
-  - [总结](#%E6%80%BB%E7%BB%93)
-      - [执行过程](#%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B)
+- [案例代码](#%E6%A1%88%E4%BE%8B%E4%BB%A3%E7%A0%81)
+- [准备](#%E5%87%86%E5%A4%87)
+- [system.acquire](#systemacquire)
+- [system.defer](#systemdefer)
+- [生命周期](#%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F)
+  - [setRoot入口](#setroot%E5%85%A5%E5%8F%A3)
+  - [整体过程](#%E6%95%B4%E4%BD%93%E8%BF%87%E7%A8%8B)
+    - [生命周期-activate的入口：tryActivate](#%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F-activate%E7%9A%84%E5%85%A5%E5%8F%A3tryactivate)
+    - [生命周期-binding和bindingComplete的入口：binder.bind](#%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F-binding%E5%92%8Cbindingcomplete%E7%9A%84%E5%85%A5%E5%8F%A3binderbind)
+    - [生命周期-attached，compositionComplete的入口：composition.finalize](#%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F-attachedcompositioncomplete%E7%9A%84%E5%85%A5%E5%8F%A3compositionfinalize)
+      - [attached回调](#attached%E5%9B%9E%E8%B0%83)
+      - [compositionComplete回调](#compositioncomplete%E5%9B%9E%E8%B0%83)
+    - [生命周期-detached](#%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F-detached)
+- [补充](#%E8%A1%A5%E5%85%85)
+  - [composition.addBindingHandler](#compositionaddbindinghandler)
+  - [获取html](#%E8%8E%B7%E5%8F%96html)
+      - [加载html文件入口](#%E5%8A%A0%E8%BD%BDhtml%E6%96%87%E4%BB%B6%E5%85%A5%E5%8F%A3)
+      - [requirejs模块加载完毕后的相关代码](#requirejs%E6%A8%A1%E5%9D%97%E5%8A%A0%E8%BD%BD%E5%AE%8C%E6%AF%95%E5%90%8E%E7%9A%84%E7%9B%B8%E5%85%B3%E4%BB%A3%E7%A0%81)
+  - [ko移除dom相关代码](#ko%E7%A7%BB%E9%99%A4dom%E7%9B%B8%E5%85%B3%E4%BB%A3%E7%A0%81)
+- [总结](#%E6%80%BB%E7%BB%93)
+    - [执行过程](#%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-# <div style='text-align:center'>Durandal-生命周期<span style='font-size:0.6em;color:grey'>（余 松）</span></div> 
+ 
 > ko的缺点：组件无生命周期；durandal在其基础上实现了自己的‘组件’并提供了生命周期
-## 案例代码
+
+# 案例代码
 main.js
 ```
  app.setRoot('hello-index')
@@ -93,9 +94,9 @@ custom BindingHandler:hello-index
 Lifecycle : compositionComplete : hello
 ```
 
-## 准备
+# 准备
 system.js - 工具类
-### system.acquire
+# system.acquire
 通过require.js获取资源(js\html\css)
 ```
 system.acquire(settings.model).then(function(module) {
@@ -104,7 +105,7 @@ system.acquire(settings.model).then(function(module) {
       ...
     });
 ```
-### system.defer
+# system.defer
 基于jQuery的Deferred对象<br/>
 返回一个promise对象，处理异步问题
 ```
@@ -113,8 +114,8 @@ system.defer(function(dfd){
     dfd.resolve();
 });
 ```
-## 生命周期
-### setRoot入口
+# 生命周期
+## setRoot入口
 
 ```
 //...
@@ -144,7 +145,7 @@ system.acquire(settings.model).then(function (module) { // module:HelloModel
 });
 ```
 
-### 整体过程
+## 整体过程
 1. composition.compose
 2. composition.inject
 3. composition.executeStrategy：获取html内容<br/>
@@ -207,7 +208,7 @@ composition = {
 }
 ```
 
-#### 生命周期-activate的入口：tryActivate
+### 生命周期-activate的入口：tryActivate
 context.model.activate.apply：回调实际调用的地方
 ```
 function tryActivate(context, successCallback, skipActivation, element) {
@@ -255,7 +256,7 @@ function onError(context, error, element) {
 }
 ```
 
-#### 生命周期-binding和bindingComplete的入口：binder.bind
+### 生命周期-binding和bindingComplete的入口：binder.bind
 ```
 bind: function(obj, view) {
     return doBind(obj, view, obj, obj);
@@ -302,7 +303,7 @@ function doBind(obj, view, bindingTarget, data){ // obj:model:HelloModel的实�
 > 
 
 
-#### 生命周期-attached，compositionComplete的入口：composition.finalize
+### 生命周期-attached，compositionComplete的入口：composition.finalize
 调用finalize之前的步骤是刚完成dom与model的绑定<br/>
 绑定完成之后隐藏之前的页面，显示当前setRoot的页面<br/>
 然后通过attached回调告诉开发者，页面的数据绑定以及显示都已经搞定了<br/>
@@ -315,7 +316,7 @@ finalize: function (context, element) {
 }
 ```
 
-##### attached回调
+#### attached回调
 ```
 function triggerAttach(context, element) {
     //...
@@ -339,7 +340,7 @@ function triggerAttach(context, element) {
 }
 ```
 
-##### compositionComplete回调
+#### compositionComplete回调
 ```
 function endComposition(context, element, error) {
     compositionCount--;
@@ -369,7 +370,7 @@ function endComposition(context, element, error) {
 
 
 
-#### 生命周期-detached
+### 生命周期-detached
 触发detached的前提
 ```
  data-bind="router: { transition:'entrance', cacheViews:false }"
@@ -406,8 +407,8 @@ function removePreviousView(context){
 }
 ``` 
 
-## 补充
-###  composition.addBindingHandler
+# 补充
+##  composition.addBindingHandler
 本质：增加自定义绑定处理器（扩展ko内置的处理器:click,value,text,foreach,...）
 ```
 addBindingHandler:function(name, config, initOptionsFactory){
@@ -459,14 +460,14 @@ handler = ko.bindingHandlers[name] = {
 Lifecycle : bindingComplete : hello
 custom BindingHandler:hello-index
 ```
-### 获取html
+## 获取html
 通常按照下面方式加载‘组件’，但是这种方式指定的是model的路径<br/>
 然后会通过在model添加getView、viewUrl等方式显示提供html的路径来加载html文件<br/>
 如果没有，才去model相同路径下去找同名html文件<br/>
 ```
  app.setRoot('hello/index')
 ```
-##### 加载html文件入口
+#### 加载html文件入口
 composition.js
 ```
 defaultStrategy: function (context) {
@@ -499,7 +500,7 @@ if (typeof requirejs !== 'undefined') {
 }
 ```
 
-##### requirejs模块加载完毕后的相关代码
+#### requirejs模块加载完毕后的相关代码
 
 ```
 Module.prototype = {
@@ -525,7 +526,7 @@ Module.prototype = {
 ```
 
 
-### ko移除dom相关代码 
+## ko移除dom相关代码 
 ```
 ko.cleanNode = ko.utils.domNodeDisposal.cleanNode; // Shorthand name for convenience
 ko.removeNode = ko.utils.domNodeDisposal.removeNode; // Shorthand name for convenience
@@ -555,8 +556,8 @@ function cleanSingleNode(node) {
 ```
 
 
-## 总结
-#### 执行过程
+# 总结
+### 执行过程
 1. 加载model
 2. 加载html：'text!xxx.html'拿到的是文本，并不是dom节点，之后通过jquery方式转为dom节点
 3. 执行 activate 回调，确定是否需要进行绑定

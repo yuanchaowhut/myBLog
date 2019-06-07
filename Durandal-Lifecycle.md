@@ -4,8 +4,8 @@
 
 - [案例代码](#%E6%A1%88%E4%BE%8B%E4%BB%A3%E7%A0%81)
 - [准备](#%E5%87%86%E5%A4%87)
-- [system.acquire](#systemacquire)
-- [system.defer](#systemdefer)
+  - [system.acquire](#systemacquire)
+  - [system.defer](#systemdefer)
 - [生命周期](#%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F)
   - [setRoot入口](#setroot%E5%85%A5%E5%8F%A3)
   - [整体过程](#%E6%95%B4%E4%BD%93%E8%BF%87%E7%A8%8B)
@@ -96,7 +96,7 @@ Lifecycle : compositionComplete : hello
 
 # 准备
 system.js - 工具类
-# system.acquire
+## system.acquire
 通过require.js获取资源(js\html\css)
 ```
 system.acquire(settings.model).then(function(module) {
@@ -105,7 +105,7 @@ system.acquire(settings.model).then(function(module) {
       ...
     });
 ```
-# system.defer
+## system.defer
 基于jQuery的Deferred对象<br/>
 返回一个promise对象，处理异步问题
 ```

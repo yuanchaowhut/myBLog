@@ -7,4 +7,4 @@
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 # myBLog
-技术记录
+- [Durandal-Lifecycle](Durandal-Lifecycle.md) 

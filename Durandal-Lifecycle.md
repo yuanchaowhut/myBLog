@@ -1,3 +1,31 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [<div style='text-align:center'>Durandal-生命周期<span style='font-size:0.6em;color:grey'>（余 松）</span></div>](#div-styletext-aligncenterdurandal-%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9Fspan-stylefont-size06emcolorgrey%E4%BD%99-%E6%9D%BEspandiv)
+  - [准备](#%E5%87%86%E5%A4%87)
+    - [system.acquire](#systemacquire)
+    - [system.defer](#systemdefer)
+  - [生命周期](#%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F)
+    - [setRoot入口](#setroot%E5%85%A5%E5%8F%A3)
+    - [整体过程](#%E6%95%B4%E4%BD%93%E8%BF%87%E7%A8%8B)
+      - [生命周期-activate的入口：tryActivate](#%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F-activate%E7%9A%84%E5%85%A5%E5%8F%A3tryactivate)
+      - [生命周期-binding和bindingComplete的入口：binder.bind](#%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F-binding%E5%92%8Cbindingcomplete%E7%9A%84%E5%85%A5%E5%8F%A3binderbind)
+      - [生命周期-attached，compositionComplete的入口：composition.finalize](#%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F-attachedcompositioncomplete%E7%9A%84%E5%85%A5%E5%8F%A3compositionfinalize)
+        - [attached回调](#attached%E5%9B%9E%E8%B0%83)
+        - [compositionComplete回调](#compositioncomplete%E5%9B%9E%E8%B0%83)
+      - [生命周期-detached](#%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F-detached)
+  - [补充](#%E8%A1%A5%E5%85%85)
+    - [composition.addBindingHandler](#compositionaddbindinghandler)
+    - [获取html](#%E8%8E%B7%E5%8F%96html)
+        - [加载html文件入口](#%E5%8A%A0%E8%BD%BDhtml%E6%96%87%E4%BB%B6%E5%85%A5%E5%8F%A3)
+        - [requirejs模块加载完毕后的相关代码](#requirejs%E6%A8%A1%E5%9D%97%E5%8A%A0%E8%BD%BD%E5%AE%8C%E6%AF%95%E5%90%8E%E7%9A%84%E7%9B%B8%E5%85%B3%E4%BB%A3%E7%A0%81)
+    - [ko移除dom相关代码](#ko%E7%A7%BB%E9%99%A4dom%E7%9B%B8%E5%85%B3%E4%BB%A3%E7%A0%81)
+  - [总结](#%E6%80%BB%E7%BB%93)
+      - [执行过程](#%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # <div style='text-align:center'>Durandal-生命周期<span style='font-size:0.6em;color:grey'>（余 松）</span></div> 
 > ko的缺点：组件无生命周期；durandal在其基础上实现了自己的‘组件’并提供了生命周期
 ## 案例代码

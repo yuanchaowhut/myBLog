@@ -34,7 +34,7 @@
 
 
 # 1 案例代码
-1. durandal官方案例：HTML Samples
+1. 在官方案例的基础上进行了部分代码的调整：[durandal-source](https://github.com/yusongjohn/durandal-source)
 2. 部分代码调整：屏蔽过度动画选项（transition）以减少代码追踪难度（异步的过程），包括嵌套路由和动态路由的相关页面都需要处理<br/>
 
 app/shell.html
@@ -826,3 +826,59 @@ function loadPlugins(){
 }
 ```
 
+## 6.2 mapUnknownRoutes
+>这里其实没太多可说的，和普通的路由配置没啥区别，只是作为一种别无选择的选择而已
+
+router.mapUnknownRoutes：配置404情况下的路由和路由处理器
+```
+router.mapUnknownRoutes = function (config, replaceRoute) {
+    var catchAllRoute = "*catchall";
+    var catchAllPattern = routeStringToRegExp(catchAllRoute);
+
+    router.route(catchAllPattern, function (fragment, queryString) {
+        var paramInfo = createParams(catchAllPattern, fragment, queryString);
+        var instruction = {
+            fragment: fragment,
+            queryString: queryString,
+            config: {
+                route: catchAllRoute,
+                routePattern: catchAllPattern
+            },
+            params: paramInfo.params,
+            queryParams: paramInfo.queryParams
+        };
+        //...
+        queueInstruction(instruction);
+    });
+
+    return router;
+};
+```
+
+router.loadUrl中我们看到通过遍历路由处理器去匹配路由；mapUnknownRoutes是在配置完正常路由之后再进行调用的，这样做就会使得
+404路由配置作为最后一个选项去匹配
+```
+router.loadUrl = function (fragment) {
+    var handlers = router.handlers,
+    //...
+    for (var i = 0; i < handlers.length; i++) {
+        var current = handlers[i];
+        if (current.routePattern.test(coreFragment)) {
+            console.log('匹配到路由处理器');
+            current.callback(coreFragment, queryString);
+            return true;
+        }
+    }
+    //...
+}
+```
+
+- 根路由和子路由都可以单独增加当前级别的404配置，在案例中我给创建的多级路由也配置404
+![avatar](images/durandal/404_1.png)
+ 
+## 6.3 创建多级路由
+>关键点在于，需要使用[父路由]创建子路由，才会达到有效的[嵌套]
+- 在 ko/index.js 基础上再嵌套一个路由，如下图
+
+![avatar](images/durandal/durandal-multi-router_1.png)
+![avatar](images/durandal/durandal-multi-router_2.png)

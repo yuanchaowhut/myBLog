@@ -136,7 +136,7 @@ rootRooter.activate(); // 路由激活入口
 4. router.loadUrl（关键：匹配合适的【路由处理器】（也就是上一步骤生成的router.handlers），其实也就确定了待路由的页面）
 5. 路由处理器调用 dequeueInstruction 
 6. dequeueInstruction中通过requirejs加载待路由页面的[model].js （得确定该路由页面是存在的，才进行后面的路由页面的绑定）
-    1. 成功：ensureActivation -> 激活（关键在于computedObservable：router.activeItem） 
+    1. 成功：ensureActivation -> 激活（关键在于computedObservable：router.activeItem，见2.3.1） 
     2. 失败：cancelNavigation
 ```
 
@@ -306,7 +306,7 @@ function queueInstruction(instruction) {
 > 之所以异步：是因为system.acquire().then(success)的成功回调函数的调用是放在setTimeout中的
 
 获取路由页面的model.js<br/>
-    1. 成功：ensureActivation：尝试激活路由页面（router.activeItem:computedObservable）<br/>
+    1. 成功：ensureActivation：尝试激活路由页面（router.activeItem:computedObservable，见2.3.1）<br/>
     2. 失败：cancelNavigation：取消此次路由切换
 
 ```
@@ -343,7 +343,7 @@ function dequeueInstruction() {
 
 
 #### 7. activateRoute
-1. 异步获取路由页面的model.js成功后，标志着该路由页面存在，接着判断是否可以更新路由（逻辑在activator.activateItem方法中），如果可以，则进入【成功回调】
+1. 异步获取路由页面的model.js成功后，标志着该路由页面存在，接着判断是否可以更新路由（逻辑在activator.activateItem方法中），如果可以，则进入成功回调
 2. activator.activateItem()方法的调用栈中绑定或者更新了 computedObservable:router.activeItem 的数据 
 
 ```
@@ -383,7 +383,7 @@ rootRouter.activate = function (options) {
 
 
 - activateRoute方法中的 startDeferred.resolve()的作用
-    - 标志着shell.js的 activate声明周期 的结束，继续进行页面的绑定（进入successCallback）
+    - 标志着shell.js的 activate生命周期 的结束，继续进行页面的绑定（进入successCallback）
 
 ```
 // composition.js
@@ -411,9 +411,9 @@ function tryActivate(context, successCallback, skipActivation, element) {
 ```
 <div class="page-host" data-bind="router"></div>
 ```
-  - 调用ko.bindingHandlers.router进行实质的路由页面的渲染（异步）
->composition.compose()之所以是异步的：是因为会通过system.acquire().then()获取html文件的过程
-
+- 执行ko.bindingHandlers.router.update进行实质的路由页面的渲染（异步）
+    - 页面渲染的过程在composition.compose方法中
+    - composition.compose()之所以是异步的：是因为会通过system.acquire().then()获取html文件的过程
 ```
 rootRouter.install = function(){
     ko.bindingHandlers.router = {
@@ -434,10 +434,7 @@ rootRouter.install = function(){
 ```
 
 ### 2.3.1 computedObservable对象：router.activeItem
-router.activeItem作为computedObservable对象意义非凡 
-1. 在 ko.bindingHandlers.router.update 执行了 theRouter.activeItem() ，这会使得 ko.bindingHandlers.router.update 向  theRouter.activeItem添加[订阅]
-2. 当theRouter.activeItem数据变化时，则会触发  ko.bindingHandlers.router.update 执行
-3. router.activeItem属性的实际引用是在activator.js中创建的computed对象
+- router.activeItem属性的实际引用是在activator.js中创建的computed对象
 ```
 //router.js
 var createRouter = function (name) {
@@ -465,6 +462,10 @@ function createActivator(initialActiveItem, settings) {
     return computed
 }
 ```
+- router.activeItem作为computedObservable对象意义非凡 
+1. 在 ko.bindingHandlers.router.update 执行了 theRouter.activeItem() ，这会使得 ko.bindingHandlers.router.update 向  theRouter.activeItem添加[订阅]
+2. 当theRouter.activeItem数据变化时，则会触发  ko.bindingHandlers.router.update 执行
+
 4. 该computedObservable写入的过程发生在 router.js-activateRoute()的调用栈中，最终在activator.js-activate() 方法中进行数据更新(最新的路由配置)
 
 ```
@@ -478,8 +479,8 @@ function activate(newItem, activeItem, callback, activationData) {
 
 ### 2.3.2 路由页面渲染（异步）
 1. 页面加载的具体过程：composition.compose（见durandal-生命周期），这个过程是异步的
-1. composition.compose调用时model.js已经准备好了，但是视图(view)可能没有准备好，因此这里需要异步的去加载视图即html页面
-1. system.acquire为了保证代码运行的一致性，将回调放在了setTimeout中（es6中的promise的polyfill多是基于setTimeout来模拟异步）
+2. composition.compose调用时model.js已经准备好了，但是视图(view)可能没有准备好，因此这里需要异步的去加载视图即html页面
+3. system.acquire为了保证代码运行的一致性，将回调放在了setTimeout中（es6中的promise的polyfill多是基于setTimeout来模拟异步）
 
 ```
 //system.js
@@ -513,9 +514,6 @@ acquire: function() {
 //histroy.js
 $(window).on('hashchange', history.checkUrl);
 ```
-
-
-
 
 ```
 //histroy.js

@@ -744,7 +744,7 @@ router.makeRelative = function(settings){
 }
 ```
 - router.makeRelative监听了两个事件
-    1. 'router:route:after-config'事件：用来生成动态路由特有的正则路由模式（routerPattern）
+ 'router:route:after-config'事件：用来生成动态路由特有的正则路由模式（routerPattern）    
 ```
 function configureRoute(config) {
     //...
@@ -763,7 +763,8 @@ function configureRoute(config) {
     }); 
 }
 ```
-    2. 'router:route:before-child-routes'事件：
+
+'router:route:before-child-routes'事件：    
 ```
 function activateRoute(activator, instance, instruction) {
     //...

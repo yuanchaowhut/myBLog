@@ -31,6 +31,10 @@
   - [6.1 rootRouter.install的执行](#61-rootrouterinstall%E7%9A%84%E6%89%A7%E8%A1%8C)
   - [6.2 mapUnknownRoutes](#62-mapunknownroutes)
   - [6.3 创建多级路由](#63-%E5%88%9B%E5%BB%BA%E5%A4%9A%E7%BA%A7%E8%B7%AF%E7%94%B1)
+    - [6.4 控制台打印日志看路由流程](#64-%E6%8E%A7%E5%88%B6%E5%8F%B0%E6%89%93%E5%8D%B0%E6%97%A5%E5%BF%97%E7%9C%8B%E8%B7%AF%E7%94%B1%E6%B5%81%E7%A8%8B)
+      - [6.4.1 初始化只有根路由的页面](#641-%E5%88%9D%E5%A7%8B%E5%8C%96%E5%8F%AA%E6%9C%89%E6%A0%B9%E8%B7%AF%E7%94%B1%E7%9A%84%E9%A1%B5%E9%9D%A2)
+      - [点击导航切换流程（6.4.1 -> 6.4.3）](#%E7%82%B9%E5%87%BB%E5%AF%BC%E8%88%AA%E5%88%87%E6%8D%A2%E6%B5%81%E7%A8%8B641---643)
+      - [6.4.3 初始化页面就包含嵌套路由的情况](#643-%E5%88%9D%E5%A7%8B%E5%8C%96%E9%A1%B5%E9%9D%A2%E5%B0%B1%E5%8C%85%E5%90%AB%E5%B5%8C%E5%A5%97%E8%B7%AF%E7%94%B1%E7%9A%84%E6%83%85%E5%86%B5)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -881,3 +885,17 @@ router.loadUrl = function (fragment) {
 ![avatar](images/durandal/durandal-multi-router_1.png)
 
 ![avatar](images/durandal/durandal-multi-router_2.png)
+
+### 6.4 控制台打印日志看路由流程
+#### 6.4.1 初始化只有根路由的页面
+- 初始化路由的页面
+![avatar](images/durandal/hello-page.png)
+- 控制台信息
+![avatar](images/durandal/durandal_router_1.png)
+#### 点击导航切换流程（6.4.1 -> 6.4.3）
+![avatar](images/durandal/durandal_2.png)
+#### 6.4.3 初始化页面就包含嵌套路由的情况
+- 初始化路由的页面
+![avatar](images/durandal/ko-page.png)
+- 控制台信息
+![avatar](images/durandal/durandal_3.png)

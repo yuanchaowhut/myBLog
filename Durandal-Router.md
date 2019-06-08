@@ -380,8 +380,6 @@ rootRouter.activate = function (options) {
 }
 ```
 
-
-
 - activateRoute方法中的 startDeferred.resolve()的作用
     - 标志着shell.js的 activate生命周期 的结束，继续进行页面的绑定（进入successCallback）
 
@@ -411,9 +409,8 @@ function tryActivate(context, successCallback, skipActivation, element) {
 ```
 <div class="page-host" data-bind="router"></div>
 ```
-- 执行ko.bindingHandlers.router.update进行实质的路由页面的渲染（异步）
-    - 页面渲染的过程在composition.compose方法中
-    - composition.compose()之所以是异步的：是因为会通过system.acquire().then()获取html文件的过程
+- 执行ko.bindingHandlers.router.update
+    -调用composition.compose方法渲染路由页面（异步）
 ```
 rootRouter.install = function(){
     ko.bindingHandlers.router = {
@@ -465,8 +462,7 @@ function createActivator(initialActiveItem, settings) {
 - router.activeItem作为computedObservable对象意义非凡 
 1. 在 ko.bindingHandlers.router.update 执行了 theRouter.activeItem() ，这会使得 ko.bindingHandlers.router.update 向  theRouter.activeItem添加[订阅]
 2. 当theRouter.activeItem数据变化时，则会触发  ko.bindingHandlers.router.update 执行
-
-4. 该computedObservable写入的过程发生在 router.js-activateRoute()的调用栈中，最终在activator.js-activate() 方法中进行数据更新(最新的路由配置)
+3. 该computedObservable写入的过程发生在 router.js-activateRoute()的调用栈中，最终在activator.js-activate() 方法中进行数据更新(最新的路由配置)
 
 ```
 // activator.js
@@ -506,51 +502,15 @@ acquire: function() {
 ```
  
 # 3 路由切换流程
-> 上面的过程是页面初始化时（第一次进入页面）的过程，但是路由的重要体现还在于页面部分刷新（或者无刷新）的url地址变更，这一部分说下点击a标签触发的页面部分刷新的流程
-
->点击a标签触发会hashChange事件，最终会导致 computedObservable:router.activeItem更新数据（最新的路由配置），之前说到 ko.bindingHandlers.router.update 对其添加了订阅，此时会触发udpate执行，便更新了路由页面
-
+1. 上面的过程是页面初始化时（第一次进入页面）的过程
+2. 那么点击导航栏切换路由页面的过程是怎样的呢？
+    1. 点击a标签触发会hashChange事件(history.checkUrl) -> history.loadUrl -> router.loadUrl -> ...（后面的流程和页面初始化的流程几乎一致）
+    2. 当在：activator.js 更新了 router.activeItem(newItem) 之后
+    3. 触发 ko.bindingHandlers.router.update 执行，则达成更新路由页面的目的 
 ```
 //histroy.js
 $(window).on('hashchange', history.checkUrl);
-```
-
-```
-//histroy.js
-history.checkUrl = function() {
-    var current = history.getFragment();
-    if (current === history.fragment && history.iframe) {
-        current = history.getFragment(history.getHash(history.iframe));
-    }
-
-    if (current === history.fragment) {
-        return false;
-    }
-
-    if (history.iframe) {
-        history.navigate(current, false);
-    }
-    
-    history.loadUrl();
-};
-```
-
-
-
-```
-//histroy.js
-history.loadUrl = function(fragmentOverride) {
-    var fragment = history.fragment = history.getFragment(fragmentOverride);
-
-    return history.options.routeHandler ?
-        history.options.routeHandler(fragment) :
-        false;
-};
-```
-
-> history.activate 调用 history.loadUrl 调用 router.loadUrl
-
-> router.loadUrl：根据当前url获取相应的路由处理器（之后的执行逻辑和初始化时基本一致） 进行处理
+```  
 
 # 4 嵌套路由(子路由)处理
 app\ko\index.js 创建了子路由（因为是直接使用router.js返回的router对象创建的，所以其父路由就是根路由）
@@ -568,44 +528,29 @@ define(['plugins/router', 'knockout'], function(router, ko) { // 这里的 route
     };
 });
 ```
-- 上面代码说明
-    1. router.createChildRouter() ：使用【父】路由（不一定是根路由）创建子路由 
-     >每个路由都拥有创建子路由的方法，谁创建子路由，谁就是子路由的parent，也是hasChildRouter判断的重要依据
-    ```
-    var createRouter = function (name) {
-        var router = {};
-        router.createChildRouter = function (name) {
-            var childRouter = createRouter(name);
-            childRouter.parent = router;
-            return childRouter;
-        };
-        return router;
-    };
-    ```
-    2. router.makeRelative，设置相关属性如relativeToParentRouter，事件监听等
-    3. router.map：生成路由处理器并存储在当前的childRouter对象中（不会交由根路由管理），每一级别的路由都是各自为政，因此后面子路由的路由处理器的匹配也是在childRouter对象中进行的
 
-- 下面看到activateRoute方法递归的使用组件返回的路由属性加载路由页面（instance.router.loadUrl)
->这里递归不太明显，activateRoute其实是在router.loadUrl的调用栈中的，然后如果存在嵌套路由activateRoute又去调用router.loadUrl去加载嵌套路由，但是调用的router并不是同一router实例）
+1. router.createChildRouter() ：使用【父】路由（不一定是根路由）创建子路由 
+ >每个路由都拥有创建子路由的方法，谁创建子路由，谁就是子路由的parent，也是hasChildRouter判断的重要依据
 ```
-function activateRoute(activator, instance, instruction) {
-    //...
-    activator.activateItem(instance, instruction.params, options).then(function (succeeded) {
-        if (withChild) {
-            instance.router.loadUrl(fullFragment); // instance就是ko/index返回的model，instance.router就是上面的childRouter
-        }
-    }
-    //...
-}
+var createRouter = function (name) {
+    var router = {};
+    router.createChildRouter = function (name) {
+        var childRouter = createRouter(name);
+        childRouter.parent = router;
+        return childRouter;
+    };
+    return router;
+};
 ```
+2. router.makeRelative，设置相关属性如relativeToParentRouter，事件监听等
+3. router.map：生成路由处理器并存储在当前的childRouter对象中（不会交由根路由管理），每一级别的路由都是各自为政，因此后面子路由的路由处理器的匹配也是在childRouter对象中进行的
 
 ## 4.1 递归加载
-1.  activateItem 是在 router.loadUrl 调用栈中的，下面在拥有子路由的情况下，会去调用  instance.router.loadUrl => 递归的过程
-2.  对于嵌套路由来说，当根路由进入到activator.activateItem的成功回调后，会递归计算所有的嵌套路由（异步：体现在获取路由页面的js的过程（dequeueInstruction:system.acquire().then()）是异步的）
-> 如：shell.js中的路由为根路由，ko/index是子路由，如果当前浏览器路径为：#knockout-samples/betterList
-在进行匹配过程中会递归的把所有的嵌套路由的路由页面全部计算出来，即每一个路由对应的路由页面
-这里先加载ko/index.js(作为shell组件的路由页面），但与此同时 ko/index本身也是拥有路由功能 ，因此会去加载 ko\betterList\index.js
-
+1.  为什么是递归的？
+    1. activateRoute 是在router.loadUrl 调用栈中的
+    2. activateRoute 方法中，在拥有子路由的情况下，会去调用instance.router.loadUrl
+2.  对于嵌套路由来说，当根路由进入到activator.activateItem的成功回调后，会递归计算所有的嵌套路由
+ 
 ```
 //router.js activateRoute()
 activator.activateItem(instance, instruction.params, options).then(function(succeeded) {
@@ -630,8 +575,6 @@ function hasChildRouter(instance, parentRouter) {
     return instance.router && instance.router.parent == parentRouter;
 }
 ```
-
-
 
 ## 4.2 路径处理
 1. 嵌套路由的路径处理是基于父路由的

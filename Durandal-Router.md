@@ -29,6 +29,8 @@
   - [5.2 路径匹配](#52-%E8%B7%AF%E5%BE%84%E5%8C%B9%E9%85%8D)
 - [6 补充](#6-%E8%A1%A5%E5%85%85)
   - [6.1 rootRouter.install的执行](#61-rootrouterinstall%E7%9A%84%E6%89%A7%E8%A1%8C)
+  - [6.2 mapUnknownRoutes](#62-mapunknownroutes)
+  - [6.3 创建多级路由](#63-%E5%88%9B%E5%BB%BA%E5%A4%9A%E7%BA%A7%E8%B7%AF%E7%94%B1)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -873,12 +875,12 @@ router.loadUrl = function (fragment) {
 }
 ```
 
-- 根路由和子路由都可以单独增加当前级别的404配置，在案例中我给创建的多级路由也配置404
+- 根路由和子路由都可以单独增加当前级别的404配置，在案例中我给创建的多级路由也配置了404
 ![avatar](images/durandal/404_1.png)
  
 ## 6.3 创建多级路由
 >关键点在于，需要使用[父路由]创建子路由，才会达到有效的[嵌套]
 - 在 ko/index.js 基础上再嵌套一个路由，如下图
-
 ![avatar](images/durandal/durandal-multi-router_1.png)
+
 ![avatar](images/durandal/durandal-multi-router_2.png)

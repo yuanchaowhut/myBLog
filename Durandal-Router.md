@@ -40,7 +40,7 @@
 
 # 1 案例代码
 1. durandal官方案例：HTML Samples
-2. 部分代码调整：屏蔽过度动画选项（transition）以减少代码追踪难度（异步的过程），包括嵌套路由和动态路由的相关关页面都需要进行屏蔽<br/>
+2. 部分代码调整：屏蔽过度动画选项（transition）以减少代码追踪难度（异步的过程），包括嵌套路由和动态路由的相关关页面都需要处理<br/>
 
 app/shell.html
 ```
@@ -56,11 +56,7 @@ app/ko/index.html<br/>
 //改为
 <!--ko router--><!--/ko-->
 ```
-
-```
-
-```
-
+ 
 # 2 路由流程
 ## 2.1 应用程序入口
 
@@ -75,12 +71,10 @@ app.setRoot('app/shell');
 3. 在该组件(shell.js)中包含了activate生命周期回调，路由的初始化（路由配置，初始路由页面的绑定等）工作都是在这里做的
 
 ```
-//shell.js 部分代码
+//shell.js
 activate: function () {
-    var rootRooter = router.map([//...]);
-    return rootRooter.buildNavigationModel()
-        .mapUnknownRoutes('hello/index', 'not-found')
-        .activate();
+    var rootRooter = router.map([//...]).buildNavigationModel().mapUnknownRoutes('hello/index', 'not-found');
+    return rootRooter.activate();
 }
 ```
 
@@ -91,13 +85,13 @@ var rootRooter = router.map.buildNavigationModel().mapUnknownRoutes('hello/index
 ```
 
 1. router.map：生成路由配置（router.routes、router.handlers)<br/>
-router.map 调 router.mapRoute 调 configureRoute
+>router.map 调 router.mapRoute 调 configureRoute
 
 ```
 function configureRoute(config){
     //...
     router.routes.push(config);
-    router.route(config.routePattern, function(fragment, queryString) {
+    router.route(config.routePattern, function(fragment, queryString) { 
         var paramInfo = createParams(config.routePattern, fragment, queryString);
         queueInstruction({
             fragment: fragment,
@@ -112,14 +106,13 @@ function configureRoute(config){
 ```
 
 
-router.route
+router.route：配置路由处理器（关键）
 
 ```
-router.route = function(routePattern, callback) {
+router.route = function(routePattern, callback) { // callback：即路由处理器，匹配到合适的路由时会被调用
     router.handlers.push({ routePattern: routePattern, callback: callback });
 };
 ```
-
 
 2. router.buildNavigationModel<br/>
 >Builds an observable array designed to bind a navigation UI to. The model will exist in the `navigationModel` property.
@@ -133,7 +126,6 @@ router.mapUnknownRoutes：404
 ```
 rootRooter.activate(); // 路由激活入口
 ```
-
 
 #### 1. router.activate调用栈
 
@@ -151,9 +143,8 @@ rootRooter.activate(); // 路由激活入口
 
 #### 2. router.activate
 >Activates the router and the underlying history tracking mechanism.
-- 作用
-1. 路由激活
-2. 历史记录跟踪机制（通过何种方式实现呢？）
+>1. 路由激活
+>2. 历史记录跟踪机制（通过何种方式实现呢？）
 
 ```
 //router.js
@@ -170,11 +161,9 @@ rootRouter.activate = function(options) {
 }
 ```
 
-
-
-1. 代理 a 标签点击事件相关代码（这里的作用是什么呢？？）
-2. preventDefault：阻止元素发生默认的行为，比如点击a标签防止链接打开
-3. isDefaultPrevented：判断是否已经调用过event.preventDefault()函数
+代理 a 标签点击事件(作用)：
+> preventDefault：阻止元素发生默认的行为，比如点击a标签防止链接打开<br/>
+> isDefaultPrevented：判断是否已经调用过event.preventDefault()函数
 
 ```
 $(document).delegate("a", 'click', function(evt){
@@ -210,7 +199,7 @@ $(document).delegate("a", 'click', function(evt){
 
 #### 3. history.activate （历史记录跟踪机制）
 1. 监听hashChange事件
-2. 【初始路由(根路由)】准备的入口
+2. 初始路由(根路由)准备的入口
 
 ```
 //history.js
@@ -241,9 +230,9 @@ history.loadUrl = function(fragmentOverride) {
 
 
 #### 4. router.loadUrl
-路由处理器的作用：作为下面两个动作的【连接点】
+路由处理器的作用：作为下面两个动作的怕[连接点]
 1. url变化（页面初始化、hashChange）：浏览器输入刷新或者url变化
-2. 路由激活：获取路由页面，填充路由dom
+2. 路由激活：路由页面的绑定(router.activeItem(newItem))
 ```
 //router.js
 router.loadUrl = function(fragment) {
@@ -274,7 +263,6 @@ router.loadUrl = function(fragment) {
     }
 }
 ```
-
 
 ##### 路由处理器有两种类型：404、非404
 1. 404：通过router.mapUnknownRoutes也会生成相应的路由处理器，在补充部分介绍（mapUnknownRoutes） 
@@ -394,7 +382,8 @@ rootRouter.activate = function (options) {
 
 
 
-- activateRoute方法中的 startDeferred.resolve() 标志着shell.js的 activate声明周期 的结束，继续进行页面的绑定（进入successCallback），同时也标志着路由页面的【成功绑定】，注意只是相关对象/变量的绑定，路由页面的内容尚未渲染
+- activateRoute方法中的 startDeferred.resolve()的作用
+    - 标志着shell.js的 activate声明周期 的结束，继续进行页面的绑定（进入successCallback）
 
 ```
 // composition.js
@@ -417,14 +406,12 @@ function tryActivate(context, successCallback, skipActivation, element) {
 
 
 ## 2.3 路由页面渲染的时机
-1. 上面说到router.js activateRoute中，执行了startDeferred.resolve() 操作后，继续进行shell组件的绑定(使用ko进行绑定的)，knockout绑定过程中遇到下面 dom 
-
+1. 上面说到router.js activateRoute中，执行了startDeferred.resolve() 操作后，继续进行shell组件的绑定(使用ko进行绑定的)
+，当knockout绑定过程中遇到下面 dom 
 ```
 <div class="page-host" data-bind="router"></div>
 ```
-
-
-2. 然后，调用ko.bindingHandlers.router进行实质的路由页面的渲染（异步）
+  - 调用ko.bindingHandlers.router进行实质的路由页面的渲染（异步）
 >composition.compose()之所以是异步的：是因为会通过system.acquire().then()获取html文件的过程
 
 ```
@@ -446,11 +433,38 @@ rootRouter.install = function(){
 };
 ```
 
-### 2.3.1 computedObservable:router.activeItem
-router.activeItem作为computedObservable对象意义非凡
-1. 在 ko.bindingHandlers.router.update 执行了 theRouter.activeItem() ，这会使得 ko.bindingHandlers.router.update 向  theRouter.activeItem添加【订阅】
+### 2.3.1 computedObservable对象：router.activeItem
+router.activeItem作为computedObservable对象意义非凡 
+1. 在 ko.bindingHandlers.router.update 执行了 theRouter.activeItem() ，这会使得 ko.bindingHandlers.router.update 向  theRouter.activeItem添加[订阅]
 2. 当theRouter.activeItem数据变化时，则会触发  ko.bindingHandlers.router.update 执行
 3. router.activeItem属性的实际引用是在activator.js中创建的computed对象
+```
+//router.js
+var createRouter = function (name) {
+    var activeItem = activator.create();
+    var router = {】
+        //...   
+        activeItem: activeItem,
+        //...
+    } 
+}
+
+//activator.js
+function createActivator(initialActiveItem, settings) {
+    var activeItem = ko.observable(null);
+    var computed = ko.computed({
+               read: function () {
+                   return activeItem();
+               },
+               write: function (newValue) {
+                   computed.viaSetter = true;
+                   computed.activateItem(newValue);
+               }
+           });
+    //...
+    return computed
+}
+```
 4. 该computedObservable写入的过程发生在 router.js-activateRoute()的调用栈中，最终在activator.js-activate() 方法中进行数据更新(最新的路由配置)
 
 ```
@@ -743,8 +757,8 @@ router.makeRelative = function(settings){
     //...
 }
 ```
-- router.makeRelative监听了两个事件
- 'router:route:after-config'事件：用来生成动态路由特有的正则路由模式（routerPattern）    
+- router.makeRelative监听了两个事件被触发的时机<br/>
+ 'router:route:after-config'事件：用来生成动态路由特有的正则路由模式（routerPattern） ，是在配置路由时触发的
 ```
 function configureRoute(config) {
     //...

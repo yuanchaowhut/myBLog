@@ -1,43 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
-
-- [1 案例代码](#1-%E6%A1%88%E4%BE%8B%E4%BB%A3%E7%A0%81)
-- [2 路由流程](#2-%E8%B7%AF%E7%94%B1%E6%B5%81%E7%A8%8B)
-  - [2.1 应用程序入口](#21-%E5%BA%94%E7%94%A8%E7%A8%8B%E5%BA%8F%E5%85%A5%E5%8F%A3)
-  - [2.2 路由的初始化（shell.js）](#22-%E8%B7%AF%E7%94%B1%E7%9A%84%E5%88%9D%E5%A7%8B%E5%8C%96shelljs)
-    - [2.2.1 路由配置及路由处理器准备](#221-%E8%B7%AF%E7%94%B1%E9%85%8D%E7%BD%AE%E5%8F%8A%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86%E5%99%A8%E5%87%86%E5%A4%87)
-    - [2.2.2 激活(router/histroy)](#222-%E6%BF%80%E6%B4%BBrouterhistroy)
-      - [1. router.activate调用栈](#1-routeractivate%E8%B0%83%E7%94%A8%E6%A0%88)
-      - [2. router.activate](#2-routeractivate)
-      - [3. history.activate （历史记录跟踪机制）](#3-historyactivate-%E5%8E%86%E5%8F%B2%E8%AE%B0%E5%BD%95%E8%B7%9F%E8%B8%AA%E6%9C%BA%E5%88%B6)
-      - [4. router.loadUrl](#4-routerloadurl)
-        - [路由处理器有两种类型：404、非404](#%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86%E5%99%A8%E6%9C%89%E4%B8%A4%E7%A7%8D%E7%B1%BB%E5%9E%8B404%E9%9D%9E404)
-        - [路由处理器的作用](#%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86%E5%99%A8%E7%9A%84%E4%BD%9C%E7%94%A8)
-      - [5. dequeueInstruction（异步）](#5-dequeueinstruction%E5%BC%82%E6%AD%A5)
-      - [6. ensureActivation](#6-ensureactivation)
-      - [7. activateRoute](#7-activateroute)
-  - [2.3 路由页面渲染的时机](#23-%E8%B7%AF%E7%94%B1%E9%A1%B5%E9%9D%A2%E6%B8%B2%E6%9F%93%E7%9A%84%E6%97%B6%E6%9C%BA)
-    - [2.3.1 computedObservable:router.activeItem](#231-computedobservablerouteractiveitem)
-    - [2.3.2 路由页面渲染（异步）](#232-%E8%B7%AF%E7%94%B1%E9%A1%B5%E9%9D%A2%E6%B8%B2%E6%9F%93%E5%BC%82%E6%AD%A5)
-- [3 路由切换流程](#3-%E8%B7%AF%E7%94%B1%E5%88%87%E6%8D%A2%E6%B5%81%E7%A8%8B)
-- [4 嵌套路由(子路由)处理](#4-%E5%B5%8C%E5%A5%97%E8%B7%AF%E7%94%B1%E5%AD%90%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86)
-  - [4.1 递归加载](#41-%E9%80%92%E5%BD%92%E5%8A%A0%E8%BD%BD)
-  - [4.2 路径处理](#42-%E8%B7%AF%E5%BE%84%E5%A4%84%E7%90%86)
-  - [4.3 嵌套路由的绑定](#43-%E5%B5%8C%E5%A5%97%E8%B7%AF%E7%94%B1%E7%9A%84%E7%BB%91%E5%AE%9A)
-    - [4.3.1 ko.bindingHandlers.router.update对谁添加订阅？](#431-kobindinghandlersrouterupdate%E5%AF%B9%E8%B0%81%E6%B7%BB%E5%8A%A0%E8%AE%A2%E9%98%85)
-    - [4.3.2 ko.bindingHandlers.router.update参数中的valueAccessor是什么鬼？](#432-kobindinghandlersrouterupdate%E5%8F%82%E6%95%B0%E4%B8%AD%E7%9A%84valueaccessor%E6%98%AF%E4%BB%80%E4%B9%88%E9%AC%BC)
-- [5 动态路由](#5-%E5%8A%A8%E6%80%81%E8%B7%AF%E7%94%B1)
-  - [5.1 动态路由的routerPattern](#51-%E5%8A%A8%E6%80%81%E8%B7%AF%E7%94%B1%E7%9A%84routerpattern)
-  - [5.2 路径匹配](#52-%E8%B7%AF%E5%BE%84%E5%8C%B9%E9%85%8D)
-- [6 补充](#6-%E8%A1%A5%E5%85%85)
-  - [6.1 rootRouter.install的执行](#61-rootrouterinstall%E7%9A%84%E6%89%A7%E8%A1%8C)
-  - [6.2 为什么ko.bindingHandlers.router.update会对activeItem添加订阅？](#62-%E4%B8%BA%E4%BB%80%E4%B9%88kobindinghandlersrouterupdate%E4%BC%9A%E5%AF%B9activeitem%E6%B7%BB%E5%8A%A0%E8%AE%A2%E9%98%85)
-  - [6.3 require加载资源后进行缓存，但是system.acquire().then()依然异步](#63-require%E5%8A%A0%E8%BD%BD%E8%B5%84%E6%BA%90%E5%90%8E%E8%BF%9B%E8%A1%8C%E7%BC%93%E5%AD%98%E4%BD%86%E6%98%AFsystemacquirethen%E4%BE%9D%E7%84%B6%E5%BC%82%E6%AD%A5)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
-
 
 # 1 案例代码
 1. durandal官方案例：HTML Samples
@@ -56,6 +16,10 @@ app/ko/index.html<br/>
 <!--ko router: { transition:'entrance', cacheViews:true }--><!--/ko-->
 //改为
 <!--ko router--><!--/ko-->
+```
+
+```
+
 ```
 
 # 2 路由流程
@@ -625,23 +589,21 @@ function hasChildRouter(instance, parentRouter) {
 
 
 ## 4.2 路径处理
-嵌套路由-路径处理是基于父路由的
-对于ko/index.js的父路由是根路由，其配置在shell.js
+1. 嵌套路由-路径处理是基于父路由的
+2. 对于ko/index.js的父路由是根路由，其配置在shell.js
+```
 {route: 'knockout-samples*details', moduleId: 'ko/index', title: 'Knockout Samples', nav: true},
-
-会生成如下路由模式（正则）：routerPattern属性
-
-上面看到routerPattern使用小括号的方式用来获取子路由信息，当前路径为：#knockout-samples/betterList，得到子路由的路径为：betterList
-
+```
+3. 会生成如下路由模式（正则）：routerPattern属性<br/>
+![avatar](images/durandal/durandal-shell-router-pattern.png)
+4. 上面看到routerPattern使用小括号的方式用来获取子路由信息，当前路径为：#knockout-samples/betterList，得到子路由的路径为：betterList<br/>
+![avatar](images/durandal/durandal-router-shell-match-result.png)
 处理子路由，后面的流程和处理根路由基本一致
 
 ```
 //router.js activateRoute()
-instance.router.loadUrl(fullFragment);
+instance.router.loadUrl(fullFragment); // 使用子路由的路由实例加载子路由，即ko/index.js返回的childRouter
 ```
- 使用子路由的路由实例加载子路由，即ko/index.js返回的childRouter
-
-
 
 ```
 router.loadUrl = function(fragment) {
@@ -668,11 +630,11 @@ router.loadUrl = function(fragment) {
 
 ## 4.3 嵌套路由的绑定
 ### 4.3.1 ko.bindingHandlers.router.update对谁添加订阅？
-首先可以可定的是，向router.activeItem添加订阅，但是真正的问题在于这里的router是哪个组件创造出来的路由实例呢？？？
-既然代码走到ko.bindingHandlers.router.update说明在你使用的组件页面中包含路由dom，即你这个组件具备路由功能，那么update函数中的theRouter默认是指向你组件[model].js返回的router指向的路由。
-对于 shell.js 来说，就是根路由
-对于 ko/index.js 就是 返回的childRouter
-对于 keyedMasterDetail/master.html 就是返回的 childRouter
+1. 首先可以可定的是，向router.activeItem添加订阅，但是真正的问题在于这里的router是哪个组件创造出来的路由实例呢？？？
+2. 既然代码走到ko.bindingHandlers.router.update说明在你使用的组件页面中包含路由dom，即你这个组件具备路由功能，那么update函数中的theRouter默认是指向你组件[model].js返回的router指向的路由。
+    1. 对于 shell.js 来说，就是根路由
+    2. 对于 ko/index.js 就是 返回的childRouter
+    3. 对于 keyedMasterDetail/master.html 就是返回的 childRouter
 
 ```
 ko.bindingHandlers.router = {
@@ -695,13 +657,14 @@ ko.bindingHandlers.router = {
 ```
 <div class="page-host" data-bind="router"></div>
 ```
-
+![avatar](images/durandal/durandal-router-value-accessor.png)
 
 valueAccessor主要是针对下面形式，然后你会发现valueAccessor()的返回值就是定义时的值（其实，这种形式的作用是为了拿到当前绑定上下文[bindingContext]的最新数据，详情参考ko源码）
 
 ```
 <div class="page-host" data-bind="router: { transition:'entrance', cacheViews:false }"></div>
 ```
+![avatar](images/durandal/durandal-router-value-accessor_1.png)
 
 # 5 动态路由
 app\keyedMasterDetail\master.js
@@ -753,23 +716,20 @@ router.makeRelative = function(settings){
 
 
 ## 5.1 动态路由的routerPattern
-makeRelative中的【dynamicHash】选项，动态路由的routerPattern的生成区别于嵌套路由，需要单独处理生成正确的routerPatter，这里通过事件监听的方式来处理
-
+- makeRelative中的【dynamicHash】选项，动态路由的routerPattern的生成区别于嵌套路由，需要单独处理生成正确的routerPatter，这里通过事件监听的方式来处理
 ```
 router.makeRelative({moduleId: 'keyedMasterDetail', fromParent: true, dynamicHash: ':id'})
+``` 
+- router配置项生成
 ```
-
-router配置项生成
 router.map() ->mapRouter -> configurateRouter -> 触发 "router:route:after-config" 事件
-
-
-
-以动态路由中其中一个为例
+```
+![avatar](images/durandal/durandal-ko-index-router-generate-time.png)
+- 以动态路由中其中一个为例
 
 ```
 {route: 'third', moduleId: 'third', title: 'Third', nav: true}
 ```
-
 
 生成的routerPattern如下：第一个小括号就是用来获取【动态】数据的
 
@@ -777,10 +737,8 @@ router.map() ->mapRouter -> configurateRouter -> 触发 "router:route:after-conf
 routerPatter：/^([^\/]+)\/third$/i
 ```
 
-
-
 ## 5.2 路径匹配
-动态路由的处理和嵌套路由的情况基本一致，区别在于routerPattern生成的策略不同，自然生成routerPattern也是有区别的，动态路由的重要特点在进行路由匹配的过程中会生成【动态数据】（如下面的:id）
+>动态路由的处理和嵌套路由的情况基本一致，区别在于routerPattern生成的策略不同，自然生成routerPattern也是有区别的，动态路由的重要特点在进行路由匹配的过程中会生成【动态数据】（如下面的:id）
 
 ```
 //shell.js
@@ -792,11 +750,11 @@ routerPatter：/^([^\/]+)\/third$/i
 }
 ```
 
-生成的routerPattern
-
-routerPattern的两个小括号
-1. 第一个小括号是用来提取【动态】信息的，也是动态路由的本质（相同的页面，但是【参数】不同）
-2. 第二个小括号用来获取路由页面的【路径】，这里获取才是真正有效的路径
+- 生成的routerPattern
+![avatar](images/durandal/durandal-ko-index-router-pattern.png)
+- routerPattern的两个小括号
+    1. 第一个小括号是用来提取【动态】信息的，也是动态路由的本质（相同的页面，但是【参数】不同）
+    2. 第二个小括号用来获取路由页面的【路径】，这里获取才是真正有效的路径
 
 # 6 补充
 ## 6.1 rootRouter.install的执行

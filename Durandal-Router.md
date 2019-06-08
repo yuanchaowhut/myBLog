@@ -158,7 +158,7 @@ rootRouter.activate = function(options) {
 }
 ```
 
-代理 a 标签点击事件(作用)：
+代理 a 标签点击事件
 > preventDefault：阻止元素发生默认的行为，比如点击a标签防止链接打开<br/>
 > isDefaultPrevented：判断是否已经调用过event.preventDefault()函数
 

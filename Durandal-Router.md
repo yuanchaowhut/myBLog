@@ -541,10 +541,9 @@ history.loadUrl = function(fragmentOverride) {
 > router.loadUrl：根据当前url获取相应的路由处理器（之后的执行逻辑和初始化时基本一致） 进行处理
 
 # 4 嵌套路由(子路由)处理
-app\ko\index.js
-
+app\ko\index.js 创建了子路由（因为是直接使用router.js返回的router对象创建的，所以其父路由就是根路由）
 ```
-define(['plugins/router', 'knockout'], function(router, ko) {
+define(['plugins/router', 'knockout'], function(router, ko) { // 这里的 router 就是根路由
     var childRouter = router.createChildRouter()
         .makeRelative({
             moduleId:'ko',
@@ -557,12 +556,25 @@ define(['plugins/router', 'knockout'], function(router, ko) {
     };
 });
 ```
+- 上面代码说明
+    1. router.createChildRouter() ：使用【父】路由（不一定是根路由）创建子路由 
+     >每个路由都拥有创建子路由的方法，谁创建子路由，谁就是子路由的parent，也是hasChildRouter判断的重要依据
+    ```
+    var createRouter = function (name) {
+        var router = {};
+        router.createChildRouter = function (name) {
+            var childRouter = createRouter(name);
+            childRouter.parent = router;
+            return childRouter;
+        };
+        return router;
+    };
+    ```
+    2. router.makeRelative，设置相关属性如relativeToParentRouter，事件监听等
+    3. router.map：生成路由处理器并存储在当前的childRouter对象中（不会交由根路由管理），每一级别的路由都是各自为政，因此后面子路由的路由处理器的匹配也是在childRouter对象中进行的
 
- 
-1. router.createChildRouter() ：使用【父】路由（不一定是根路由）创建子路由
-2. router.makeRelative，设置相关属性如relativeToParentRouter，事件监听等
-3. router.map：生成路由处理器并存储在当前的childRouter对象中（不会交由根路由管理），每一级别的路由都是各自为政，因此后面子路由的路由处理器的匹配也是在childRouter对象中进行的
-
+- 下面看到activateRoute方法递归的使用组件返回的路由属性加载路由页面（instance.router.loadUrl)
+>这里递归不太明显，activateRoute其实是在router.loadUrl的调用栈中的，然后如果存在嵌套路由activateRoute又去调用router.loadUrl去加载嵌套路由，但是调用的router并不是同一router实例）
 ```
 function activateRoute(activator, instance, instruction) {
     //...
@@ -574,24 +586,6 @@ function activateRoute(activator, instance, instruction) {
     //...
 }
 ```
-
-router.js - router.createChildRouter ：
-每个路由都拥有创建子路由的方法，谁创建子路由，谁就是子路由的parent
-是hasChildRouter判断的重要依据
-
-```
-var createRouter = function (name) {
-    var router = {};
-    router.createChildRouter = function (name) {
-        var childRouter = createRouter(name);
-        childRouter.parent = router;
-        return childRouter;
-    };
-    return router;
-};
-```
-
-
 
 ## 4.1 递归加载
 1.  activateItem 是在 router.loadUrl 调用栈中的，下面在拥有子路由的情况下，会去调用  instance.router.loadUrl => 递归的过程
@@ -628,7 +622,7 @@ function hasChildRouter(instance, parentRouter) {
 
 
 ## 4.2 路径处理
-1. 嵌套路由-路径处理是基于父路由的
+1. 嵌套路由的路径处理是基于父路由的
 2. 对于ko/index.js的父路由是根路由，其配置在shell.js
 ```
 {route: 'knockout-samples*details', moduleId: 'ko/index', title: 'Knockout Samples', nav: true},
@@ -637,7 +631,7 @@ function hasChildRouter(instance, parentRouter) {
 ![avatar](images/durandal/durandal-shell-router-pattern.png)
 4. 上面看到routerPattern使用小括号的方式用来获取子路由信息，当前路径为：#knockout-samples/betterList，得到子路由的路径为：betterList<br/>
 ![avatar](images/durandal/durandal-router-shell-match-result.png)
-处理子路由，后面的流程和处理根路由基本一致
+5. 处理子路由，后面的流程和处理根路由基本一致
 
 ```
 //router.js activateRoute()
@@ -665,9 +659,8 @@ router.loadUrl = function(fragment) {
 }
 ```
 
-
-
 ## 4.3 嵌套路由的绑定
+> 这里意在说明页面中的路由dom和哪个router实例的activeItem属性关联的
 ### 4.3.1 ko.bindingHandlers.router.update对谁添加订阅？
 1. 首先可以可定的是，向router.activeItem添加订阅，但是真正的问题在于这里的router是哪个组件创造出来的路由实例呢？？？
 2. 既然代码走到ko.bindingHandlers.router.update说明在你使用的组件页面中包含路由dom，即你这个组件具备路由功能，那么update函数中的theRouter默认是指向你组件[model].js返回的router指向的路由。
@@ -690,7 +683,7 @@ ko.bindingHandlers.router = {
 
 
 ### 4.3.2 ko.bindingHandlers.router.update参数中的valueAccessor是什么鬼？
-首先这是ko使用 new Function() 形式生成的函数,生成的依据就是你的data-bind后面的内容
+首先这是ko使用 new Function() + with 生成的函数,生成的依据就是你的data-bind后面的内容
 如果是下面形式，那么 valueAccessor()返回 undefined
 
 ```
@@ -706,7 +699,9 @@ valueAccessor主要是针对下面形式，然后你会发现valueAccessor()的�
 ![avatar](images/durandal/durandal-router-value-accessor_1.png)
 
 # 5 动态路由
-app\keyedMasterDetail\master.js
+> 动态路由可以看成是嵌套路由的特例，只是增加了在url中获取参数的能力
+
+app\keyedMasterDetail\master.js是了一个动态路由页面
 
 ```
 var childRouter = router
@@ -719,10 +714,7 @@ var childRouter = router
     ]).buildNavigationModel();
 ```
 
-
-
-router.makeRelative 对动态路由的特殊处理
-
+- router.makeRelative 对动态路由的特殊处理
 ```
 router.makeRelative = function(settings){
     //...
@@ -751,8 +743,42 @@ router.makeRelative = function(settings){
     //...
 }
 ```
+- router.makeRelative监听了两个事件
+    1. 'router:route:after-config'事件：用来生成动态路由特有的正则路由模式（routerPattern）
+```
+function configureRoute(config) {
+    //...
+    router.trigger('router:route:after-config', config, router); // 触发事件
+    router.routes.push(config);
 
-
+    router.route(config.routePattern, function (fragment, queryString) {
+        var paramInfo = createParams(config.routePattern, fragment, queryString);
+        queueInstruction({
+            fragment: fragment,
+            queryString: queryString,
+            config: config,
+            params: paramInfo.params,
+            queryParams: paramInfo.queryParams
+        });
+    }); 
+}
+```
+    2. 'router:route:before-child-routes'事件：
+```
+function activateRoute(activator, instance, instruction) {
+    //...
+    if (withChild) { 
+        instance.router.trigger('router:route:before-child-routes', instance, instruction, router);
+    
+        var fullFragment = instruction.fragment;
+        if (instruction.queryString) {
+            fullFragment += "?" + instruction.queryString;
+        } 
+        instance.router.loadUrl(fullFragment);
+    }
+    //...
+}
+```
 
 ## 5.1 动态路由的routerPattern
 - makeRelative中的【dynamicHash】选项，动态路由的routerPattern的生成区别于嵌套路由，需要单独处理生成正确的routerPatter，这里通过事件监听的方式来处理

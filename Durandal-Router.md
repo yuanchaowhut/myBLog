@@ -29,8 +29,6 @@
   - [5.2 路径匹配](#52-%E8%B7%AF%E5%BE%84%E5%8C%B9%E9%85%8D)
 - [6 补充](#6-%E8%A1%A5%E5%85%85)
   - [6.1 rootRouter.install的执行](#61-rootrouterinstall%E7%9A%84%E6%89%A7%E8%A1%8C)
-  - [6.2 为什么ko.bindingHandlers.router.update会对activeItem添加订阅？](#62-%E4%B8%BA%E4%BB%80%E4%B9%88kobindinghandlersrouterupdate%E4%BC%9A%E5%AF%B9activeitem%E6%B7%BB%E5%8A%A0%E8%AE%A2%E9%98%85)
-  - [6.3 require加载资源后进行缓存，但是system.acquire().then()依然异步](#63-require%E5%8A%A0%E8%BD%BD%E8%B5%84%E6%BA%90%E5%90%8E%E8%BF%9B%E8%A1%8C%E7%BC%93%E5%AD%98%E4%BD%86%E6%98%AFsystemacquirethen%E4%BE%9D%E7%84%B6%E5%BC%82%E6%AD%A5)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -827,46 +825,4 @@ function loadPlugins(){
     }).promise();
 }
 ```
-
-
-
-
-## 6.2 为什么ko.bindingHandlers.router.update会对activeItem添加订阅？ 
-## 6.3 require加载资源后进行缓存，但是system.acquire().then()依然异步
-下面是reuqire进行缓存的相关代码
-
-```
-function newContext(contextName) {
-    var defined = {}, //缓存已经定义了的资源
-    //...
-    Module.prototype = { 
-        check: function () { 
-            //...
-            if (this.map.isDefine && !this.ignore) {
-                defined[id] = exports; // 缓存
-                //...
-            }
-            //...
-        } 
-    }
-    //...
-}
-```
-system.acquire
-```
-acquire: function() {
-    //...
-    return this.defer(function(dfd) {
-        require(modules, function() {
-            var args = arguments;
-            setTimeout(function() {
-                //...
-            }, 1);
-        }, function(err){
-            //...
-        });
-    }).promise();
-},
-```
-
 

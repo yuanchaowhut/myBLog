@@ -1,3 +1,42 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [1 案例代码](#1-%E6%A1%88%E4%BE%8B%E4%BB%A3%E7%A0%81)
+- [2 路由流程](#2-%E8%B7%AF%E7%94%B1%E6%B5%81%E7%A8%8B)
+  - [2.1 应用程序入口](#21-%E5%BA%94%E7%94%A8%E7%A8%8B%E5%BA%8F%E5%85%A5%E5%8F%A3)
+  - [2.2 路由的初始化（shell.js）](#22-%E8%B7%AF%E7%94%B1%E7%9A%84%E5%88%9D%E5%A7%8B%E5%8C%96shelljs)
+    - [2.2.1 路由配置及路由处理器准备](#221-%E8%B7%AF%E7%94%B1%E9%85%8D%E7%BD%AE%E5%8F%8A%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86%E5%99%A8%E5%87%86%E5%A4%87)
+    - [2.2.2 激活(router/histroy)](#222-%E6%BF%80%E6%B4%BBrouterhistroy)
+      - [1. router.activate调用栈](#1-routeractivate%E8%B0%83%E7%94%A8%E6%A0%88)
+      - [2. router.activate](#2-routeractivate)
+      - [3. history.activate （历史记录跟踪机制）](#3-historyactivate-%E5%8E%86%E5%8F%B2%E8%AE%B0%E5%BD%95%E8%B7%9F%E8%B8%AA%E6%9C%BA%E5%88%B6)
+      - [4. router.loadUrl](#4-routerloadurl)
+        - [路由处理器有两种类型：404、非404](#%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86%E5%99%A8%E6%9C%89%E4%B8%A4%E7%A7%8D%E7%B1%BB%E5%9E%8B404%E9%9D%9E404)
+        - [路由处理器的作用](#%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86%E5%99%A8%E7%9A%84%E4%BD%9C%E7%94%A8)
+      - [5. dequeueInstruction（异步）](#5-dequeueinstruction%E5%BC%82%E6%AD%A5)
+      - [6. ensureActivation](#6-ensureactivation)
+      - [7. activateRoute](#7-activateroute)
+  - [2.3 路由页面渲染的时机](#23-%E8%B7%AF%E7%94%B1%E9%A1%B5%E9%9D%A2%E6%B8%B2%E6%9F%93%E7%9A%84%E6%97%B6%E6%9C%BA)
+    - [2.3.1 computedObservable:router.activeItem](#231-computedobservablerouteractiveitem)
+    - [2.3.2 路由页面渲染（异步）](#232-%E8%B7%AF%E7%94%B1%E9%A1%B5%E9%9D%A2%E6%B8%B2%E6%9F%93%E5%BC%82%E6%AD%A5)
+- [3 路由切换流程](#3-%E8%B7%AF%E7%94%B1%E5%88%87%E6%8D%A2%E6%B5%81%E7%A8%8B)
+- [4 嵌套路由(子路由)处理](#4-%E5%B5%8C%E5%A5%97%E8%B7%AF%E7%94%B1%E5%AD%90%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86)
+  - [4.1 递归加载](#41-%E9%80%92%E5%BD%92%E5%8A%A0%E8%BD%BD)
+  - [4.2 路径处理](#42-%E8%B7%AF%E5%BE%84%E5%A4%84%E7%90%86)
+  - [4.3 嵌套路由的绑定](#43-%E5%B5%8C%E5%A5%97%E8%B7%AF%E7%94%B1%E7%9A%84%E7%BB%91%E5%AE%9A)
+    - [4.3.1 ko.bindingHandlers.router.update对谁添加订阅？](#431-kobindinghandlersrouterupdate%E5%AF%B9%E8%B0%81%E6%B7%BB%E5%8A%A0%E8%AE%A2%E9%98%85)
+    - [4.3.2 ko.bindingHandlers.router.update参数中的valueAccessor是什么鬼？](#432-kobindinghandlersrouterupdate%E5%8F%82%E6%95%B0%E4%B8%AD%E7%9A%84valueaccessor%E6%98%AF%E4%BB%80%E4%B9%88%E9%AC%BC)
+- [5 动态路由](#5-%E5%8A%A8%E6%80%81%E8%B7%AF%E7%94%B1)
+  - [5.1 动态路由的routerPattern](#51-%E5%8A%A8%E6%80%81%E8%B7%AF%E7%94%B1%E7%9A%84routerpattern)
+  - [5.2 路径匹配](#52-%E8%B7%AF%E5%BE%84%E5%8C%B9%E9%85%8D)
+- [6 补充](#6-%E8%A1%A5%E5%85%85)
+  - [6.1 rootRouter.install的执行](#61-rootrouterinstall%E7%9A%84%E6%89%A7%E8%A1%8C)
+  - [6.2 为什么ko.bindingHandlers.router.update会对activeItem添加订阅？](#62-%E4%B8%BA%E4%BB%80%E4%B9%88kobindinghandlersrouterupdate%E4%BC%9A%E5%AF%B9activeitem%E6%B7%BB%E5%8A%A0%E8%AE%A2%E9%98%85)
+  - [6.3 require加载资源后进行缓存，但是system.acquire().then()依然异步](#63-require%E5%8A%A0%E8%BD%BD%E8%B5%84%E6%BA%90%E5%90%8E%E8%BF%9B%E8%A1%8C%E7%BC%93%E5%AD%98%E4%BD%86%E6%98%AFsystemacquirethen%E4%BE%9D%E7%84%B6%E5%BC%82%E6%AD%A5)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 
 # 1 案例代码
 1. durandal官方案例：HTML Samples

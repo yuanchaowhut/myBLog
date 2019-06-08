@@ -40,7 +40,7 @@
 
 # 1 案例代码
 1. durandal官方案例：HTML Samples
-2. 部分代码调整：屏蔽过度动画选项（transition）以减少代码追踪难度（异步的过程），包括嵌套路由和动态路由的相关关页面都需要处理<br/>
+2. 部分代码调整：屏蔽过度动画选项（transition）以减少代码追踪难度（异步的过程），包括嵌套路由和动态路由的相关页面都需要处理<br/>
 
 app/shell.html
 ```
@@ -577,10 +577,11 @@ function hasChildRouter(instance, parentRouter) {
 ## 4.2 路径处理
 >嵌套路由的路径处理是基于父路由的，首先通过父路由的routerPattern匹配出子路由的路径,然后再将父路由匹配的结果交给子路由处理，最后router.loadUrl方法中会根据这个匹配结果去匹配合适的子路由处理器
 1. 对于ko/index.js的父路由是根路由，其配置在shell.js
+嵌套路由在父路由中的配置
 ```
 {route: 'knockout-samples*details', moduleId: 'ko/index', title: 'Knockout Samples', nav: true},
 ```
-3. 会生成如下路由模式（正则）：routerPattern属性<br/>
+3. 会生成如下（正则）路由模式：routerPattern属性<br/>
 ![avatar](images/durandal/durandal-shell-router-pattern.png)
 4. 上面看到routerPattern使用小括号的方式用来获取子路由信息，当前路径为：#knockout-samples/betterList，得到子路由的路径为：betterList<br/>
     这个匹配的过程在父路由的路由处理器中进行的，并将结果保存在params中
@@ -663,7 +664,7 @@ var childRouter = router
     ]).buildNavigationModel();
 ```
 
-- router.makeRelative 对动态路由的特殊处理
+- router.makeRelative 对动态路由的处理（监听了两个事件）
 ```
 router.makeRelative = function(settings){
     //...
@@ -692,7 +693,7 @@ router.makeRelative = function(settings){
     //...
 }
 ```
-- router.makeRelative监听了两个事件被触发的时机<br/>
+- router.makeRelative中监听的两个事件的触发时机<br/>
  'router:route:after-config'事件：用来生成动态路由特有的正则路由模式（routerPattern） ，是在配置路由时触发的
 ```
 function configureRoute(config) {
@@ -746,15 +747,16 @@ router.map() ->mapRouter -> configurateRouter -> 触发 "router:route:after-conf
 {route: 'third', moduleId: 'third', title: 'Third', nav: true}
 ```
 
-生成的routerPattern如下：第一个小括号就是用来获取【动态】数据的
+生成的routerPattern如下：第一个小括号就是用来获取[动态]数据的
 
 ```
 routerPatter：/^([^\/]+)\/third$/i
 ```
 
 ## 5.2 路径匹配
->动态路由的处理和嵌套路由的情况基本一致，区别在于routerPattern生成的策略不同，自然生成routerPattern也是有区别的，动态路由的重要特点在进行路由匹配的过程中会生成【动态数据】（如下面的:id）
+>动态路由的处理和嵌套路由的情况基本一致，区别在于基于父路由的匹配结果（动态路由需要将对应的[动态数据]匹配出来）
 
+动态路由在父路由中的配置
 ```
 //shell.js
 {
@@ -768,8 +770,8 @@ routerPatter：/^([^\/]+)\/third$/i
 - 生成的routerPattern
 ![avatar](images/durandal/durandal-ko-index-router-pattern.png)
 - routerPattern的两个小括号
-    1. 第一个小括号是用来提取【动态】信息的，也是动态路由的本质（相同的页面，但是【参数】不同）
-    2. 第二个小括号用来获取路由页面的【路径】，这里获取才是真正有效的路径
+    1. 第一个小括号是用来提取[动态]信息的，也是动态路由的本质（相同的页面，但是[参数]不同）
+    2. 第二个小括号用来获取动态路由页面的[路径]，是匹配出动态路由的路由处理器的重要依（5.1生成的routerPattern
 
 # 6 补充
 ## 6.1 rootRouter.install的执行

@@ -10,7 +10,7 @@
     - [2.2.2 激活(router/histroy)](#222-%E6%BF%80%E6%B4%BBrouterhistroy)
       - [1. router.activate调用栈](#1-routeractivate%E8%B0%83%E7%94%A8%E6%A0%88)
       - [2. router.activate](#2-routeractivate)
-      - [3. history.activate （历史记录跟踪机制）](#3-historyactivate-%E5%8E%86%E5%8F%B2%E8%AE%B0%E5%BD%95%E8%B7%9F%E8%B8%AA%E6%9C%BA%E5%88%B6)
+      - [3. history.activate](#3-historyactivate)
       - [4. router.loadUrl](#4-routerloadurl)
         - [路由处理器有两种类型：404、非404](#%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86%E5%99%A8%E6%9C%89%E4%B8%A4%E7%A7%8D%E7%B1%BB%E5%9E%8B404%E9%9D%9E404)
         - [路由处理器的作用](#%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86%E5%99%A8%E7%9A%84%E4%BD%9C%E7%94%A8)
@@ -139,10 +139,7 @@ rootRooter.activate(); // 路由激活入口
 
 
 #### 2. router.activate
->Activates the router and the underlying history tracking mechanism.
->1. 路由激活
->2. 历史记录跟踪机制（通过何种方式实现呢？）
-
+>Activates the router and the underlying history tracking mechanism. 
 ```
 //router.js
 rootRouter.activate = function(options) {
@@ -194,7 +191,7 @@ $(document).delegate("a", 'click', function(evt){
 ```
 
 
-#### 3. history.activate （历史记录跟踪机制）
+#### 3. history.activate
 1. 监听hashChange事件
 2. 初始路由(根路由)准备的入口
 

@@ -886,15 +886,15 @@ router.loadUrl = function (fragment) {
 
 ![avatar](images/durandal/durandal-multi-router_2.png)
 
-### 6.4 控制台打印日志看路由流程
-#### 6.4.1 初始化只有根路由的页面
+## 6.4 控制台打印日志看路由流程
+### 6.4.1 初始化只有根路由的页面
 - 初始化路由的页面
 ![avatar](images/durandal/hello-page.png)
 - 控制台信息
 ![avatar](images/durandal/durandal_router_1.png)
-#### 点击导航切换流程（6.4.1 -> 6.4.3）
+### 6.4.2 点击导航切换流程（6.4.1 -> 6.4.3）
 ![avatar](images/durandal/durandal_2.png)
-#### 6.4.3 初始化页面就包含嵌套路由的情况
+### 6.4.3 初始化页面就包含嵌套路由的情况
 - 初始化路由的页面
 ![avatar](images/durandal/ko-page.png)
 - 控制台信息

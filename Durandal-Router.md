@@ -546,11 +546,9 @@ var createRouter = function (name) {
 3. router.map：生成路由处理器并存储在当前的childRouter对象中（不会交由根路由管理），每一级别的路由都是各自为政，因此后面子路由的路由处理器的匹配也是在childRouter对象中进行的
 
 ## 4.1 递归加载
-1.  为什么是递归的？
-    1. activateRoute 是在router.loadUrl 调用栈中的
-    2. activateRoute 方法中，在拥有子路由的情况下，会去调用instance.router.loadUrl
-2.  对于嵌套路由来说，当根路由进入到activator.activateItem的成功回调后，会递归计算所有的嵌套路由
- 
+为什么是递归的？
+1. activateRoute 是在router.loadUrl 调用栈中的
+2. activateRoute 方法中，在拥有子路由的情况下，会去调用instance.router.loadUrl 
 ```
 //router.js activateRoute()
 activator.activateItem(instance, instruction.params, options).then(function(succeeded) {
@@ -577,27 +575,23 @@ function hasChildRouter(instance, parentRouter) {
 ```
 
 ## 4.2 路径处理
-1. 嵌套路由的路径处理是基于父路由的
-2. 对于ko/index.js的父路由是根路由，其配置在shell.js
+>嵌套路由的路径处理是基于父路由的，首先通过父路由的routerPattern匹配出子路由的路径,然后再将父路由匹配的结果交给子路由处理，最后router.loadUrl方法中会根据这个匹配结果去匹配合适的子路由处理器
+1. 对于ko/index.js的父路由是根路由，其配置在shell.js
 ```
 {route: 'knockout-samples*details', moduleId: 'ko/index', title: 'Knockout Samples', nav: true},
 ```
 3. 会生成如下路由模式（正则）：routerPattern属性<br/>
 ![avatar](images/durandal/durandal-shell-router-pattern.png)
 4. 上面看到routerPattern使用小括号的方式用来获取子路由信息，当前路径为：#knockout-samples/betterList，得到子路由的路径为：betterList<br/>
+    这个匹配的过程在父路由的路由处理器中进行的，并将结果保存在params中
 ![avatar](images/durandal/durandal-router-shell-match-result.png)
-5. 处理子路由，后面的流程和处理根路由基本一致
-
-```
-//router.js activateRoute()
-instance.router.loadUrl(fullFragment); // 使用子路由的路由实例加载子路由，即ko/index.js返回的childRouter
-```
-
+5. 子路由即ko/index.js的router对象（childRouter）会拿着父路由的匹配结果（如上例：'betterList'）进行子路由的绑定渲染工作
+    router.loadUrl处理子路由url的相关代码
 ```
 router.loadUrl = function(fragment) {
     //...
     if(router.relativeToParentRouter){ // 规范子路由的形式（反斜杠的处理）
-        var instruction = this.parent.activeInstruction();
+        var instruction = this.parent.activeInstruction();//获取父路由的配置（获取params）
         coreFragment = queryIndex == -1 ? instruction.params.join('/') : instruction.params.slice(0, -1).join('/');
     
         if(coreFragment && coreFragment.charAt(0) == '/'){

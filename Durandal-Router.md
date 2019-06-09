@@ -193,7 +193,7 @@ history.loadUrl = function(fragmentOverride) {
 
 
 #### 4. router.loadUrl
->通过url找到相应的路由处理器，路由处理器激活其对应的页面
+>通过url找到相应的路由处理器，之后路由处理器激活其对应的页面
 ```
 //router.js
 router.loadUrl = function(fragment) {
@@ -304,7 +304,7 @@ function dequeueInstruction() {
 
 #### 7. activateRoute
 1. 异步获取路由页面的model.js成功后，标志着该路由页面存在，接着判断是否可以更新路由（逻辑在activator.activateItem方法中），如果可以，则进入成功回调
-2. activator.activateItem()方法的调用栈中绑定或者更新了 computedObservable:router.activeItem 的数据 
+2. activator.activateItem()方法的调用栈中绑定(更新)了 computedObservable:router.activeItem 的数据 
 
 ```
 //router.js
@@ -340,9 +340,8 @@ rootRouter.activate = function (options) {
 }
 ```
 
-- activateRoute方法中的 startDeferred.resolve()的作用
-    - 标志着shell.js的 activate生命周期 的结束，继续进行页面的绑定（进入successCallback）
-
+- startDeferred.resolve()：标志着shell.js的 activate生命周期 的结束，继续进行页面的绑定（进入successCallback）<br/>
+下面代码是调用 activate生命周期回调 执行的入口，result.then说明了一切
 ```
 // composition.js
 function tryActivate(context, successCallback, skipActivation, element) {
@@ -365,12 +364,10 @@ function tryActivate(context, successCallback, skipActivation, element) {
 
 ## 2.3 路由页面渲染的时机
 1. 上面说到router.js activateRoute中，执行了startDeferred.resolve() 操作后，继续进行shell组件的绑定(使用ko进行绑定的)
-，当knockout绑定过程中遇到下面 dom 
+，当knockout绑定过程中遇到下面dom时，则会执行ko.bindingHandlers.router.update，在update方法中会去调用composition.compose方法渲染路由页面（异步）
 ```
 <div class="page-host" data-bind="router"></div>
 ```
-- 执行ko.bindingHandlers.router.update
-    -调用composition.compose方法渲染路由页面（异步）
 ```
 rootRouter.install = function(){
     ko.bindingHandlers.router = {

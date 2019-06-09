@@ -22,7 +22,7 @@
 > https://www.cnblogs.com/jiasm/p/7683930.html 
 > http://es6.ruanyifeng.com/#docs/module-loader
 
-##### 总结：
+总结：
 1. 二者都是异步加载脚本。如果没有设置这两个属性，脚本是按顺序同步加载的； 
 2. defer与async的区别<BR/>
     1. defer要等到整个页面在内存中正常渲染结束（DOM结构完全生成，以及其他脚本执行完成），才会执行；<BR/>

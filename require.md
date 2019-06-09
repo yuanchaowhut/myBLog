@@ -18,6 +18,7 @@
 
 # 1 相关知识预备
 ## 1.1 script标签:async \ defer 
+
 > 参考：<BR/>
 > https://www.cnblogs.com/jiasm/p/7683930.html 
 > http://es6.ruanyifeng.com/#docs/module-loader

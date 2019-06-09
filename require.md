@@ -16,10 +16,11 @@
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 # 1 相关知识预备
+> 模块化的几种规范：node（commonjs规范）、es6独有的规范、cmd规范、amd规范
 ## 1.1 script标签:async \ defer 
 
 > 参考：<BR/>
-> https://www.cnblogs.com/jiasm/p/7683930.html 
+> https://www.cnblogs.com/jiasm/p/7683930.html<br/>
 > http://es6.ruanyifeng.com/#docs/module-loader
 
 总结：
@@ -35,18 +36,18 @@
 主要差异：
 1. requireJs的做法是并行加载并执行所有的依赖模块
 2. seaJs一样是并行加载所有依赖的模块, 但不会立即执行模块, 等到真正需要(require)的时候才开始解析, 在执行代码的过程中去同步执行依赖模块
-3. 注意：加载【脚本的加载】和执行【模块定义的执行】是两个阶段
+3. 注意：加载(脚本的加载)和执行(模块定义的执行)是两个阶段
 4. 同步和异步体现在哪：
     1. 脚本的执行阶段而不是脚本的加载阶段，脚本都是异步并行加载的
     2. 下例中的执行结果看出cmd是同步执行结果，但是amd的执行结果看出是由异步执行的不确定导致的<BR/>
     
-总结：加载都是并行加载的，区别在于模块【模块的真正定义是在回调中】执行的时机;requireJs:"预执行"即提前执行，seaJs:"懒执行"即用到时才执行
+总结：加载都是并行加载的，区别在于模块【模块的真正定义是在回调中】执行的时机；requireJs:"预执行"即提前执行，seaJs:"懒执行"即用到时才执行
 
 ```
 //这是cmd的规范写法，require.js也支持
 define(function(require, exports, module) {  
     console.log('require module: main');  
-    //对于cmd来说是同步加载，代码同步执行，对于amd来说，该模块实现已经加载完成了
+    //对于cmd来说是同步加载，代码同步执行，对于amd来说，该模块实际已经加载完成了
     var mod1 = require('./mod1');  
     mod1.hello();  
     var mod2 = require('./mod2');  
@@ -61,9 +62,8 @@ define(function(require, exports, module) {
 
 
 
-//seajs的执行结果：严格按照模块的顺序执行的，但是脚本是会被提前加载的
-
 ```
+//seajs的执行结果：严格按照模块的顺序执行的，但是脚本是会被提前加载的
 require module: main
 require module: mod1
 hello mod1
@@ -72,7 +72,7 @@ hello mod2
 hello main
 
 //reuqirejs执行结果：所有的依赖模块都会被提前加载并执行
-//requirejs支持cmd写法，并在代码中提取所有依赖数组（见define函数）
+//requirejs支持cmd写法，并在代码中提取所有依赖数组（见源码中define函数）
 //按照amd方式加载执行
 require module: mod1
 require module: mod2

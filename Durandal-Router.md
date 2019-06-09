@@ -38,7 +38,6 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-
 # 1 案例代码
 1. 在官方案例的基础上进行了部分代码的调整：[durandal-source](https://github.com/yusongjohn/durandal-source)
 2. 部分代码调整：屏蔽过度动画选项（transition）以减少代码追踪难度（异步的过程），包括嵌套路由和动态路由的相关页面都需要处理<br/>
@@ -904,3 +903,8 @@ router.loadUrl = function (fragment) {
 ![avatar](images/durandal/ko-page.png)
 - 控制台信息
 ![avatar](images/durandal/durandal_3.png)
+
+## 6.5 哈希路由
+>React-Router 是建立在 history 之上的，常见的history路由方案有三种形式，分别是：hashHistory、browserHistory、createMemoryHistory。hashHistory 使用 URL 中的 hash（#）部分去创建路由
+
+Durandal路由的表现形式和React-Router中的hashHistory是一样的

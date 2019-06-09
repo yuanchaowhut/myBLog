@@ -80,6 +80,9 @@ activate: function () {
 ```
 
 ## 2.2 路由的初始化（shell.js）
+1. 生成路由配置，路由匹配的工作一定都是基于这些配置进行的，如router.loadUrl()中需要根据当前页面的url去匹配出相应的路由页面，那么匹配的规则就是基于这里的路由配置；
+2. 监听hashChange事件，durandal的路由是哈希路由的形式，因此这里通过监听hashChange事件作为路由工作的入口；
+3. 首次路由页面的准备都是在这个阶段进行的
 ### 2.2.1 路由配置及路由处理器准备 
 ```
 var rootRooter = router.map.buildNavigationModel().mapUnknownRoutes('hello/index', 'not-found');

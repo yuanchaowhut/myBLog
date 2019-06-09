@@ -434,7 +434,7 @@ rootRouter.install = function(){
 //router.js
 var createRouter = function (name) {
     var activeItem = activator.create();
-    var router = {】
+    var router = {
         //...   
         activeItem: activeItem,
         //...
@@ -833,9 +833,11 @@ function loadPlugins(){
 >这里其实没太多可说的，和普通的路由配置没啥区别，只是作为一种别无选择的选择而已
 
 router.mapUnknownRoutes：配置404情况下的路由和路由处理器
+![avatar](images/durandal/404_router-pattern.png)
+看到该routerPatten可以匹配所有
 ```
 router.mapUnknownRoutes = function (config, replaceRoute) {
-    var catchAllRoute = "*catchall";
+    var catchAllRoute = "*catchall"; // 关键：匹配所有
     var catchAllPattern = routeStringToRegExp(catchAllRoute);
 
     router.route(catchAllPattern, function (fragment, queryString) {
@@ -887,13 +889,16 @@ router.loadUrl = function (fragment) {
 ![avatar](images/durandal/durandal-multi-router_2.png)
 
 ## 6.4 控制台打印日志看路由流程
+
 ### 6.4.1 初始化只有根路由的页面
 - 初始化路由的页面
 ![avatar](images/durandal/hello-page.png)
 - 控制台信息
 ![avatar](images/durandal/durandal_router_1.png)
+
 ### 6.4.2 点击导航切换流程（6.4.1 -> 6.4.3）
 ![avatar](images/durandal/durandal_2.png)
+
 ### 6.4.3 初始化页面就包含嵌套路由的情况
 - 初始化路由的页面
 ![avatar](images/durandal/ko-page.png)

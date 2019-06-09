@@ -659,7 +659,7 @@ function configureRoute(config) {
 ```
  
 ## 5.1 动态路由的routerPattern
-- makeRelative中的【dynamicHash】选项，动态路由的routerPattern的生成区别于嵌套路由，需要单独处理生成正确的routerPatter，这里通过事件监听的方式来处理
+- 动态路由的routerPattern的生成区别于嵌套路由，需要单独处理生成正确的routerPatter，这里通过事件监听的方式来处理
 ```
 router.makeRelative({moduleId: 'keyedMasterDetail', fromParent: true, dynamicHash: ':id'})
 ``` 

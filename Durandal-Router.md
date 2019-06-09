@@ -123,9 +123,9 @@ router.route = function(routePattern, callback) { // callback：即路由处理�
 - 对于路由的生效是无关紧要的，主要是用来构建界面导航的
 
 3. router.navigationModel(nav);<br/>
-router.mapUnknownRoutes：404
+router.mapUnknownRoutes：404路由配置
 
-### 2.2.2 激活(router/histroy)
+### 2.2.2 激活相关工作(router/histroy)
 
 ```
 rootRooter.activate(); // 路由激活入口
@@ -137,7 +137,7 @@ rootRooter.activate(); // 路由激活入口
 1. router.activate 
 2. history.activate
 3. history.loadUrl
-4. router.loadUrl（关键：匹配合适的【路由处理器】（也就是上一步骤生成的router.handlers），其实也就确定了待路由的页面）
+4. router.loadUrl（关键：匹配合适的路由处理器（router.handlers[i]），其实也就确定了待路由的页面）
 5. 路由处理器调用 dequeueInstruction 
 6. dequeueInstruction中通过requirejs加载待路由页面的[model].js （得确定该路由页面是存在的，才进行后面的路由页面的绑定）
     1. 成功：ensureActivation -> 激活（关键在于computedObservable：router.activeItem，见2.3.1） 
@@ -156,51 +156,13 @@ rootRouter.activate = function(options) {
         //...
         history.activate(rootRouter.options); 
         //...
-        //代理 a 标签点击事件相关代码
-        //...
     })
 }
-```
-
-代理 a 标签点击事件
-> preventDefault：阻止元素发生默认的行为，比如点击a标签防止链接打开<br/>
-> isDefaultPrevented：判断是否已经调用过event.preventDefault()函数
-
-```
-$(document).delegate("a", 'click', function(evt){
-    
-    // ignore default prevented since these are not supposed to behave like links anyway
-    if(evt.isDefaultPrevented()){
-        return;
-    }
-
-    if(history._hasPushState){
-        if(!evt.altKey && !evt.ctrlKey && !evt.metaKey && !evt.shiftKey && rootRouter.targetIsThisWindow(evt)){
-            var href = $(this).attr("href");
-
-            // Ensure the protocol is not part of URL, meaning its relative.
-            // Stop the event bubbling to ensure the link will not cause a page refresh.
-            if (href != null && !(href.charAt(0) === "#" || /^[a-z]+:/i.test(href))) {
-                rootRouter.explicitNavigation = true;
-                evt.preventDefault();
-
-                if (rootStripper) {
-                    href = href.replace(rootStripper, "");
-                }
-
-                history.navigate(href);
-            }
-        }
-    }else{
-        rootRouter.explicitNavigation = true;
-    }
-});
-```
-
+``` 
 
 #### 3. history.activate
 1. 监听hashChange事件
-2. 初始路由(根路由)准备的入口
+2. 初始路由准备的入口
 
 ```
 //history.js
@@ -231,9 +193,7 @@ history.loadUrl = function(fragmentOverride) {
 
 
 #### 4. router.loadUrl
-路由处理器的作用：作为下面两个动作的怕[连接点]
-1. url变化（页面初始化、hashChange）：浏览器输入刷新或者url变化
-2. 路由激活：路由页面的绑定(router.activeItem(newItem))
+>通过url找到相应的路由处理器，路由处理器激活其对应的页面
 ```
 //router.js
 router.loadUrl = function(fragment) {
@@ -282,7 +242,6 @@ function(fragment, queryString) {
     });
 }
 ```
-
 
 
 ##### 路由处理器的作用

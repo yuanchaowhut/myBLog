@@ -818,7 +818,10 @@ router.loadUrl = function (fragment) {
 ![avatar](images/durandal/durandal-multi-router_2.png)
 
 ## 6.4 控制台打印日志看路由流程
-
+```
+//main.js
+system.debug(true); // 设置为true
+```
 ### 6.4.1 初始化只有根路由的页面
 - 初始化路由的页面
 ![avatar](images/durandal/hello-page.png)

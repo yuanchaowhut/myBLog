@@ -4,7 +4,6 @@
 
 - [1 相关知识预备](#1-%E7%9B%B8%E5%85%B3%E7%9F%A5%E8%AF%86%E9%A2%84%E5%A4%87)
   - [1.1 script标签:async \ defer](#11-script%E6%A0%87%E7%AD%BEasync-%5C-defer)
-        - [总结：](#%E6%80%BB%E7%BB%93)
   - [1.2 seaJs[CMD]与requireJs[AMD]](#12-seajscmd%E4%B8%8Erequirejsamd)
   - [1.3 LABjs](#13-labjs)
   - [1.4 CMD规范 \ AMD规范](#14-cmd%E8%A7%84%E8%8C%83-%5C-amd%E8%A7%84%E8%8C%83)

@@ -60,8 +60,6 @@ define(function(require, exports, module) {
 });
 ```
 
-
-
 ```
 //seajs的执行结果：严格按照模块的顺序执行的，但是脚本是会被提前加载的
 require module: main
@@ -81,9 +79,6 @@ hello mod1
 hello mod2
 hello main
 ```
-
-
-
 
 ## 1.3 LABjs
 1. Loading 指异步并行加载，Blocking 是指同步等待执行。LABjs 通过优雅的语法（script 和 wait）实现了这两大特性，核心价值是性能优化。LABjs 是一个文件加载器。
@@ -154,3 +149,43 @@ define.amd = {
 
 ### 1.5.2 node
 采用的commonJs规范，同步方式加载模块，用于服务端，文件都在本地，即使卡住对主线程影响不大
+
+# 2 源码分析
+## 2.1初始化（第一次加载完执行）
+### 2.1.1创建默认上下文
+> 这里的默认上下文真的是默认上下文并不是唯一上下文，因为这里的上下是可以创建多个的，require.js支持多版本功能
+> 多版本的关键在于 newContext 函数，函数作用域保证了函数内所有变量的私有特性。虽然没有使用this或者原型等形式，功能上来看几乎等价于‘类’，甚至比类更加‘简单’
+>
+
+```javascript
+var defContextName = '_',
+req = requirejs = function (deps, callback, errback, optional) {
+
+    //Find the right context, use default
+    var context, config,
+        contextName = defContextName;
+
+    //纠正参数，各就其位...
+    
+    context = getOwn(contexts, contextName);
+    if (!context) { //第一次，会创建一个名为 '_' 的上下文
+        context = contexts[contextName] = req.s.newContext(contextName);
+    }
+    
+   if (config) {
+       context.configure(config);
+   }
+    return context.require(deps, callback, errback);
+};
+```
+```javascript
+//Create default context.
+req({});
+```
+
+### 2.1.2 define方法的定义
+
+### 2.1.3 配置文件查找
+
+
+## 配置（main.js）

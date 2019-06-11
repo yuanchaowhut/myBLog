@@ -12,7 +12,18 @@
       - [2. router.activate](#2-routeractivate)
       - [3. history.activate](#3-historyactivate)
       - [4. router.loadUrl](#4-routerloadurl)
+        - [路由处理器有两种类型：404、非404](#%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86%E5%99%A8%E6%9C%89%E4%B8%A4%E7%A7%8D%E7%B1%BB%E5%9E%8B404%E9%9D%9E404)
+        - [路由处理器的作用](#%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86%E5%99%A8%E7%9A%84%E4%BD%9C%E7%94%A8)
+      - [5. dequeueInstruction（异步）](#5-dequeueinstruction%E5%BC%82%E6%AD%A5)
+      - [6. ensureActivation](#6-ensureactivation)
+      - [7. activateRoute](#7-activateroute)
+  - [2.3 路由页面渲染的时机](#23-%E8%B7%AF%E7%94%B1%E9%A1%B5%E9%9D%A2%E6%B8%B2%E6%9F%93%E7%9A%84%E6%97%B6%E6%9C%BA)
     - [2.3.1 computedObservable对象：router.activeItem](#231-computedobservable%E5%AF%B9%E8%B1%A1routeractiveitem)
+    - [2.3.2 路由页面渲染（异步）](#232-%E8%B7%AF%E7%94%B1%E9%A1%B5%E9%9D%A2%E6%B8%B2%E6%9F%93%E5%BC%82%E6%AD%A5)
+- [3 路由切换流程](#3-%E8%B7%AF%E7%94%B1%E5%88%87%E6%8D%A2%E6%B5%81%E7%A8%8B)
+- [4 嵌套路由(子路由)处理](#4-%E5%B5%8C%E5%A5%97%E8%B7%AF%E7%94%B1%E5%AD%90%E8%B7%AF%E7%94%B1%E5%A4%84%E7%90%86)
+  - [4.1 递归加载](#41-%E9%80%92%E5%BD%92%E5%8A%A0%E8%BD%BD)
+  - [4.2 路径处理](#42-%E8%B7%AF%E5%BE%84%E5%A4%84%E7%90%86)
 - [5 动态路由](#5-%E5%8A%A8%E6%80%81%E8%B7%AF%E7%94%B1)
   - [5.1 动态路由的routerPattern](#51-%E5%8A%A8%E6%80%81%E8%B7%AF%E7%94%B1%E7%9A%84routerpattern)
   - [5.2 路径匹配](#52-%E8%B7%AF%E5%BE%84%E5%8C%B9%E9%85%8D)
@@ -183,6 +194,7 @@ history.loadUrl = function(fragmentOverride) {
 
 #### 4. router.loadUrl
 >通过url找到相应的路由处理器，之后路由处理器激活其对应的页面
+
 ```
 //router.js
 router.loadUrl = function(fragment) {
@@ -331,6 +343,7 @@ rootRouter.activate = function (options) {
 
 - startDeferred.resolve()：标志着shell.js的 activate生命周期 的结束，继续进行页面的绑定（进入successCallback）<br/>
 下面代码是调用 activate生命周期回调 执行的入口，result.then说明了一切
+
 ```
 // composition.js
 function tryActivate(context, successCallback, skipActivation, element) {
@@ -354,9 +367,15 @@ function tryActivate(context, successCallback, skipActivation, element) {
 ## 2.3 路由页面渲染的时机
 1. 上面说到router.js activateRoute中，执行了startDeferred.resolve() 操作后，继续进行shell组件的绑定(使用ko进行绑定的)
 ，当knockout绑定过程中遇到下面dom时，则会执行ko.bindingHandlers.router.update，在update方法中会去调用composition.compose方法渲染路由页面（异步）
+
+
+
 ```
 <div class="page-host" data-bind="router"></div>
-```
+``` 
+
+
+
 ```
 rootRouter.install = function(){
     ko.bindingHandlers.router = {
@@ -376,9 +395,12 @@ rootRouter.install = function(){
 };
 ```
 
+
 ### 2.3.1 computedObservable对象：router.activeItem
 >这届意在说明 router.activeItem 的本质及其作用
+
 - router.activeItem属性的实际引用是在activator.js中创建的computed对象
+
 ```
 //router.js
 var createRouter = function (name) {
@@ -406,10 +428,12 @@ function createActivator(initialActiveItem, settings) {
     return computed
 }
 ```
+
 - router.activeItem作为computedObservable对象意义非凡 
 1. 在 ko.bindingHandlers.router.update 执行了 theRouter.activeItem() ，这会使得 ko.bindingHandlers.router.update 向  theRouter.activeItem添加[订阅]
 2. 当theRouter.activeItem数据变化时，则会触发  ko.bindingHandlers.router.update 执行
 3. 该computedObservable写入的过程发生在 router.js-activateRoute()的调用栈中，最终在activator.js-activate() 方法中进行数据更新(最新的路由配置)
+
 
 ```
 // activator.js
@@ -420,10 +444,13 @@ function activate(newItem, activeItem, callback, activationData) {
 }
 ```
 
+
 ### 2.3.2 路由页面渲染（异步）
 1. 页面加载的具体过程：composition.compose（setRoot最终就是调用该方法实现组件绑定的，见durandal-生命周期），这个过程是异步的
 2. composition.compose调用时model.js已经准备好了，但是视图(view)可能没有准备好，因此首先需要通过system.acquire()获取视图页面(.html)
 3. system.acquire为了保证代码运行的一致性，将回调放在了setTimeout中（es6中的promise的polyfill多是基于setTimeout来模拟异步）
+
+
 
 ```
 //system.js
@@ -447,6 +474,8 @@ acquire: function() {
     //...
 }
 ```
+
+
  
 # 3 路由切换流程
 1. 上面的过程是页面初始化时（第一次进入页面）的过程

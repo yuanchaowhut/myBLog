@@ -501,6 +501,10 @@ define(['plugins/router', 'knockout'], function(router, ko) { // 这里的 route
 
 1. router.createChildRouter() ：使用父路由（不一定是根路由）创建子路由 
  >每个路由都拥有创建子路由的方法，谁创建子路由，谁就是子路由的parent，也是hasChildRouter判断的重要依据，也是在补充部分创建多级路由的依据
+ 
+ 
+ 
+ 
 ```
 var createRouter = function (name) {
     var router = {};
@@ -512,6 +516,9 @@ var createRouter = function (name) {
     return router;
 };
 ```
+
+
+
 2. router.makeRelative，设置相关属性如relativeToParentRouter，事件监听等
 3. router.map：生成路由处理器并存储在当前的childRouter对象中（不会交由根路由管理），每一级别的路由都是各自为政，因此后面子路由的路由处理器的匹配也是在childRouter对象中进行的
 
@@ -519,6 +526,11 @@ var createRouter = function (name) {
 为什么是递归的？
 1. activateRoute 是在router.loadUrl 调用栈中的
 2. activateRoute 方法中，在拥有子路由的情况下，会去调用instance.router.loadUrl 
+
+
+
+
+
 ```
 //router.js activateRoute()
 activator.activateItem(instance, instruction.params, options).then(function(succeeded) {
@@ -544,13 +556,24 @@ function hasChildRouter(instance, parentRouter) {
 }
 ```
 
+
+
+
+
 ## 4.2 路径处理
 >嵌套路由的路径处理是基于父路由的，首先通过父路由的routerPattern匹配出子路由的路径,然后再将父路由匹配的结果交给子路由处理
 1. 对于ko/index.js的父路由是根路由，其配置在shell.js
 嵌套路由在父路由中的配置
+
+
+
+
 ```
 {route: 'knockout-samples*details', moduleId: 'ko/index', title: 'Knockout Samples', nav: true},
 ```
+
+
+
 3. 会生成如下（正则）路由模式：routerPattern属性<br/>
 ![avatar](images/durandal/durandal-shell-router-pattern.png)
 4. 上面看到routerPattern使用小括号的方式用来获取子路由信息，当前路径为：#knockout-samples/betterList，得到子路由的路径为：betterList<br/>
@@ -558,6 +581,10 @@ function hasChildRouter(instance, parentRouter) {
 ![avatar](images/durandal/durandal-router-shell-match-result.png)
 5. 子路由即ko/index.js的router对象（childRouter）会拿着父路由的匹配结果（如上例：'betterList'）进行子路由的绑定渲染工作
     router.loadUrl处理子路由url的相关代码
+    
+    
+    
+    
 ```
 router.loadUrl = function(fragment) {
     //...
@@ -579,6 +606,9 @@ router.loadUrl = function(fragment) {
 }
 ```
 
+
+
+
 ## 4.3 嵌套路由的绑定
 > 这里意在说明页面中的路由dom和哪个router实例的activeItem属性关联的
 ### 4.3.1 ko.bindingHandlers.router.update对谁添加订阅？
@@ -587,6 +617,9 @@ router.loadUrl = function(fragment) {
     1. 对于 shell.js 来说，就是根路由
     2. 对于 ko/index.js 就是 返回的childRouter
     3. 对于 keyedMasterDetail/master.html 就是返回的 childRouter
+
+
+
 
 ```
 ko.bindingHandlers.router = {
@@ -602,26 +635,43 @@ ko.bindingHandlers.router = {
 ```
 
 
+
+
 ### 4.3.2 ko.bindingHandlers.router.update参数中的valueAccessor是什么鬼？
 首先这是ko使用 new Function() + with 生成的函数,生成的依据就是你的data-bind后面的内容
 如果是下面形式，那么 valueAccessor()返回 undefined
 
+
+
+
 ```
 <div class="page-host" data-bind="router"></div>
 ```
+
+
 ![avatar](images/durandal/durandal-router-value-accessor.png)
 
 valueAccessor主要是针对下面形式，然后你会发现valueAccessor()的返回值就是定义时的值（其实，这种形式的作用是为了拿到当前绑定上下文[bindingContext]的最新数据，详情参考ko源码）
 
+
+
+
+
 ```
 <div class="page-host" data-bind="router: { transition:'entrance', cacheViews:false }"></div>
 ```
+
+
+
 ![avatar](images/durandal/durandal-router-value-accessor_1.png)
 
 # 5 动态路由
 > 动态路由可以看成是嵌套路由的特例，只是增加了在url中获取[参数]的能力
 
 app\keyedMasterDetail\master.js是了一个动态路由页面
+
+
+
 
 ```
 var childRouter = router
@@ -634,7 +684,12 @@ var childRouter = router
     ]).buildNavigationModel();
 ```
 
+
+
 - router.makeRelative 对动态路由的特有处理
+
+
+
 ```
 router.makeRelative = function(settings){
     //...
@@ -650,7 +705,12 @@ router.makeRelative = function(settings){
 }
 ```
 
+
+
 'router:route:after-config'事件：用来生成动态路由特有的正则路由模式（routerPattern） ，是在配置路由时触发的
+
+
+
 ```
 function configureRoute(config) {
     //...
@@ -669,18 +729,28 @@ function configureRoute(config) {
     }); 
 }
 ```
+
+
+
  
 ## 5.1 动态路由的routerPattern
 - 动态路由的routerPattern的生成区别于嵌套路由，需要单独处理生成正确的routerPatter，这里通过事件监听的方式来处理
 ```
 router.makeRelative({moduleId: 'keyedMasterDetail', fromParent: true, dynamicHash: ':id'})
 ``` 
+
+
 - router配置项生成
+
+
 ```
 router.map() ->mapRouter -> configurateRouter -> 触发 "router:route:after-config" 事件
 ```
 ![avatar](images/durandal/durandal-ko-index-router-generate-time.png)
 - 以动态路由中其中一个为例
+
+
+
 
 ```
 {route: 'third', moduleId: 'third', title: 'Third', nav: true}
@@ -688,14 +758,22 @@ router.map() ->mapRouter -> configurateRouter -> 触发 "router:route:after-conf
 
 生成的routerPattern如下：第一个小括号就是用来获取[动态]数据的
 
+
+
 ```
 routerPatter：/^([^\/]+)\/third$/i
 ```
+
+
 
 ## 5.2 路径匹配
 >动态路由的处理和嵌套路由的情况基本一致，区别在于基于父路由的匹配结果（动态路由需要将对应的[动态数据]匹配出来）
 
 动态路由在父路由中的配置
+
+
+
+
 ```
 //shell.js
 {
@@ -705,6 +783,9 @@ routerPatter：/^([^\/]+)\/third$/i
     hash: '#keyed-master-details/:id'
 }
 ```
+
+
+
 
 - 生成的routerPattern
 ![avatar](images/durandal/durandal-ko-index-router-pattern.png)
@@ -718,6 +799,8 @@ routerPatter：/^([^\/]+)\/third$/i
 
 app.configurePlugins：配置组件，缓存到变量allPluginIds ， allPluginConfigs中
 
+
+
 ```
 //main.js
 app.configurePlugins({
@@ -730,7 +813,11 @@ app.configurePlugins({
 ```
 
 
+
+
 app.start：加载配置的插件，其实就包含了上述配置的路由功能
+
+
 
 ```
 //main.js
@@ -770,12 +857,17 @@ function loadPlugins(){
 }
 ```
 
+
+
 ## 6.2 mapUnknownRoutes
 >这里其实没太多可说的，和普通的路由配置没啥区别，只是作为一种别无选择的选择而已
 
 router.mapUnknownRoutes：配置404情况下的路由和路由处理器
 ![avatar](images/durandal/404_router-pattern.png)
 看到该routerPatten可以匹配所有
+
+
+
 ```
 router.mapUnknownRoutes = function (config, replaceRoute) {
     var catchAllRoute = "*catchall"; // 关键：匹配所有
@@ -801,8 +893,13 @@ router.mapUnknownRoutes = function (config, replaceRoute) {
 };
 ```
 
+
 router.loadUrl中我们看到通过遍历路由处理器去匹配路由；mapUnknownRoutes是在配置完正常路由之后再进行调用的，这样做就会使得
 404路由配置作为最后一个选项去匹配
+
+
+
+
 ```
 router.loadUrl = function (fragment) {
     var handlers = router.handlers,
@@ -819,6 +916,10 @@ router.loadUrl = function (fragment) {
 }
 ```
 
+
+
+
+
 - 根路由和子路由都可以单独增加当前级别的404配置，在案例中我给创建的多级路由也配置了404
 ![avatar](images/durandal/404_1.png)
  
@@ -830,10 +931,14 @@ router.loadUrl = function (fragment) {
 ![avatar](images/durandal/durandal-multi-router_2.png)
 
 ## 6.4 控制台打印日志看路由流程
+
+
 ```
 //main.js
 system.debug(true); // 设置为true
 ```
+
+
 ### 6.4.1 初始化只有根路由的页面
 - 初始化路由的页面
 ![avatar](images/durandal/hello-page.png)

@@ -359,7 +359,7 @@ function tryActivate(context, successCallback, skipActivation, element) {
 
 
 ## 2.3 路由页面渲染的时机
-1. 上面说到router.js activateRoute中，执行了startDeferred.resolve() 操作后，继续进行shell组件的绑定(使用ko进行绑定的)
+上面说到router.js activateRoute中，执行了startDeferred.resolve() 操作后，继续进行shell组件的绑定(使用ko进行绑定的)
 ，当knockout绑定过程中遇到下面dom时，则会执行ko.bindingHandlers.router.update，在update方法中会去调用composition.compose方法渲染路由页面（异步）
 
 
@@ -391,7 +391,7 @@ rootRouter.install = function(){
 
 
 ### 2.3.1 computedObservable对象：router.activeItem
->这届意在说明 router.activeItem 的本质及其作用
+>这意在说明 router.activeItem 的本质及其作用
 
 - router.activeItem属性的实际引用是在activator.js中创建的computed对象
 

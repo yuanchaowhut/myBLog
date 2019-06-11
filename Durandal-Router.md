@@ -1,7 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
-
 - [1 案例代码](#1-%E6%A1%88%E4%BE%8B%E4%BB%A3%E7%A0%81)
 - [2 路由流程](#2-%E8%B7%AF%E7%94%B1%E6%B5%81%E7%A8%8B)
   - [2.1 应用程序入口](#21-%E5%BA%94%E7%94%A8%E7%A8%8B%E5%BA%8F%E5%85%A5%E5%8F%A3)
@@ -36,8 +32,6 @@
     - [6.4.2 点击导航切换流程（6.4.1 -> 6.4.3）](#642-%E7%82%B9%E5%87%BB%E5%AF%BC%E8%88%AA%E5%88%87%E6%8D%A2%E6%B5%81%E7%A8%8B641---643)
     - [6.4.3 初始化页面就包含嵌套路由的情况](#643-%E5%88%9D%E5%A7%8B%E5%8C%96%E9%A1%B5%E9%9D%A2%E5%B0%B1%E5%8C%85%E5%90%AB%E5%B5%8C%E5%A5%97%E8%B7%AF%E7%94%B1%E7%9A%84%E6%83%85%E5%86%B5)
   - [6.5 哈希路由](#65-%E5%93%88%E5%B8%8C%E8%B7%AF%E7%94%B1)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 # 1 案例代码
 1. 在官方案例的基础上进行了部分代码的调整：[durandal-source](https://github.com/yusongjohn/durandal-source)

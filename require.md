@@ -24,6 +24,8 @@
         - [intakeDefines](#intakedefines)
       - [2. context.nextTick回调](#2-contextnexttick%E5%9B%9E%E8%B0%83)
       - [3. req(cfg) 加载main.test.js 流程 (主动加载)](#3-reqcfg-%E5%8A%A0%E8%BD%BDmaintestjs-%E6%B5%81%E7%A8%8B-%E4%B8%BB%E5%8A%A8%E5%8A%A0%E8%BD%BD)
+        - [1. 内部模块的生成](#1-%E5%86%85%E9%83%A8%E6%A8%A1%E5%9D%97%E7%9A%84%E7%94%9F%E6%88%90)
+        - [2. 内部模块的定义:Module.prototype.enable](#2-%E5%86%85%E9%83%A8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%AE%9A%E4%B9%89moduleprototypeenable)
     - [2.2.2 被动加载](#222-%E8%A2%AB%E5%8A%A8%E5%8A%A0%E8%BD%BD)
     - [2.2.3 callGetModule](#223-callgetmodule)
       - [2.2.3.1 makeModuleMap,getModule](#2231-makemodulemapgetmodule)
@@ -467,19 +469,84 @@ function intakeDefines() {
 ``` 
 
 #### 2. context.nextTick回调
-- 主动加载模块的一个特点就是 context.nextTick中会生成一个 内部名称(internal name: '_@r' + number) 的模块，其作用是啥呢？
+- 主动加载模块的一个特点就是 context.nextTick中会生成一个 内部名称(internal name: '_@r' + number) 的模块（内部模块），其作用是啥呢？
     - 该匿名模块会将require的deps参数作为其依赖，然后启动该模块的加载
     - 当这些依赖的模块加载完成后，标志着生成的 '内部模块' 加载完成
     - 得出：该内部模块的作用是用来检测主动加载模块的什么时候加载完成？
     
 #### 3. req(cfg) 加载main.test.js 流程 (主动加载) 
-1. intakeDefines 
- 
-2. 
+>主动加载的方式:require()即通过require方法显示加载
+
+调用栈
+req(cfg:对象1) ->  context.configure(config)  -> localRequire
+    1. intakeDefines -> callGetModule
+    2. context.nextTick -> requireMod.init
+
+
+##### 1. 内部模块的生成
+![avatar](images/require/anoni_module_main.test.png)
+```
+context.nextTick(function () {
+    //... 
+    requireMod.init(deps, callback, errback, { 
+        enabled: true
+    });
+}
+```
+
+- 为什么这里使用了 {enabled:true} 选项 直接跳过check()方法进入enable()？因为是‘内部模块’
+>1. 主动加载的模块会作为框架生成的‘内部模块’的依赖，因为是内部模块没有对应的js文件，
+>2. 因此对内部模块的初始化来说，就是进行enable，开始[定义]该内部模块，
+>3. check()的两个重要作用：1. 通过fetch获取js文件 2. 完成模块的定义 （这对于内部模块的初始化来说显然是不必要的步骤），
+>4. 因此这里使用了{enabled:true}跳过check直接进行模块定义
     
+##### 2. 内部模块定义的入口:Module.prototype.enable
+1. 处理 内部模块 的依赖模块
+![avatar](images/require/ano_module_deps.png)
+```
+enable: function () { // 递归 context.enable -> Module.prototype.enable
+    enabledRegistry[this.map.id] = this;
+    this.enabled = true;
+    this.enabling = true;
     
+    each(this.depMaps, bind(this, function (depMap, i) {// 循环处理所有依赖
+        if (typeof depMap === 'string') {
+            this.depCount += 1;
+            
+            on(depMap, 'defined', bind(this, function (depExports) { // 监听defined事件
+                this.defineDep(i, depExports);
+                this.check();
+            })); 
+        }
+        
+        if (!hasProp(handlers, id) && mod && !mod.enabled) {
+            context.enable(depMap, this); //关键
+        }
+    }
     
-    
+    this.enabling = false;
+    this.check();    
+}
+```
+
+内部模块的依赖模块'main.test'的处理
+![avatar](images/require/main.test_map.png)
+
+![avatar](images/require/main.test_module.png)
+内部模块的依赖模块'main.test'：enable -> check -> fetch（构造script标签加载main.test.js）
+
+当main.test.js文件加载完成后会立即执行文件中的代码
+1. requirejs.config
+2. define -> 添加到 globalDefQueue
+3. completeLoad 
+![avatar](images/require/main.test_success.png)
+4. callGetModule -> Module.prototype.init （这个过程见[被动加载]章节）
+当 main.test 模块的所有依赖全部加载完成后
+![avatar](images/require/main.test_emit.png)
+
+![avatar](images/require/anoni_on_defined.png) 
+至此 内部模块"_@r3" 定义结束
+
 
 ### 2.2.2 被动加载
 
@@ -528,7 +595,93 @@ function intakeDefines() {
  
 
 #### 2.2.3.2 Module[状态流转]看加载流程
- 
+context.enable
+```
+context = {
+    enable: function (depMap) {
+        var mod = getOwn(registry, depMap.id);
+        if (mod) {
+            getModule(depMap).enable(); // 调用 Module.prototype.enable()
+        }
+    },
+}
+```
+
+Module.prototype
+``` 
+Module.prototype = {
+    init: function (depMaps, factory, errback, options){ // 该方法执行的前提：模块（js文件）已经加载完成了 或者 框架‘内部模块’（因为内部模块压根不需要加载js文件）
+        if (this.inited) {
+            return;
+        }
+        //...
+        this.inited = true;
+        if (options.enabled || this.enabled) { 
+            this.enable();
+        } else {
+            this.check();
+        }
+    },
+    
+    enable: function () { // enable方法用来标识：该模块开始进行定义；开始进行定义的前提：模块对应的js文件已经加载完成，但是js文件中定义的模块尚未开始进行定义（此时js中代码已经执行完毕） 或者 ‘内部模块’的初始化（因为内部模块没有对应的js文件）
+        enabledRegistry[this.map.id] = this;
+        this.enabled = true;
+        this.enabling = true;
+        
+        each(this.depMaps, bind(this, function (depMap, i) {
+            //...
+            this.depCount += 1; （当前模块的依赖数）
+                            
+            // 监听依赖模块的defined事件，（每个模块完成后都会触发defined事件）
+            on(depMap, 'defined', bind(this, function (depExports) { 
+                this.defineDep(i, depExports); // 某个依赖模块完成后父模块的工作：缓存该模块，depCount--（依赖数）等
+                this.check();
+            }));
+            
+            if (!hasProp(handlers, id) && mod && !mod.enabled) {
+                context.enable(depMap, this);
+            }
+        }) 
+        
+        this.enabling = false;
+        this.check();
+    },
+    defineDep: function (i, depExports) { 
+        if (!this.depMatched[i]) {
+            this.depMatched[i] = true;
+            this.depCount -= 1;
+            this.depExports[i] = depExports; // this.depExports 将会作为父模块回调的参数：define(['a','b','c'],function(a,b,c){}); 回调函数的参数a,b,c就是通过depExports传递的
+        }
+    },
+    check: function () {// 函数名已经表明了该方法的作用：检查，根据当前模块的状态检查下一步该做什么（代码中也可看出是各种if判断模块状态）
+        if (!this.enabled || this.enabling) { // 如果模块处于 enabled 的话，说明 模块（js文件） 还在加载中
+            return;
+        }
+        
+        if (!this.inited) { // inited 为 false 表明模块（js文件）尚未加载，因此需要通过this.fetch去加载该js文件
+            this.fetch();
+        } else if (this.error) {
+            this.emit('error', this.error);
+        } else if (!this.defining) {
+            this.defining = true;
+        
+            if (this.depCount < 1 && !this.defined) {
+            
+            }
+            
+            if (this.defined && !this.defineEmitted) {
+                this.defineEmitted = true;
+                this.emit('defined', this.exports);
+                this.defineEmitComplete = true;
+            }
+        }
+    
+    }
+
+}
+```
+ Module.prototype.init：this.inited 用来标识：用来标识该模块（js）文件是否被加载了
+ Module.prototype.enabled：this.enabled、this.enabling
 
 # 补充 
 ## context.require = localRequire （闭包）, 为什么这里要这么做呢？
@@ -546,8 +699,10 @@ context = {
     //...
 }
 ```
- 
+
 ## useInteractive 的作用
+
+## fetch 构造script标签加载资源
 
 ## makeModuleMap
 moduleName的类型：require调用，define调用
@@ -593,4 +748,4 @@ define('a1', [], function () {
 ![avatar](images/require/defined_on.png)
 
 3. 如果异步处理，则会先执行后面的同步代码，那么require(['a1'])也就不会尝试加载a1.js文件了；
->我认为，这里应该是个优化的过程，并不是必须的。比如 nextTickTest.js 中的两句代码颠倒下顺序，也是可以顺利执行的
+>我认为，这里应该是个优化的过程，并不是必须的。比如 nextTickTest.js 中的两句代码颠倒下顺序，也是可以顺利执行的；建议在看requirejs源码时，把这里改为同步

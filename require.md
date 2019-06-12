@@ -25,8 +25,11 @@
       - [2. context.nextTick回调](#2-contextnexttick%E5%9B%9E%E8%B0%83)
       - [3. req(cfg) 加载main.test.js 流程 (主动加载)](#3-reqcfg-%E5%8A%A0%E8%BD%BDmaintestjs-%E6%B5%81%E7%A8%8B-%E4%B8%BB%E5%8A%A8%E5%8A%A0%E8%BD%BD)
         - [1. 内部模块的生成](#1-%E5%86%85%E9%83%A8%E6%A8%A1%E5%9D%97%E7%9A%84%E7%94%9F%E6%88%90)
-        - [2. 内部模块的定义:Module.prototype.enable](#2-%E5%86%85%E9%83%A8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%AE%9A%E4%B9%89moduleprototypeenable)
+        - [2. 内部模块定义的入口:Module.prototype.enable](#2-%E5%86%85%E9%83%A8%E6%A8%A1%E5%9D%97%E5%AE%9A%E4%B9%89%E7%9A%84%E5%85%A5%E5%8F%A3moduleprototypeenable)
     - [2.2.2 被动加载](#222-%E8%A2%AB%E5%8A%A8%E5%8A%A0%E8%BD%BD)
+      - [2.2.2.x  'text!../test.json'](#222x--texttestjson)
+      - [2.2.2.x  'durandal/indexTest'](#222x--durandalindextest)
+      - [2.2.2.x  'bootstrap'](#222x--bootstrap)
     - [2.2.3 callGetModule](#223-callgetmodule)
       - [2.2.3.1 makeModuleMap,getModule](#2231-makemodulemapgetmodule)
         - [1. makeModuleMap](#1-makemodulemap)
@@ -35,6 +38,7 @@
 - [补充](#%E8%A1%A5%E5%85%85)
   - [context.require = localRequire （闭包）, 为什么这里要这么做呢？](#contextrequire--localrequire-%E9%97%AD%E5%8C%85-%E4%B8%BA%E4%BB%80%E4%B9%88%E8%BF%99%E9%87%8C%E8%A6%81%E8%BF%99%E4%B9%88%E5%81%9A%E5%91%A2)
   - [useInteractive 的作用](#useinteractive-%E7%9A%84%E4%BD%9C%E7%94%A8)
+  - [fetch 构造script标签加载资源](#fetch-%E6%9E%84%E9%80%A0script%E6%A0%87%E7%AD%BE%E5%8A%A0%E8%BD%BD%E8%B5%84%E6%BA%90)
   - [makeModuleMap](#makemodulemap)
   - [context.nextTick:setTimeout ，为什么要异步？](#contextnextticksettimeout-%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E5%BC%82%E6%AD%A5)
 
@@ -538,8 +542,14 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
 当main.test.js文件加载完成后会立即执行文件中的代码
 1. requirejs.config
 2. define -> 添加到 globalDefQueue
-3. completeLoad 
+3. completeLoad
+ 
 ![avatar](images/require/main.test_success.png)
+
+参数moduleName其实是从其sctipt标签上获取的，在构造script标签时就添加了一个属性[data-requiremodule]
+![avatar](images/require/module_name_script.png)
+
+ 
 4. callGetModule -> Module.prototype.init （这个过程见[被动加载]章节）
 当 main.test 模块的所有依赖全部加载完成后
 ![avatar](images/require/main.test_emit.png)
@@ -549,6 +559,52 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
 
 
 ### 2.2.2 被动加载
+> 资源通过 context.enable() 方式加载 （如，this.callPlugin 、 Module.prototype.enable ）加载依赖模块，此时依赖模块是被动加载的
+
+上面说到 main.test.js 加载完成后 onScriptLoad -> completeLoad -> callGetModule -> Module.prototype.init （初始化该模块）
+首先得说下：该模块在作为 内部模块"_@r3" 的依赖模块时  已经被 enabled 了，但是当时对应的js文件尚未加载因此其depMaps =[];
+现在js完成了加载并且也执行了文件的define方法，因此确定了该模块了依赖模块。此时可以进行该模块的[定义] 进入 Module.prototype.enable
+后面的过程和加载 内部模块"_@r3" 的流程一致
+
+- 通过 Module.prototype.enable 加载其依赖模块，每个依赖模块的轨迹 -> context.enable -> depMapModule.enable -> depMapModule.check
+
+>如果define时没有显示指定模块名称，则为 fetch方法构造script标签data-requiremodule，而构造时用的名称是makeModuleMap生成的id
+
+#### 2.2.2.x  'text!./../test.json'
+1. 特殊在于依赖于text模块，并且需要调用该模块进行解析
+2. makeModuleMap 的结果,模块名称："text!../test.json_unnormalized2"
+![avatar](images/require/test_json_normalize.png)
+normalize()
+![avatar](images/require/test_json_make_module_map.png) 
+
+
+3. 当使用fetch()去加载"text!../test.json_unnormalized2"时
+![avatar](images/require/test.json_fetch.png) 
+
+```
+callPlugin: function () {
+    this.depMaps.push(pluginMap); 
+        on(pluginMap, 'defined', bind(this, function (plugin) {
+            //... text加载完成后
+        }
+    }
+    context.enable(pluginMap, this); // 加载该文件（被动加载）
+    this.pluginMaps[pluginMap.id] = pluginMap; 
+}
+```
+
+##### Module.prototype.callPlugin
+ 
+ 
+ 
+ 
+#### 2.2.2.x  'durandal/indexTest'
+1. 特殊在于 'durandal/indexTest' 其实代表的路径是：'../lib/durandal/js/indexTest.js' ，因为配置的paths时：durandal作为文件夹存在的
+2. makeModuleMap 通过 nameToUrl() 转换此类路径
+3. 这种情况：就这些
+
+
+#### 2.2.2.x  'bootstrap' 
 
 
 ### 2.2.3 callGetModule
@@ -707,6 +763,21 @@ context = {
 ## makeModuleMap
 moduleName的类型：require调用，define调用
 
+## nameToUrl：把模块名称转为文件路径
+核心代码
+![avatar](images/require/durandal_indexttest_name_to_url.png)
+思想：以模块名称为 'a/b/c/d'为例
+1. abcd在config.paths中是否有匹配 => matchRes
+2. abc 在config.paths中是否有匹配 => matchRes + '/d'
+3. ab  在config.paths中是否有匹配 => matchRes + '/bd'
+4. a   在config.paths中是否有匹配 => matchRes + '/cbd'
+=> url += '文件后缀名' 
+
+## normalize
+> 将 ./ 路径 转化为基于 baseUrl的路径，为了可以基于config.paths映射路径
+
+
+## 如何支持cmd规范的？
 
 ## context.nextTick:setTimeout ，为什么要异步？
 >保证同步的代码块中的define被执行

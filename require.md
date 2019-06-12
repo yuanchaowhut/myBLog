@@ -16,16 +16,22 @@
     - [2.1.1 newContext 结构](#211-newcontext-%E7%BB%93%E6%9E%84)
     - [2.1.2 define函数](#212-define%E5%87%BD%E6%95%B0)
     - [2.1.4 初始化[启动]配置项（cfg）](#214-%E5%88%9D%E5%A7%8B%E5%8C%96%E5%90%AF%E5%8A%A8%E9%85%8D%E7%BD%AE%E9%A1%B9cfg)
-    - [2.1.3 main.js文件的加载](#213-mainjs%E6%96%87%E4%BB%B6%E7%9A%84%E5%8A%A0%E8%BD%BD)
+    - [2.1.5 main.js文件的加载](#215-mainjs%E6%96%87%E4%BB%B6%E7%9A%84%E5%8A%A0%E8%BD%BD)
   - [2.2 模块的加载过程](#22-%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD%E8%BF%87%E7%A8%8B)
-    - [2.2.1 makeRequire与localRequire](#221-makerequire%E4%B8%8Elocalrequire)
-      - [1. intakeDefines takeGlobalQueue](#1-intakedefines-takeglobalqueue)
+    - [2.2.1 makeRequire与localRequire(主动加载)](#221-makerequire%E4%B8%8Elocalrequire%E4%B8%BB%E5%8A%A8%E5%8A%A0%E8%BD%BD)
+      - [1. intakeDefines、takeGlobalQueue](#1-intakedefinestakeglobalqueue)
         - [takeGlobalQueue](#takeglobalqueue)
-        - [intakeDefines：定义moduleMap，并添加到 context.registry](#intakedefines%E5%AE%9A%E4%B9%89modulemap%E5%B9%B6%E6%B7%BB%E5%8A%A0%E5%88%B0-contextregistry)
-      - [2. callGetModule](#2-callgetmodule)
+        - [intakeDefines](#intakedefines)
+      - [2. context.nextTick回调](#2-contextnexttick%E5%9B%9E%E8%B0%83)
+      - [3. req(cfg) 加载main.test.js 流程 (主动加载)](#3-reqcfg-%E5%8A%A0%E8%BD%BDmaintestjs-%E6%B5%81%E7%A8%8B-%E4%B8%BB%E5%8A%A8%E5%8A%A0%E8%BD%BD)
+    - [2.2.2 被动加载](#222-%E8%A2%AB%E5%8A%A8%E5%8A%A0%E8%BD%BD)
+    - [2.2.3 callGetModule](#223-callgetmodule)
+      - [2.2.3.1 makeModuleMap,getModule](#2231-makemodulemapgetmodule)
+        - [1. makeModuleMap](#1-makemodulemap)
+        - [2. getModule](#2-getmodule)
+      - [2.2.3.2 Module[状态流转]看加载流程](#2232-module%E7%8A%B6%E6%80%81%E6%B5%81%E8%BD%AC%E7%9C%8B%E5%8A%A0%E8%BD%BD%E6%B5%81%E7%A8%8B)
 - [补充](#%E8%A1%A5%E5%85%85)
   - [context.require = localRequire （闭包）, 为什么这里要这么做呢？](#contextrequire--localrequire-%E9%97%AD%E5%8C%85-%E4%B8%BA%E4%BB%80%E4%B9%88%E8%BF%99%E9%87%8C%E8%A6%81%E8%BF%99%E4%B9%88%E5%81%9A%E5%91%A2)
-  - [localRequire中的context.nextTick的作用？](#localrequire%E4%B8%AD%E7%9A%84contextnexttick%E7%9A%84%E4%BD%9C%E7%94%A8)
   - [useInteractive 的作用](#useinteractive-%E7%9A%84%E4%BD%9C%E7%94%A8)
   - [makeModuleMap](#makemodulemap)
   - [context.nextTick:setTimeout ，为什么要异步？](#contextnextticksettimeout-%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E5%BC%82%E6%AD%A5)
@@ -367,7 +373,7 @@ if (isBrowser && !cfg.skipDataMain) {
 }
 ```
 
-### 2.1.3 main.js文件的加载
+### 2.1.5 main.js文件的加载
 ```
 //Set up with config info.
 req(cfg);
@@ -390,7 +396,7 @@ define(['durandal/indexTest', 'text!../test.json', '../nextTickTest','bootstrap'
     - 主动加载：使用require方法加载模块，如 app/main.test.js，该文件作为data-main入口，由requirejs使用require方法主动加载（见2.1.2、2.1.3）
 >durandal使用的system.acquire()就是直接调用require方法主动加载模块
 
-### 2.2.1 makeRequire与localRequire
+### 2.2.1 makeRequire与localRequire(主动加载)
 >对于模块的主动加载其实际的加载入口是：localRequire（闭包）
 
 req(cfg), cfg.deps = ['main.test']
@@ -427,10 +433,14 @@ makeRequire: function (relMap, options) {
     return localRequire;
 }
 ``` 
+
+
 #### 1. intakeDefines、takeGlobalQueue
 ##### takeGlobalQueue
 还记得define方法中的globalDefQueue变量吗？ 每当define时都会将模块的配置（名称，依赖，回调）保存起来（参考define函数的定义），takeGlobalQueue将globalDefQueue中的配置迁移到defQueue中
 >globalDefQueue是requirejs脚本中最外层作用域的变量（作用域链），defQueue则是newContext函数的私有变量
+
+
 ```
 function takeGlobalQueue() { 
     if (globalDefQueue.length) { 
@@ -439,6 +449,8 @@ function takeGlobalQueue() {
     }
 }
 ```
+
+
 
 ##### intakeDefines
 
@@ -454,42 +466,68 @@ function intakeDefines() {
 }
 ``` 
 
-##### callGetModule
-注意后面的 init
-```
-function callGetModule(args) { 
-    if (!hasProp(defined, args[0])) {
-        getModule(makeModuleMap(args[0], null, true)).init(args[1], args[2]); 
-    }
-}
-```
-
-getModule：注册到registry中
-```
-function getModule(depMap) {
-    var id = depMap.id,
-        mod = getOwn(registry, id);
-
-    if (!mod) {
-        mod = registry[id] = new context.Module(depMap);
-    }
-
-    return mod;
-}
-```
-
 #### 2. context.nextTick回调
 - 主动加载模块的一个特点就是 context.nextTick中会生成一个 内部名称(internal name: '_@r' + number) 的模块，其作用是啥呢？
     - 该匿名模块会将require的deps参数作为其依赖，然后启动该模块的加载
     - 当这些依赖的模块加载完成后，标志着生成的 '内部模块' 加载完成
-    - 得出：该内部模块的作用就是用来检测主动加载模块的什么时候加载完成？
+    - 得出：该内部模块的作用是用来检测主动加载模块的什么时候加载完成？
     
-req(cfg) 
-
+#### 3. req(cfg) 加载main.test.js 流程 (主动加载) 
+1. intakeDefines 
+ 
+2. 
+    
+    
+    
     
 
+### 2.2.2 被动加载
 
 
+### 2.2.3 callGetModule
+```
+1. callGetModule 
+    makeModuleMap
+    getMoule // 返回Module实例
+2. this.init
+3. this.check
+4. this.fetch （构造scriptb标签加载资源）
+    
+
+    
+```
+
+#### 2.2.3.1 makeModuleMap,getModule
+##### 1. makeModuleMap
+
+
+ 注意后面的 init
+ ```
+ function callGetModule(args) { 
+     if (!hasProp(defined, args[0])) {
+         getModule(makeModuleMap(args[0], null, true)).init(args[1], args[2]); 
+     }
+ }
+ ```
+ 
+##### 2. getModule
+ 
+ getModule：注册到registry中
+ ```
+ function getModule(depMap) {
+     var id = depMap.id,
+         mod = getOwn(registry, id);
+ 
+     if (!mod) {
+         mod = registry[id] = new context.Module(depMap);
+     }
+ 
+     return mod;
+ }
+ ```
+ 
+
+#### 2.2.3.2 Module[状态流转]看加载流程
  
 
 # 补充 

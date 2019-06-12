@@ -27,7 +27,8 @@
         - [1. 内部模块的生成](#1-%E5%86%85%E9%83%A8%E6%A8%A1%E5%9D%97%E7%9A%84%E7%94%9F%E6%88%90)
         - [2. 内部模块定义的入口:Module.prototype.enable](#2-%E5%86%85%E9%83%A8%E6%A8%A1%E5%9D%97%E5%AE%9A%E4%B9%89%E7%9A%84%E5%85%A5%E5%8F%A3moduleprototypeenable)
     - [2.2.2 被动加载](#222-%E8%A2%AB%E5%8A%A8%E5%8A%A0%E8%BD%BD)
-      - [2.2.2.x  'text!../test.json'](#222x--texttestjson)
+      - [2.2.2.x  'text!./../test.json'](#222x--texttestjson)
+        - [Module.prototype.callPlugin](#moduleprototypecallplugin)
       - [2.2.2.x  'durandal/indexTest'](#222x--durandalindextest)
       - [2.2.2.x  'bootstrap'](#222x--bootstrap)
     - [2.2.3 callGetModule](#223-callgetmodule)
@@ -40,6 +41,9 @@
   - [useInteractive 的作用](#useinteractive-%E7%9A%84%E4%BD%9C%E7%94%A8)
   - [fetch 构造script标签加载资源](#fetch-%E6%9E%84%E9%80%A0script%E6%A0%87%E7%AD%BE%E5%8A%A0%E8%BD%BD%E8%B5%84%E6%BA%90)
   - [makeModuleMap](#makemodulemap)
+  - [nameToUrl：把模块名称转为文件路径](#nametourl%E6%8A%8A%E6%A8%A1%E5%9D%97%E5%90%8D%E7%A7%B0%E8%BD%AC%E4%B8%BA%E6%96%87%E4%BB%B6%E8%B7%AF%E5%BE%84)
+  - [normalize](#normalize)
+  - [如何支持cmd规范的？](#%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81cmd%E8%A7%84%E8%8C%83%E7%9A%84)
   - [context.nextTick:setTimeout ，为什么要异步？](#contextnextticksettimeout-%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E5%BC%82%E6%AD%A5)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -585,7 +589,7 @@ normalize()
 callPlugin: function () {
     this.depMaps.push(pluginMap); 
         on(pluginMap, 'defined', bind(this, function (plugin) {
-            //... text加载完成后
+            //... text加载完成后 
         }
     }
     context.enable(pluginMap, this); // 加载该文件（被动加载）
@@ -594,6 +598,75 @@ callPlugin: function () {
 ```
 
 ##### Module.prototype.callPlugin
+ ```
+ function (plugin) {
+     var load, normalizedMap, normalizedMod,
+         bundleId = getOwn(bundlesMap, this.map.id),
+         name = this.map.name,
+         parentName = this.map.parentMap ? this.map.parentMap.name : null,
+         localRequire = context.makeRequire(map.parentMap, {
+             enableBuildCallback: true
+         });
+ 
+     if (this.map.unnormalized) {
+         
+         if (plugin.normalize) {
+             name = plugin.normalize(name, function (name) {
+                 return normalize(name, parentName, true);
+             }) || '';
+         }
+ 
+         normalizedMap = makeModuleMap(map.prefix + '!' + name,
+                                       this.map.parentMap);
+         on(normalizedMap,
+             'defined', bind(this, function (value) {
+                 this.init([], function () { return value; }, null, {
+                     enabled: true,
+                     ignore: true
+                 });
+             }));
+
+         normalizedMod = getOwn(registry, normalizedMap.id);
+         if (normalizedMod) {
+             //Mark this as a dependency for this plugin, so it
+             //can be traced for cycles.
+             this.depMaps.push(normalizedMap);
+
+             if (this.events.error) {
+                 normalizedMod.on('error', bind(this, function (err) {
+                     this.emit('error', err);
+                 }));
+             }
+             normalizedMod.enable();
+         }
+
+         return;
+     }
+     
+     if(bundleId){
+        //...
+     }
+     
+     
+     load = bind(this, function (value) {
+         this.init([], function () { return value; }, null, {
+             enabled: true
+         });
+     });
+
+     //...
+     
+     plugin.load(map.name, localRequire, load, config);
+ }
+
+
+
+```
+ 
+ 
+ 
+ 
+ 
  
  
  

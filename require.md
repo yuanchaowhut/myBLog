@@ -571,32 +571,158 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
 >如果define时没有显示指定模块名称，则为 fetch方法构造script标签data-requiremodule，而构造时用的名称是makeModuleMap生成的id
 
 #### 2.2.2.x  'text!./../test.json'
-1. 特殊在于依赖于text模块，并且需要调用该模块进行解析
-2. makeModuleMap 的结果,模块名称："text!../test.json_unnormalized2"
+>特殊在于依赖于text模块，并且需要调用该模块进行解析
+- 1. 父模块的enable方法中
+    - 1.1 makeModuleMap 的结果,模块名称："text!../test.json_unnormalized2"<br/>
+        makeModuleMap -> normalize 转化路径 './' <br/>
 ![avatar](images/require/test_json_normalize.png)
-normalize()
+        makeModuleMap的结果<br/>
 ![avatar](images/require/test_json_make_module_map.png) 
-
-
-3. 当使用fetch()去加载"text!../test.json_unnormalized2"时
+    - 调用context.enable 
+- 2 进入 "text!../test.json_unnormalized2"模块的enable
+    - 2.1 fetch()去加载"text!../test.json_unnormalized2"<br/>
 ![avatar](images/require/test.json_fetch.png) 
+    - 2.2 fetch -> callPlugin （pluginMap）<br/>
+    pluginMap
+    ![avatar](images/require/text_on_defiend.png) 
+        - 2.2.1 pluginMap 监听defined事件，回调有两种情况
+            - 2.2.1.1 unnormalized 情况 走if (this.map.unnormalized)语句块 <br/> 
+                >this.map.id = "text!../test.json_unnormalized2"
+                
+                normalizedMap
+                ![avatar](images/require/text_json_module_map.png)<br/> 
+                - normalizedMap监听defined事件
+                - normalizedMod.enable() -> "text!../test.json"模块定义 -> callPlugin -> 2.2.1.2（由于 text.js 已经加载完成，所以会同步执行defined回调）
+            
+            - 2.2.1.2 normalized 情况
+                >this.map.id = "text!../test.json" 
+                ``` 
+                callPlugin: function () {
+                    on(pluginMap, 'defined', bind(this, function (plugin) {
+                        //...
+                        load = bind(this, function (value) { 
+                            this.init([], function () { return value; }, null, {
+                                enabled: true
+                            });
+                        });
+                        plugin.load(map.name, localRequire, load, config);
+                    }))
+                ```
 
-```
-callPlugin: function () {
-    this.depMaps.push(pluginMap); 
-        on(pluginMap, 'defined', bind(this, function (plugin) {
-            //... text加载完成后
-        }
-    }
-    context.enable(pluginMap, this); // 加载该文件（被动加载）
-    this.pluginMaps[pluginMap.id] = pluginMap; 
-}
-```
+        - 2.2.2 context.enable(pluginMap, this);
+       
+  
+  
+  
+  
 
 ##### Module.prototype.callPlugin
  
+ ```
+ callPlugin: function () {
+     this.depMaps.push(pluginMap); 
+         on(pluginMap, 'defined', bind(this, function (plugin) { // text.js defined回调
+             //... text加载完成后
+         }
+     }
+     context.enable(pluginMap, this); // 加载该文件（被动加载）
+     this.pluginMaps[pluginMap.id] = pluginMap; 
+ }
+ ```
+  
+
+```
+function (plugin) { // 这里就是text.js 返回的对象
+    var load, normalizedMap, normalizedMod,
+        bundleId = getOwn(bundlesMap, this.map.id),
+        name = this.map.name,
+        parentName = this.map.parentMap ? this.map.parentMap.name : null,
+        localRequire = context.makeRequire(map.parentMap, {
+            enableBuildCallback: true
+        });
+      
+    if (this.map.unnormalized) { // 如果当前的moduleMap unnormalized
+        if (plugin.normalize) {
+            name = plugin.normalize(name, function (name) {
+                return normalize(name, parentName, true);
+            }) || '';
+        }
+        // 现在的情况是，依赖的plugin：text已经加载完成，因此 需要重新 makeModuleMap (unnormalized这次一定为false）
+        normalizedMap = makeModuleMap(map.prefix + '!' + name, this.map.parentMap); // normalizedMap.id = text!../test.json
+        on(normalizedMap, 'defined', bind(this, function (value) {  // 监听test.json文件的defined事件
+            this.init([], function () { return value; }, null, {
+                enabled: true,
+                ignore: true
+            });
+        }));
+
+        normalizedMod = getOwn(registry, normalizedMap.id);
+        if (normalizedMod) {
+            //Mark this as a dependency for this plugin, so it
+            //can be traced for cycles.
+            this.depMaps.push(normalizedMap);
+
+            if (this.events.error) {
+                normalizedMod.on('error', bind(this, function (err) {
+                    this.emit('error', err);
+                }));
+            }
+            normalizedMod.enable();
+        }
+
+        return; // 关键，没有继续向下执行了
+    }
+ 
+    if (bundleId) { 
+        //...
+    }
+
+    load = bind(this, function (value) {
+        this.init([], function () { return value; }, null, { => init -> enable -> check -> emit(defiened)
+            enabled: true
+        });
+    });
+
+    load.error = bind(this, function (err) {  });
+
+    load.fromText = bind(this, function (text, textAlt) {   });
+
+    plugin.load(map.name, localRequire, load, config);  // 走插件的逻辑，如text.js通过ajax加载text.json文件，加载成功后调用这里传入的回调：load
+} 
+```
+ - plugin
+ ![avatar](images/require/text_obj.png) 
  
  
+ 
+ - text!../test.json_unnormalized2的依赖
+ ![avatar](images/require/text_json_unnormalized_deps.png)
+ 
+ 
+ 
+ 
+ 
+-  关于 makeModuleMap 方法对 unnormalized 属性的处理
+ 'text!./../test.json'作为模块main.test依赖，在enable方法中调用了makeModuleMap，此时传入的 isNormalized:false，
+ 并且此时'test.js'模块也是第一次调用，因此pluginModule是undefined，prefix就是'text'
+ => (prefix && !pluginModule && !isNormalized) 为 true  
+ 
+```
+function makeModuleMap(name, parentModuleMap, isNormalized, applyMap) {
+    //...
+    if (prefix) {
+        prefix = normalize(prefix, parentName, applyMap);
+        pluginModule = getOwn(defined, prefix);
+    }
+    suffix = prefix && !pluginModule && !isNormalized ? '_unnormalized' + (unnormalizedCounter += 1) :
+    
+    //...
+    
+    return {
+        unnormalized: !!suffix,
+    };
+}
+```
  
 #### 2.2.2.x  'durandal/indexTest'
 1. 特殊在于 'durandal/indexTest' 其实代表的路径是：'../lib/durandal/js/indexTest.js' ，因为配置的paths时：durandal作为文件夹存在的
@@ -709,7 +835,7 @@ Module.prototype = {
             this.depExports[i] = depExports; // this.depExports 将会作为父模块回调的参数：define(['a','b','c'],function(a,b,c){}); 回调函数的参数a,b,c就是通过depExports传递的
         }
     },
-    check: function () {// 函数名已经表明了该方法的作用：检查，根据当前模块的状态检查下一步该做什么（代码中也可看出是各种if判断模块状态）
+    check: function () {// 函数名已经表明了该方法的作用：检查，根据当前模块的状态检查下一步该做什么（代码中也可看出是各种if判断模块状态）、defiend/defining
         if (!this.enabled || this.enabling) { // 如果模块处于 enabled 的话，说明 模块（js文件） 还在加载中
             return;
         }
@@ -777,6 +903,11 @@ moduleName的类型：require调用，define调用
 > 将 ./ 路径 转化为基于 baseUrl的路径，为了可以基于config.paths映射路径
 
 
+#Module 与moduleMap的关系
+on操作总是依赖于Module实例，Module实例总是依赖moduleMap，Module构造函数的参数就是moduleMap
+
+## localRequire.undef
+
 ## 如何支持cmd规范的？
 
 ## context.nextTick:setTimeout ，为什么要异步？
@@ -820,3 +951,9 @@ define('a1', [], function () {
 
 3. 如果异步处理，则会先执行后面的同步代码，那么require(['a1'])也就不会尝试加载a1.js文件了；
 >我认为，这里应该是个优化的过程，并不是必须的。比如 nextTickTest.js 中的两句代码颠倒下顺序，也是可以顺利执行的；建议在看requirejs源码时，把这里改为同步
+
+
+## text.js
+```
+finishLoad
+```

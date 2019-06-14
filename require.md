@@ -647,14 +647,17 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
         pluginMap:test.js，调用calPlugin的主体:this
         ![avatar](images/require/text_on_defiend.png) 
         
-        - 2.1.1 pluginMap 监听defined事件（即text.js完成定义后触发这里的回调）==[unnormalized2_defined回调]== ,==[normalized_defined回调]==
+        - 2.1.1 pluginMap 监听defined事件（即text.js完成定义后触发这里的回调） 
+            - text.js加载完成后进入defined回调：plugin
+            ![avatar](images/require/text_obj.png) 
+        
             >回调有两种情况
             - 2.1.1.1 unnormalized 情况 走if (this.map.unnormalized)语句块
                 >this.map.id = "text!../test.json_unnormalized2"
                 
                 normalizedMap："text!../test.json" （normalize，因此下一次回调走 2.2.1.2）
                 ![avatar](images/require/text_json_module_map.png)<br/> 
-                - normalizedMap 监听defined事件 (即 "text!../test.json" 加载完成后 走这里的回调) ==[defined回调_2]==
+                - normalizedMap 监听defined事件 (即 "text!../test.json" 加载完成后 走这里的回调) 
                 此时 "text!../test.json_unnormalized2" 的依赖
                 ![avatar](images/require/text_json_unnormalized_deps.png)
                 
@@ -696,14 +699,34 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
     - makeModuleMap 中的 unnormalized
     >If the id is a plugin id that cannot be determined if it needs normalization, stamp it with a unique ID so two matching relative ids that may conflict can be separate.<br/>
     >如果id是一个插件ID，如果需要进行规范化则无法确定，请使用唯一ID标记它，以便可以将两个匹配的可能冲突的相对ID分开。<br/>
-    还是没懂这里的作用             
+    （其实我也没找到相应的案例，但可以肯定是这是用来处理某种特殊情况的，因此并不妨碍阅读，你甚至可以把makeModuleMap修改下，比如像下面这样）
+    ```
+    function makeModuleMap(name, parentModuleMap, isNormalized, applyMap) {
+        //...
+        return {
+            prefix: prefix,
+            name: normalizedName,
+            parentMap: parentModuleMap,
+            unnormalized: false, // !!suffiex 修改为false
+            url: url,
+            originalName: originalName,
+            isDefine: isDefine,
+            id: (prefix ?
+                prefix + '!' + normalizedName :
+                normalizedName) + suffix
+        };
+    }
+    ```
              
-- 4 总结：控制台日志看该模块的加载流程
-![avatar](images/require/console_look_text_test.json.png)    
-    -  1. 首先"text!../test.json_unnormalized2"模块有两个依赖：text ，text/..test.json 两个模块
-       2. normalize后的模块 "text/..test.json" 会去 通过text.js 加载test.json文件，然后"text/..test.json"该模块完成定义
-       3. 当 "text/..test.json" 完成定义后 就会通知 "text!../test.json_unnormalized2" 去完成定义
-
+- 4 总结：
+    - 控制台日志看该模块的加载流程
+        ![avatar](images/require/console_look_text_test.json.png)    
+        - 1. 首先"text!../test.json_unnormalized2"模块有两个依赖：text ，text/..test.json 两个模块
+        - 2. normalize后的模块 "text/..test.json" 会去 通过text.js 加载test.json文件，然后"text/..test.json"该模块完成定义
+        - 3. 当 "text/..test.json" 完成定义后 就会通知 "text!../test.json_unnormalized2" 去完成定义
+    - 显然 unnormalized 这个鬼玩意让这里变的复杂很多。
+    - 从思想来看，这里就是先加载 text.js 插件，然后把 text.json 文件的加载交给text.js（注意defined事件的使用，通过该事件的订阅与发布使得父模块得以完成定义）
+   
 
 ##### Module.prototype.callPlugin
  
@@ -779,15 +802,6 @@ function (plugin) { // 这里就是text.js 返回的对象
     plugin.load(map.name, localRequire, load, config);  // 走插件的逻辑，如text.js通过ajax加载text.json文件，加载成功后调用这里传入的回调：load
 } 
 ```
- - plugin
- ![avatar](images/require/text_obj.png) 
- 
- 
- 
-
- 
- 
- 
  
  
 -  关于 makeModuleMap 方法对 unnormalized 属性的处理

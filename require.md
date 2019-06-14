@@ -554,7 +554,6 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
 参数moduleName其实是从其sctipt标签上获取的，在构造script标签时就添加了一个属性[data-requiremodule]
 ![avatar](images/require/module_name_script.png)
 
- 
 4. callGetModule -> Module.prototype.init （这个过程见[被动加载]章节）
 当 main.test 模块的所有依赖全部加载完成后
 ![avatar](images/require/main.test_emit.png)
@@ -717,8 +716,11 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
         };
     }
     ```
+    
+    
+- 4 
              
-- 4 总结：
+- 5 总结：
     - 控制台日志看该模块的加载流程
         ![avatar](images/require/console_look_text_test.json.png)    
         - 1. 首先"text!../test.json_unnormalized2"模块有两个依赖：text ，text/..test.json 两个模块
@@ -730,18 +732,17 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
 
 ##### Module.prototype.callPlugin
  
- ```
- callPlugin: function () {
-     this.depMaps.push(pluginMap); 
-         on(pluginMap, 'defined', bind(this, function (plugin) { // text.js defined回调
-             //... text加载完成后
-         }
-     }
-     context.enable(pluginMap, this); // 加载该文件（被动加载）
-     this.pluginMaps[pluginMap.id] = pluginMap; 
- }
- ```
-  
+```
+callPlugin: function () {
+    this.depMaps.push(pluginMap); 
+        on(pluginMap, 'defined', bind(this, function (plugin) { // text.js defined回调
+         //... text加载完成后
+        }
+    }
+    context.enable(pluginMap, this); // 加载该文件（被动加载）
+    this.pluginMaps[pluginMap.id] = pluginMap; 
+}
+``` 
 
 ```
 function (plugin) { // 这里就是text.js 返回的对象
@@ -833,7 +834,30 @@ function makeModuleMap(name, parentModuleMap, isNormalized, applyMap) {
 
 
 #### 2.2.2.x  'bootstrap' 
+```
+shim: {
+    'bootstrap': {
+        deps: ['jquery'],
+        exports: 'jQuery'
+    }
+}
 
+```
+> 思路很简单：生成一个‘require实例’：localRequire，通过它加载完依赖，然后在回调中加载bootstrap
+```
+fetch: function () {
+    //...
+    if (this.shim) {
+        context.makeRequire(this.map, {
+            enableBuildCallback: true
+        })(this.shim.deps || [], bind(this, function () {
+            return map.prefix ? this.callPlugin() : this.load();
+        }));
+    } else {
+       //...
+    }
+},
+```
 
 ### 2.2.3 callGetModule
 ```

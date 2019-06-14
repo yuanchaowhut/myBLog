@@ -578,7 +578,7 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
 #### 2.2.2.x  'text!./../test.json'
 >特殊在于依赖于text模块，并且需要调用该模块进行解析
 - 1 父模块[main.test]的enable方法中
-    - 1.1 调用makeModuleMap(),模块id："text!../test.json_unnormalized2"<br/>
+    - 1.1 调用makeModuleMap()，生成当前模块的moduleMap，其id为"text!../test.json_unnormalized2"<br/>
         
         makeModuleMap -> normalize 转化路径 './..test.json' => '../test.json' <br/>
         ![avatar](images/require/test_json_normalize.png)
@@ -586,7 +586,58 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
         makeModuleMap的结果<br/>
         ![avatar](images/require/test_json_make_module_map.png) 
     
-    - 1.2 调用context.enable 开始 "text!../test.json_unnormalized2" 模块的定义
+    - 1.2 调用 on  监听defined事件
+    > on方法中，
+    ```
+    function on(depMap, name, fn) {
+        var id = depMap.id,
+            mod = getOwn(registry, id);
+
+        if (hasProp(defined, id) &&
+                (!mod || mod.defineEmitComplete)) { // 如果 当前模块即depMap 已经完成了定义，那么同步执行defined回调
+            if (name === 'defined') {
+                fn(defined[id]);
+            }
+        } else {// 如果没有完成定义
+            // 会将该模块注册 registry 变量中，表示当前已经登记过的模块 (上面已经排除了定义完成的可能性，这很重要)
+            mod = getModule(depMap); 
+            if (mod.error && name === 'error') {
+                fn(mod.error);
+            } else {
+                mod.on(name, fn);
+            }
+        }
+    }
+    ```
+    
+    ```
+    function getModule(depMap) {
+        var id = depMap.id,
+            mod = getOwn(registry, id);
+
+        if (!mod) { // 如果没有登记过，则登记，但是这里得注意:如果该模块已经完成了定义，就不应该走这里了
+            mod = registry[id] = new context.Module(depMap);
+        }
+
+        return mod;
+    }
+    ```
+    >该方法主要出现在 context.enable、callGetModule 两个方法中<br/>
+        1. 在执行context.enable之前，都是会先执行on方法，如果已经完成了的定义，则不会调用getModule<br/>
+        2. callGetModule在调用getModule方法时也是会先判断是否已经完成了定义<br/>
+    
+    - 1.3 调用context.enable 开始 "text!../test.json_unnormalized2" 模块的定义
+        - context.enable的作用？如果该模块没有完成定义，则开始（继续）定义
+    
+    ```
+    enable: function (depMap) {
+        var mod = getOwn(registry, depMap.id);
+        if (mod) {
+            getModule(depMap).enable();
+        }
+    },
+    ```
+        
     
 - 2 开始 "text!../test.json_unnormalized2" 模块的定义
     > 跳过中间步骤（enable -> check）直接来到 fetch()

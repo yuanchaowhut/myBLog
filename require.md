@@ -587,14 +587,13 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
         ![avatar](images/require/test_json_make_module_map.png) 
     
     - 1.2 调用 on  监听defined事件
-    > on方法中，
+    > 除了监听事件以外，如果该模块尚未完成定义的话，on还会调用getModule进行登记
     ```
     function on(depMap, name, fn) {
         var id = depMap.id,
             mod = getOwn(registry, id);
 
-        if (hasProp(defined, id) &&
-                (!mod || mod.defineEmitComplete)) { // 如果 当前模块即depMap 已经完成了定义，那么同步执行defined回调
+        if (hasProp(defined, id) && (!mod || mod.defineEmitComplete)) { // 如果 当前模块即depMap 已经完成了定义，那么同步执行defined回调
             if (name === 'defined') {
                 fn(defined[id]);
             }
@@ -627,41 +626,42 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
         2. callGetModule在调用getModule方法时也是会先判断是否已经完成了定义<br/>
     
     - 1.3 调用context.enable 开始 "text!../test.json_unnormalized2" 模块的定义
-        - context.enable的作用？如果该模块没有完成定义，则开始（继续）定义
-    
-    ```
-    enable: function (depMap) {
-        var mod = getOwn(registry, depMap.id);
-        if (mod) {
-            getModule(depMap).enable();
-        }
-    },
-    ```
-        
+        - context.enable的作用？如果该模块没有完成定义，则开始（或继续）定义 
+        ```
+        // context.enable
+        enable: function (depMap) {
+            var mod = getOwn(registry, depMap.id);
+            if (mod) {
+                getModule(depMap).enable();
+            }
+        },
+        ``` 
     
 - 2 开始 "text!../test.json_unnormalized2" 模块的定义
-    > 跳过中间步骤（enable -> check）直接来到 fetch()
-
-    - 2.1 调用fetch "text!../test.json_unnormalized2"<br/>
+    > 跳过中间步骤（enable -> check）直接来到 fetch() 
+    
     ![avatar](images/require/test.json_fetch.png) 
     
-    - 2.2 fetch -> callPlugin<br/>
+    - 2.1 callPlugin 
     
-        pluginMap：test.js 以及 调用calPlugin的主体：this
+        pluginMap:test.js，调用calPlugin的主体:this
         ![avatar](images/require/text_on_defiend.png) 
         
-        - 2.2.1 pluginMap 监听defined事件（即text.js完成定义后触发这里的回调）
+        - 2.1.1 pluginMap 监听defined事件（即text.js完成定义后触发这里的回调）==[unnormalized2_defined回调]== ,==[normalized_defined回调]==
             >回调有两种情况
-            - 2.2.1.1 unnormalized 情况 走if (this.map.unnormalized)语句块
+            - 2.1.1.1 unnormalized 情况 走if (this.map.unnormalized)语句块
                 >this.map.id = "text!../test.json_unnormalized2"
                 
                 normalizedMap："text!../test.json" （normalize，因此下一次回调走 2.2.1.2）
                 ![avatar](images/require/text_json_module_map.png)<br/> 
-                - normalizedMap 监听defined事件 (即 "text!../test.json" 加载完成后 走这里的回调)
+                - normalizedMap 监听defined事件 (即 "text!../test.json" 加载完成后 走这里的回调) ==[defined回调_2]==
+                此时 "text!../test.json_unnormalized2" 的依赖
+                ![avatar](images/require/text_json_unnormalized_deps.png)
+                
                 - normalizedMod.enable() 
                     -> "text!../test.json"模块定义 <br/> 
                     -> callPlugin -> 2.2.1.2（由于 text.js 已经完成了定义，所以会同步执行defined回调）<br/> 
-                    -> context.enable(pluginMap, this) （由于 text.js 已经完成了定义，因此会从registry，enabledRegistry中移除）
+                    -> context.enable(pluginMap, this) （由于 text.js 已经完成了定义，因此会从registry，enabledRegistry中移除） 
                     >当一个模块已经完成了定义，如果再次context.enable时，则不会再次定义 
                     ```
                     enable: function (depMap) {
@@ -671,13 +671,13 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
                         }
                     },
                     ``` 
-            - 2.2.1.2 normalized 情况
+            - 2.1.1.2 normalized 情况
                 >this.map.id = "text!../test.json" 
                 ``` 
                 callPlugin: function () {
                     on(pluginMap, 'defined', bind(this, function (plugin) {
                         //...
-                        load = bind(this, function (value) { 
+                        load = bind(this, function (value) { ==[回调_3]==
                             // 当 test.json文件加载完成后会走这里，因为test.json文件已经加载完成了不需要通过inited这个标志去加载资源，所有调用init
                             this.init([], function () { return value; }, null, {
                                 enabled: true
@@ -687,13 +687,22 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
                     }))
                 ```
     
-        - 2.2.2 context.enable(pluginMap, this)：因为这个模块尚未加载，因此直接enable，开始该模块的定义
+        - 2.1.2 context.enable(pluginMap, this)：因为这个模块尚未加载，因此直接enable，开始该模块的定义
         >js模块是否加载的标志：inited；<br/>
         当text.js加载完成后会走callGetModule -> init 会将 该模块的inited 重置为 true 表示该模块所在的js文件已被加载
-       
-  
-- 3 为什么上面的回调要根据 unnormalized 分为两种情况呢？  
-  
+
+
+- 3 为什么上面的回调要根据 unnormalized 分为两种情况呢？
+    - makeModuleMap 中的 unnormalized
+    >If the id is a plugin id that cannot be determined if it needs normalization, stamp it with a unique ID so two matching relative ids that may conflict can be separate.<br/>
+    >如果id是一个插件ID，如果需要进行规范化则无法确定，请使用唯一ID标记它，以便可以将两个匹配的可能冲突的相对ID分开。<br/>
+    还是没懂这里的作用             
+             
+- 4 总结：控制台日志看该模块的加载流程
+![avatar](images/require/console_look_text_test.json.png)    
+    -  1. 首先"text!../test.json_unnormalized2"模块有两个依赖：text ，text/..test.json 两个模块
+       2. normalize后的模块 "text/..test.json" 会去 通过text.js 加载test.json文件，然后"text/..test.json"该模块完成定义
+       3. 当 "text/..test.json" 完成定义后 就会通知 "text!../test.json_unnormalized2" 去完成定义
 
 
 ##### Module.prototype.callPlugin
@@ -775,8 +784,7 @@ function (plugin) { // 这里就是text.js 返回的对象
  
  
  
- - text!../test.json_unnormalized2的依赖
- ![avatar](images/require/text_json_unnormalized_deps.png)
+
  
  
  

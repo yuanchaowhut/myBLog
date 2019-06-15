@@ -499,7 +499,7 @@ context.nextTick(function () {
 #### 2.2.1.3 开始内部模块的定义
 > 跳过 Module.prototype.init 来到 Module.prototype.enable，enable方法的主要作用是加载其依赖模块，并添加其依赖模块的defined回调（通知该依赖模块完成了定义）
  
-1. 处理 内部模块 的依赖模块：Module.prototype.enable
+1. 内部模块的依赖模块处理入口：Module.prototype.enable
 ![avatar](images/require/ano_module_deps.png)
 ```
 enable: function () { // 递归 context.enable -> Module.prototype.enable
@@ -545,13 +545,14 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
 
 - completeLoad -> callGetModule -> Module.prototype.init (调用init方法就说明该模块已经没有必要再去加载js文件)
 >当 main.test 模块完成定义后会触发main.test模块的defined事件（上面有提到在enable方法会去注册内部模块的依赖模块main.test的defined回调）、
-defined回到中的this就是内部模块(_@r3)，this.check()则会检查该模块是否可以结束定义（通过this.depCount判断，见this.check代码块）
+defined回调中的this就是内部模块(_@r3)，this.check()则会检查该模块是否可以结束定义（通过this.depCount判断，见this.check代码块）
 ![avatar](images/require/anoni_on_defined.png) 
->至此 内部模块"_@r3" 定义结束
+
+- 至此 内部模块"_@r3" 定义结束
 
 
 ### 2.2.2 被动加载
-> 资源通过 context.enable() 方式加载 （如，this.callPlugin 、 Module.prototype.enable ）加载依赖模块，此时依赖模块是被动加载的
+> 不是使用require显示加载的方式，即模块是作为主动加载模块的依赖（链）模块被加载的，那么次模块的加载称为被动加载
 
 1. 上面说到 main.test.js 加载并执行完成后的调用栈： onScriptLoad -> completeLoad -> callGetModule -> Module.prototype.init （初始化该模块）
 2. 首先得说下：该模块在作为 内部模块"_@r3" 的依赖模块时  已经被 enabled 了，但是当时对应的js文件尚未加载因此其depMaps =[];

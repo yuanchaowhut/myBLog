@@ -438,8 +438,8 @@ function localRequire(deps, callback, errback) {
 ``` 
 
 #### 2.2.1.1 intakeDefines
-- takeGlobalQueue
-还记得define方法中的globalDefQueue变量吗？ 每当define时都会将模块的配置（名称，依赖，回调）保存起来（参考define函数的定义），takeGlobalQueue将globalDefQueue中的配置迁移到defQueue中
+- takeGlobalQueue：将globalDefQueue中的配置迁移到defQueue中
+还记得define方法中的globalDefQueue变量吗？ 每当define时都会将模块的基本信息[名称，依赖，回调]保存起来（参考define函数的定义）
 >globalDefQueue是requirejs脚本中最外层作用域的变量，defQueue则是newContext函数的私有变量
 
 
@@ -467,6 +467,7 @@ function intakeDefines() {
 }
 ``` 
 
+
 #### 2.2.1.2. context.nextTick回调
 - 主动加载模块的一个特点就是 context.nextTick中会生成一个 内部名称(internal name: '_@r' + number) 的模块（内部模块），其作用是啥呢？
     - 该匿名模块会将deps作为其依赖，然后启动该模块的加载
@@ -490,8 +491,8 @@ context.nextTick(function () {
     //...
 });
 ```
->1. 由于内部模块因此不存在对应的js文件，又由于是初始创建的模块最需要的就是开始进行定义，因此通过init进入enable是合理的；
->2. 通过init是用来表明不要进行js文件的加载了（inited状态是用来标识文件是否已经进行加载；
+>1. 由于是内部模块因此不存在对应的js文件，又由于是刚创建的模块因此应该开始定义，因此通过init进入enable是合理的；
+>2. 通过init是用来表明不要进行js文件的加载了（inited状态是用来标识文件是否已经进行加载）；
 >3. 通过enable开始内部模块的定义
 
     
@@ -527,11 +528,11 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
 ```
 
 - 内部模块的依赖模块'main.test'的处理
+    makeModuleMap
 ![avatar](images/require/main.test_map.png)
 
-![avatar](images/require/main.test_module.png)
-
 - 依赖模块'main.test' 的加载
+![avatar](images/require/main.test_module.png)
 > enable -> check -> fetch（构造script标签加载main.test.js），当main.test.js文件加载完成后会立即执行js文件中的代码<br/>
 > 执行main.test.js中的: requirejs.config <br/>
 > 执行main.test.js中的: define -> 添加到模块基本信息到 globalDefQueue

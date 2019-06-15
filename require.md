@@ -15,6 +15,7 @@
   - [2.1初始化（首次加载完执行）](#21%E5%88%9D%E5%A7%8B%E5%8C%96%E9%A6%96%E6%AC%A1%E5%8A%A0%E8%BD%BD%E5%AE%8C%E6%89%A7%E8%A1%8C)
     - [2.1.1 newContext 结构](#211-newcontext-%E7%BB%93%E6%9E%84)
     - [2.1.2 define函数](#212-define%E5%87%BD%E6%95%B0)
+    - [2.1.3 默认上下文的创建](#213-%E9%BB%98%E8%AE%A4%E4%B8%8A%E4%B8%8B%E6%96%87%E7%9A%84%E5%88%9B%E5%BB%BA)
     - [2.1.4 初始化[启动]配置项（cfg）](#214-%E5%88%9D%E5%A7%8B%E5%8C%96%E5%90%AF%E5%8A%A8%E9%85%8D%E7%BD%AE%E9%A1%B9cfg)
     - [2.1.5 main.js文件的加载](#215-mainjs%E6%96%87%E4%BB%B6%E7%9A%84%E5%8A%A0%E8%BD%BD)
   - [2.2 模块的加载过程](#22-%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD%E8%BF%87%E7%A8%8B)
@@ -256,6 +257,9 @@ function newContext(contextName) {
 
 ### 2.1.2 define函数
 >amd规范模块的定义方法
+
+
+
 ```
  define = function (name, deps, callback) {
         var node, context;
@@ -300,6 +304,8 @@ function newContext(contextName) {
     };
 ```
 
+
+
 ### 2.1.3 默认上下文的创建
 > 这里的默认上下文真的只是默认上下文并不是唯一上下文，因为这里的上下是可以创建多个的，require.js支持多版本功能
 
@@ -339,7 +345,7 @@ req = requirejs = function (deps, callback, errback, optional) {
 req({});
 ```
  
-### 2.1.4 初始化[启动]配置项（cfg）
+### 2.1.4 初始化启动配置项（cfg）
 
 >我把cfg称为启动配置项，是因为cfg配置项的目的是为了加载 main.js，而该文件是使用require进行模块化管理的应用程序的入口，所以称之为‘启动’
  
@@ -407,49 +413,39 @@ define(['durandal/indexTest', 'text!../test.json', '../nextTickTest','bootstrap'
     - 主动加载：使用require方法加载模块，如 app/main.test.js，该文件作为data-main入口，由requirejs使用require方法主动加载（见2.1.2、2.1.3）
 >durandal使用的system.acquire()就是直接调用require方法主动加载模块
 
-### 2.2.1 makeRequire与localRequire(主动加载)
+### 2.2.1 req(cfg) 加载main.test.js 流程 (主动加载)
 >对于模块的主动加载其实际的加载入口是：localRequire（闭包）
 
-req(cfg), cfg.deps = ['main.test']
-
+- 入口在require.js的最后一行
 ```
-makeRequire: function (relMap, options) {
-    options = options || {};
+// cfg.deps = ['main.test']
+req(cfg); // -> context.configure -> context.require （即 context.makeRequire返回的localRequire）
+```
 
-    function localRequire(deps, callback, errback) {
-        var id, map, requireMod;
+-  localRequire
+```
+function localRequire(deps, callback, errback) {
+    var id, map, requireMod;
 
-        if (typeof deps === 'string') {}
-        intakeDefines(); 
-        
-        context.nextTick(function () {
-            intakeDefines(); // 收集异步期间定义的模块
-            requireMod = getModule(makeModuleMap(null, relMap));
-            requireMod.skipMap = options.skipMap;
-            requireMod.init(deps, callback, errback, {enabled: true});
-            checkLoaded();
-        });
-
-        return localRequire;
-    }
-
-    mixin(localRequire, {
-        // isBrowser、toUrl、defined、specified 
+    if (typeof deps === 'string') {}
+    intakeDefines(); 
+    
+    context.nextTick(function () {
+        intakeDefines(); // 收集异步期间定义的模块
+        requireMod = getModule(makeModuleMap(null, relMap));
+        requireMod.skipMap = options.skipMap;
+        requireMod.init(deps, callback, errback, {enabled: true});
+        checkLoaded();
     });
-
-    if (!relMap) {
-        localRequire.undef = function (id) { };
-    }
 
     return localRequire;
 }
 ``` 
 
-
-#### 1. intakeDefines、takeGlobalQueue
-##### takeGlobalQueue
+#### 2.2.1.1 intakeDefines
+- takeGlobalQueue
 还记得define方法中的globalDefQueue变量吗？ 每当define时都会将模块的配置（名称，依赖，回调）保存起来（参考define函数的定义），takeGlobalQueue将globalDefQueue中的配置迁移到defQueue中
->globalDefQueue是requirejs脚本中最外层作用域的变量（作用域链），defQueue则是newContext函数的私有变量
+>globalDefQueue是requirejs脚本中最外层作用域的变量，defQueue则是newContext函数的私有变量
 
 
 ```
@@ -462,8 +458,7 @@ function takeGlobalQueue() {
 ```
 
 
-
-##### intakeDefines
+- intakeDefines
 
 
 ```
@@ -477,40 +472,38 @@ function intakeDefines() {
 }
 ``` 
 
-#### 2. context.nextTick回调
+#### 2.2.1.2. context.nextTick回调
 - 主动加载模块的一个特点就是 context.nextTick中会生成一个 内部名称(internal name: '_@r' + number) 的模块（内部模块），其作用是啥呢？
-    - 该匿名模块会将require的deps参数作为其依赖，然后启动该模块的加载
-    - 当这些依赖的模块加载完成后，标志着生成的 '内部模块' 加载完成
-    - 得出：该内部模块的作用是用来检测主动加载模块的什么时候加载完成？
+    - 该匿名模块会将deps作为其依赖，然后启动该模块的加载
+    - 当这些依赖的模块加载完成后，标志着生成的 '内部模块' 完成定义
+    - 因此：该内部模块的作用是用来检测主动加载模块的什么时候完成定义
     
-#### 3. req(cfg) 加载main.test.js 流程 (主动加载) 
->主动加载的方式:require()即通过require方法显示加载
-
-调用栈
-req(cfg:对象1) ->  context.configure(config)  -> localRequire
-    1. intakeDefines -> callGetModule
-    2. context.nextTick -> requireMod.init
-
-
-##### 1. 内部模块的生成
-![avatar](images/require/anoni_module_main.test.png)
+- 内部模块的生成
 ```
 context.nextTick(function () {
     //... 
-    requireMod.init(deps, callback, errback, { 
-        enabled: true
-    });
+    requireMod = getModule(makeModuleMap(null, relMap));
 }
 ```
+![avatar](images/require/anoni_module_main.test.png)
 
-- 为什么这里使用了 {enabled:true} 选项 直接跳过check()方法进入enable()？因为是‘内部模块’
->1. 主动加载的模块会作为框架生成的‘内部模块’的依赖，因为是内部模块没有对应的js文件，
->2. 因此对内部模块的初始化来说，就是进行enable，开始[定义]该内部模块，
->3. check()的两个重要作用：1. 通过fetch获取js文件 2. 完成模块的定义 （这对于内部模块的初始化来说显然是不必要的步骤），
->4. 因此这里使用了{enabled:true}跳过check直接进行模块定义
+- 开始进行内部模块的定义
+```
+context.nextTick(function () {
+    //... 
+    requireMod.init(deps, callback, errback, {enabled: true});// {enabled:true}使得该模块先开始定义，而不是去检查
+    //...
+});
+```
+>1. 由于内部模块因此不存在对应的js文件，又由于是初始创建的模块最需要的就是开始进行定义，因此通过init进入enable是合理的；
+>2. 通过init是用来表明不要进行js文件的加载了（inited状态是用来标识文件是否已经进行加载；
+>3. 通过enable开始内部模块的定义
+
     
-##### 2. 内部模块定义的入口:Module.prototype.enable
-1. 处理 内部模块 的依赖模块
+#### 2.2.1.3 开始内部模块的定义
+> 跳过 Module.prototype.init 来到 Module.prototype.enable，enable方法的主要作用是加载其依赖模块，并添加其依赖模块的defined回调（通知该依赖模块完成了定义）
+ 
+1. 处理 内部模块 的依赖模块：Module.prototype.enable
 ![avatar](images/require/ano_module_deps.png)
 ```
 enable: function () { // 递归 context.enable -> Module.prototype.enable
@@ -534,50 +527,66 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
     }
     
     this.enabling = false;
-    this.check();    
+    this.check(); // 检查（1. 有可能调用该方法的模块的js文件尚未加载通过该方法进行检查调用fetch加载js文件，2. 也有可能该模块对应的js文件已经加载（或者是匿名模块）检查该模块是否可以完成定义）
 }
 ```
 
-内部模块的依赖模块'main.test'的处理
+- 内部模块的依赖模块'main.test'的处理
 ![avatar](images/require/main.test_map.png)
 
 ![avatar](images/require/main.test_module.png)
-内部模块的依赖模块'main.test'：enable -> check -> fetch（构造script标签加载main.test.js）
 
-当main.test.js文件加载完成后会立即执行文件中的代码
-1. requirejs.config
-2. define -> 添加到 globalDefQueue
-3. completeLoad
- 
-![avatar](images/require/main.test_success.png)
+- 依赖模块'main.test' 的加载
+> enable -> check -> fetch（构造script标签加载main.test.js），当main.test.js文件加载完成后会立即执行js文件中的代码<br/>
+> 执行main.test.js中的: requirejs.config <br/>
+> 执行main.test.js中的: define -> 添加到模块基本信息到 globalDefQueue
 
-参数moduleName其实是从其sctipt标签上获取的，在构造script标签时就添加了一个属性[data-requiremodule]
+- 执行完js文件中的代码后来到completeLoad回调
+ ![avatar](images/require/main.test_success.png)
+
+>参数moduleName其实是从其sctipt标签上获取的，在构造script标签时就添加了一个属性[data-requiremodule]
 ![avatar](images/require/module_name_script.png)
 
-4. callGetModule -> Module.prototype.init （这个过程见[被动加载]章节）
-当 main.test 模块的所有依赖全部加载完成后
-![avatar](images/require/main.test_emit.png)
-
+- completeLoad -> callGetModule -> Module.prototype.init (调用init方法就说明该模块已经没有必要再去加载js文件)
+>当 main.test 模块完成定义后会触发main.test模块的defined事件（上面有提到在enable方法会去注册内部模块的依赖模块main.test的defined回调）、
+defined回到中的this就是内部模块(_@r3)，this.check()则会检查该模块是否可以结束定义（通过this.depCount判断，见this.check代码块）
 ![avatar](images/require/anoni_on_defined.png) 
-至此 内部模块"_@r3" 定义结束
+>至此 内部模块"_@r3" 定义结束
 
 
 ### 2.2.2 被动加载
 > 资源通过 context.enable() 方式加载 （如，this.callPlugin 、 Module.prototype.enable ）加载依赖模块，此时依赖模块是被动加载的
 
-上面说到 main.test.js 加载完成后 onScriptLoad -> completeLoad -> callGetModule -> Module.prototype.init （初始化该模块）
-首先得说下：该模块在作为 内部模块"_@r3" 的依赖模块时  已经被 enabled 了，但是当时对应的js文件尚未加载因此其depMaps =[];
-现在js完成了加载并且也执行了文件的define方法，因此确定了该模块了依赖模块。此时可以进行该模块的[定义] 进入 Module.prototype.enable
-后面的过程和加载 内部模块"_@r3" 的流程一致
+1. 上面说到 main.test.js 加载并执行完成后的调用栈： onScriptLoad -> completeLoad -> callGetModule -> Module.prototype.init （初始化该模块）
+2. 首先得说下：该模块在作为 内部模块"_@r3" 的依赖模块时  已经被 enabled 了，但是当时对应的js文件尚未加载因此其depMaps =[];
+3. 现在main.test.js已经执行完成即此时该模块已经执行过define方法，因此确定了该模块了依赖模块。此时可以进行该模块的[定义] 进入 Module.prototype.enable
+4. 后面的过程和加载 内部模块"_@r3" 的流程一致
 
-- 通过 Module.prototype.enable 加载其依赖模块，每个依赖模块的轨迹 -> context.enable -> depMapModule.enable -> depMapModule.check
-
->如果define时没有显示指定模块名称，则为 fetch方法构造script标签data-requiremodule，而构造时用的名称是makeModuleMap生成的id
-
-#### 2.2.2.x  'text!./../test.json'
->特殊在于依赖于text模块，并且需要调用该模块进行解析
+#### 2.2.2.1  'text!./../test.json'
+>特殊在于该模块依赖于text.js插件，并且需要通过该模块进行解析
 - 1 父模块[main.test]的enable方法中
     - 1.1 调用makeModuleMap()，生成当前模块的moduleMap，其id为"text!../test.json_unnormalized2"<br/>
+        
+        - 关于 makeModuleMap 方法对 unnormalized 属性的处理
+            'text!./../test.json'作为模块main.test依赖，在enable方法中调用了makeModuleMap，此时传入的 isNormalized:false，
+            并且此时'test.js'模块也是第一次调用，因此pluginModule是undefined，prefix就是'text'
+            => (prefix && !pluginModule && !isNormalized) 为 true
+            ```
+            function makeModuleMap(name, parentModuleMap, isNormalized, applyMap) {
+                //...
+                if (prefix) {
+                    prefix = normalize(prefix, parentName, applyMap);
+                    pluginModule = getOwn(defined, prefix);
+                }
+                suffix = prefix && !pluginModule && !isNormalized ? '_unnormalized' + (unnormalizedCounter += 1) :
+                
+                //...
+                
+                return {
+                    unnormalized: !!suffix,
+                };
+            }
+            ```
         
         makeModuleMap -> normalize 转化路径 './..test.json' => '../test.json' <br/>
         ![avatar](images/require/test_json_normalize.png)
@@ -585,7 +594,7 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
         makeModuleMap的结果<br/>
         ![avatar](images/require/test_json_make_module_map.png) 
     
-    - 1.2 调用 on  监听defined事件
+    - 1.2 监听模块 "text!../test.json_unnormalized2" 的defined事件
     > 除了监听事件以外，如果该模块尚未完成定义的话，on还会调用getModule进行登记
     ```
     function on(depMap, name, fn) {
@@ -620,7 +629,7 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
         return mod;
     }
     ```
-    >该方法主要出现在 context.enable、callGetModule 两个方法中<br/>
+    >getModule 主要出现在 context.enable、callGetModule 两个方法中<br/>
         1. 在执行context.enable之前，都是会先执行on方法，如果已经完成了的定义，则不会调用getModule<br/>
         2. callGetModule在调用getModule方法时也是会先判断是否已经完成了定义<br/>
     
@@ -639,31 +648,111 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
 - 2 开始 "text!../test.json_unnormalized2" 模块的定义
     > 跳过中间步骤（enable -> check）直接来到 fetch() 
     
-    ![avatar](images/require/test.json_fetch.png) 
+    ![avatar](images/require/test.json_fetch.png)  
     
-    - 2.1 callPlugin 
+    2.1 - callPlugin代码代码解释
     
-        pluginMap:test.js，调用calPlugin的主体:this
-        ![avatar](images/require/text_on_defiend.png) 
-        
-        - 2.1.1 pluginMap 监听defined事件（即text.js完成定义后触发这里的回调） 
-            - text.js加载完成后进入defined回调：plugin
-            ![avatar](images/require/text_obj.png) 
-        
-            >回调有两种情况
-            - 2.1.1.1 unnormalized 情况 走if (this.map.unnormalized)语句块
-                >this.map.id = "text!../test.json_unnormalized2"
-                
-                normalizedMap："text!../test.json" （normalize，因此下一次回调走 2.2.1.2）
-                ![avatar](images/require/text_json_module_map.png)<br/> 
-                - normalizedMap 监听defined事件 (即 "text!../test.json" 加载完成后 走这里的回调) 
-                此时 "text!../test.json_unnormalized2" 的依赖
-                ![avatar](images/require/text_json_unnormalized_deps.png)
-                
-                - normalizedMod.enable() 
-                    -> "text!../test.json"模块定义 <br/> 
-                    -> callPlugin -> 2.2.1.2（由于 text.js 已经完成了定义，所以会同步执行defined回调）<br/> 
-                    -> context.enable(pluginMap, this) （由于 text.js 已经完成了定义，因此会从registry，enabledRegistry中移除） 
+    ```
+    callPlugin: function () {
+        this.depMaps.push(pluginMap); 
+            on(pluginMap, 'defined', bind(this, function (plugin) { // pluginMap（在这里就是指text.js模块）defined回调
+             //... pluginMap defined回调
+            }
+        }
+        context.enable(pluginMap, this); // 加载pluginMap模块（被动加载）
+        this.pluginMaps[pluginMap.id] = pluginMap; 
+    }
+    ``` 
+    
+    pluginMap defined回调
+    ```
+    function (plugin) {
+        var load, normalizedMap, normalizedMod,
+            bundleId = getOwn(bundlesMap, this.map.id),
+            name = this.map.name,
+            parentName = this.map.parentMap ? this.map.parentMap.name : null,
+            localRequire = context.makeRequire(map.parentMap, {
+                enableBuildCallback: true
+            });
+          
+        if (this.map.unnormalized) { // 如果当前的moduleMap unnormalized
+            if (plugin.normalize) {
+                name = plugin.normalize(name, function (name) {
+                    return normalize(name, parentName, true);
+                }) || '';
+            }
+            // 现在的情况是，依赖的plugin：text已经加载完成，因此 需要重新 makeModuleMap (unnormalized这次一定为false）
+            normalizedMap = makeModuleMap(map.prefix + '!' + name, this.map.parentMap); // normalizedMap.id = text!../test.json
+            on(normalizedMap, 'defined', bind(this, function (value) {  // 监听defined事件，即当 text!../test.json 模块完成定义的回调
+                this.init([], function () { return value; }, null, {
+                    enabled: true,
+                    ignore: true
+                });
+            }));
+    
+            normalizedMod = getOwn(registry, normalizedMap.id);
+            if (normalizedMod) {
+                //Mark this as a dependency for this plugin, so it
+                //can be traced for cycles.
+                this.depMaps.push(normalizedMap);
+    
+                if (this.events.error) {
+                    normalizedMod.on('error', bind(this, function (err) {
+                        this.emit('error', err);
+                    }));
+                }
+                normalizedMod.enable();
+            }
+    
+            return; // 关键，没有继续向下执行了
+        }
+     
+        if (bundleId) { 
+            //...
+        }
+    
+        load = bind(this, function (value) {
+            this.init([], function () { return value; }, null, { // 这里会去完成 text!../test.json 模块的定义 ，并触发该模块完成定义的回调
+                enabled: true
+            });
+        });
+    
+        load.error = bind(this, function (err) {  });
+    
+        load.fromText = bind(this, function (text, textAlt) {   });
+    
+        plugin.load(map.name, localRequire, load, config);  // 走插件的逻辑，如text.js通过ajax加载text.json文件，加载成功后调用这里传入的回调：load
+    } 
+    ``` 
+    
+    2.2 - 下面说下 "text!../test.json_unnormalized2" 模块的加载流程
+    pluginMap，this
+    ![avatar](images/require/text_on_defiend.png)
+    
+    - 2.2.1 pluginMap 监听defined事件（即text.js完成定义后触发这里的回调） 
+        - text.js加载完成后进入defined回调：plugin
+        ![avatar](images/require/text_obj.png) 
+    
+        >回调有两种情况
+        - 2.2.1.1 unnormalized 情况 走if(this.map.unnormalized)语句块
+            >this.map.id = "text!../test.json_unnormalized2"
+            
+            normalizedMap："text!../test.json" （normalize，因此下一次回调走 2.2.1.2）
+            ![avatar](images/require/text_json_module_map.png)
+             
+            - normalizedMap 监听defined事件 (即 "text!../test.json" 加载完成后 走这里的回调) 
+            ```
+            // 注意下面回调中的this是指向哪个模块，下面的回调会使得=="text!../test.json_unnormalized2"完成定义== 
+            on(normalizedMap, 'defined', bind(this, function (value) {  // 监听defined事件，即当 text!../test.json 模块完成定义的回调
+                this.init([], function () { return value; }, null, {
+                    enabled: true,
+                    ignore: true
+                });
+            }));
+            ```
+            - normalizedMod.enable() 进行 "text!../test.json"模块的定义 
+                -> callPlugin -> 2.2.1.2（由于 text.js 已经完成了定义，所以会同步执行defined回调）<br/> 
+                -> context.enable(pluginMap, this) （由于 text.js 已经完成了定义，因此会从registry，enabledRegistry中移除） 
                     >当一个模块已经完成了定义，如果再次context.enable时，则不会再次定义 
                     ```
                     enable: function (depMap) {
@@ -673,25 +762,25 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
                         }
                     },
                     ``` 
-            - 2.1.1.2 normalized 情况
-                >this.map.id = "text!../test.json" 
-                ``` 
-                callPlugin: function () {
-                    on(pluginMap, 'defined', bind(this, function (plugin) {
-                        //...
-                        load = bind(this, function (value) { ==[回调_3]==
-                            // 当 test.json文件加载完成后会走这里，因为test.json文件已经加载完成了不需要通过inited这个标志去加载资源，所有调用init
-                            this.init([], function () { return value; }, null, {
-                                enabled: true
-                            });
+        - 2.2.1.2 normalized 情况
+            >this.map.id = "text!../test.json" 
+            ``` 
+            callPlugin: function () {
+                on(pluginMap, 'defined', bind(this, function (plugin) {
+                    //...
+                    load = bind(this, function (value) { // text.js 加载并解析test.json文件后的回调
+                        //注意这里的this是谁，this.init() 会完成 "text!../test.json" 模块的定义，并触发该模块defined回调
+                        this.init([], function () { return value; }, null, {
+                            enabled: true
                         });
-                        plugin.load(map.name, localRequire, load, config); // 在text.js中区加载test.json文件，然后将转换后的内容回调给load
-                    }))
-                ```
-    
-        - 2.1.2 context.enable(pluginMap, this)：因为这个模块尚未加载，因此直接enable，开始该模块的定义
-        >js模块是否加载的标志：inited；<br/>
-        当text.js加载完成后会走callGetModule -> init 会将 该模块的inited 重置为 true 表示该模块所在的js文件已被加载
+                    });
+                    plugin.load(map.name, localRequire, load, config); // 在text.js中区加载test.json文件，然后将转换后的内容回调给load
+                }))
+            ```
+
+    - 2.2.2 context.enable(pluginMap, this)：因为这个模块尚未加载，因此直接enable，开始该模块的定义
+    >js模块是否加载的标志：inited；<br/>
+    当text.js加载完成后会走callGetModule -> init 会将 该模块的inited 重置为 true 表示该模块所在的js文件已被加载
 
 
 - 3 为什么上面的回调要根据 unnormalized 分为两种情况呢？
@@ -718,7 +807,8 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
     ```
     
     
-- 4 
+- 4 text.js加载并解析test.json文件流程
+> 这里没啥好说的
              
 - 5 总结：
     - 控制台日志看该模块的加载流程
@@ -728,104 +818,7 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
         - 3. 当 "text/..test.json" 完成定义后 就会通知 "text!../test.json_unnormalized2" 去完成定义
     - 显然 unnormalized 这个鬼玩意让这里变的复杂很多。
     - 从思想来看，这里就是先加载 text.js 插件，然后把 text.json 文件的加载交给text.js（注意defined事件的使用，通过该事件的订阅与发布使得父模块得以完成定义）
-   
-
-##### Module.prototype.callPlugin
  
-```
-callPlugin: function () {
-    this.depMaps.push(pluginMap); 
-        on(pluginMap, 'defined', bind(this, function (plugin) { // text.js defined回调
-         //... text加载完成后
-        }
-    }
-    context.enable(pluginMap, this); // 加载该文件（被动加载）
-    this.pluginMaps[pluginMap.id] = pluginMap; 
-}
-``` 
-
-```
-function (plugin) { // 这里就是text.js 返回的对象
-    var load, normalizedMap, normalizedMod,
-        bundleId = getOwn(bundlesMap, this.map.id),
-        name = this.map.name,
-        parentName = this.map.parentMap ? this.map.parentMap.name : null,
-        localRequire = context.makeRequire(map.parentMap, {
-            enableBuildCallback: true
-        });
-      
-    if (this.map.unnormalized) { // 如果当前的moduleMap unnormalized
-        if (plugin.normalize) {
-            name = plugin.normalize(name, function (name) {
-                return normalize(name, parentName, true);
-            }) || '';
-        }
-        // 现在的情况是，依赖的plugin：text已经加载完成，因此 需要重新 makeModuleMap (unnormalized这次一定为false）
-        normalizedMap = makeModuleMap(map.prefix + '!' + name, this.map.parentMap); // normalizedMap.id = text!../test.json
-        on(normalizedMap, 'defined', bind(this, function (value) {  // 监听test.json文件的defined事件
-            this.init([], function () { return value; }, null, {
-                enabled: true,
-                ignore: true
-            });
-        }));
-
-        normalizedMod = getOwn(registry, normalizedMap.id);
-        if (normalizedMod) {
-            //Mark this as a dependency for this plugin, so it
-            //can be traced for cycles.
-            this.depMaps.push(normalizedMap);
-
-            if (this.events.error) {
-                normalizedMod.on('error', bind(this, function (err) {
-                    this.emit('error', err);
-                }));
-            }
-            normalizedMod.enable();
-        }
-
-        return; // 关键，没有继续向下执行了
-    }
- 
-    if (bundleId) { 
-        //...
-    }
-
-    load = bind(this, function (value) {
-        this.init([], function () { return value; }, null, { => init -> enable -> check -> emit(defiened)
-            enabled: true
-        });
-    });
-
-    load.error = bind(this, function (err) {  });
-
-    load.fromText = bind(this, function (text, textAlt) {   });
-
-    plugin.load(map.name, localRequire, load, config);  // 走插件的逻辑，如text.js通过ajax加载text.json文件，加载成功后调用这里传入的回调：load
-} 
-```
- 
- 
--  关于 makeModuleMap 方法对 unnormalized 属性的处理
- 'text!./../test.json'作为模块main.test依赖，在enable方法中调用了makeModuleMap，此时传入的 isNormalized:false，
- 并且此时'test.js'模块也是第一次调用，因此pluginModule是undefined，prefix就是'text'
- => (prefix && !pluginModule && !isNormalized) 为 true  
- 
-```
-function makeModuleMap(name, parentModuleMap, isNormalized, applyMap) {
-    //...
-    if (prefix) {
-        prefix = normalize(prefix, parentName, applyMap);
-        pluginModule = getOwn(defined, prefix);
-    }
-    suffix = prefix && !pluginModule && !isNormalized ? '_unnormalized' + (unnormalizedCounter += 1) :
-    
-    //...
-    
-    return {
-        unnormalized: !!suffix,
-    };
-}
-```
  
 #### 2.2.2.x  'durandal/indexTest'
 1. 特殊在于 'durandal/indexTest' 其实代表的路径是：'../lib/durandal/js/indexTest.js' ，因为配置的paths时：durandal作为文件夹存在的
@@ -843,7 +836,7 @@ shim: {
 }
 
 ```
-> 思路很简单：生成一个‘require实例’：localRequire，通过它加载完依赖，然后在回调中加载bootstrap
+> 思路：生成一个‘require实例’：localRequire，通过它加载完依赖，然后在回调中加载bootstrap
 ```
 fetch: function () {
     //...

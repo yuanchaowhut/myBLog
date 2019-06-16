@@ -453,7 +453,7 @@ function takeGlobalQueue() {
 ```
 
 
-- intakeDefines：启动js文件已经加载的模块
+- intakeDefines：取出全局队列中的模块配置，启动这些模块的定义
 
 ```
 function intakeDefines() {
@@ -470,7 +470,8 @@ function intakeDefines() {
     2. takeGlobalQueue中获取到的模块配置是在define方法中存储的，说明模块所在js文件已经被加载和执行，因此在callGetModule方法中调用的是Module.prototype.init设置inited为true，表明该模块不需要去加载对应的js文件，
 
 - 为什么 在localRequire中需要调用intakeDefines？
-事实上，当该js文件加载并执行完成后会走completeLoad，该方法中也调用了takeGlobalQueue，callGetModule去完成该模块的定义,那么对于localRequire()中的两处 intakeDefines 应该用来处理某些'特殊情况'的。比如以下例
+    1. 事实上，当某个js文件加载并执行完成后会走completeLoad，该方法中也调用了takeGlobalQueue，callGetModule去完成该模块的定义；
+    2. 对于localRequire()中的两处 intakeDefines() 其实是用来处理某些'特殊情况'的。比如以下例
 
     - nextTickTest.js
     ```
@@ -523,10 +524,10 @@ context.nextTick(function () {
     2. 内部模块是requirejs框架自己生成，其并不是在其他的js文件中进行define的，因此其没有对应的js文件，所以调用要通过init将inited标识置为true，然后通过{enable:true}选项进入enable开始其依赖模块的加载
 
     
-#### 2.2.1.3 内部模块的依赖模块的加载
+#### 2.2.1.3 依赖模块的加载
 > 跳过 Module.prototype.init 来到 Module.prototype.enable，enable方法的主要作用是加载其依赖模块，并添加其依赖模块的defined回调（通知该依赖模块完成了定义）
  
-1. 内部模块的依赖模块处理入口：Module.prototype.enable
+##### 1. 依赖模块处理入口：Module.prototype.enable
 ![avatar](images/require/ano_module_deps.png)
 ```
 enable: function () { // 递归 context.enable -> Module.prototype.enable
@@ -557,7 +558,7 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
 - 为什么在enable方法的最后调用this.check()?
     简单来说就是用来确定当前模块的下一个步骤，是加载js文件还是直接完成定义？
     
-##### 依赖模块'main.test'
+##### 2. 依赖模块'main.test'
 - makeModuleMap
 ![avatar](images/require/main.test_map.png)
 
@@ -581,7 +582,7 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
     上面说到main.test完成定义后会触发其defined回调，在defined回调中的this就是内部模块(_@r3)，this.check()则会检查该模块是否可以结束定义（通过this.depCount判断，见this.check代码块）
     ![avatar](images/require/anoni_on_defined.png) 
 
-- 至此 内部模块"_@r3" 定义结束
+- 至此 内部模块"_@r3" 完成定义，也表示这主动加载过程的结束
 
 
 ### 2.2.2 被动加载

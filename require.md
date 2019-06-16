@@ -557,27 +557,29 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
 - 为什么在enable方法的最后调用this.check()?
     简单来说就是用来确定当前模块的下一个步骤，是加载js文件还是直接完成定义？
     
-
-- 内部模块的依赖模块'main.test'的处理
-    makeModuleMap
+##### 依赖模块'main.test'
+- makeModuleMap
 ![avatar](images/require/main.test_map.png)
 
-- 依赖模块'main.test' 的加载
-![avatar](images/require/main.test_module.png)
-> enable -> check -> fetch（构造script标签加载main.test.js），当main.test.js文件加载完成后会立即执行js文件中的代码<br/>
-> 执行main.test.js中的: requirejs.config <br/>
-> 执行main.test.js中的: define -> 添加到模块基本信息到 globalDefQueue
+- 依赖模块'main.test' 的加载流程
+    ![avatar](images/require/main.test_module.png)
+    1. 调用栈：enable -> check -> fetch（构造script标签加载main.test.js），当main.test.js文件加载完成后会立即执行js文件中的代码<br/>
+    2. 执行main.test.js中的: requirejs.config <br/>
+    3. 执行main.test.js中的: define -> 添加到模块基本信息到 globalDefQueue
 
 - 执行完js文件中的代码后来到completeLoad回调
  ![avatar](images/require/main.test_success.png)
+    - completeLoad的参数moduleName如何得来的？
+    参数moduleName其实是从其sctipt标签上获取的，fetch()在构造script标签时就添加了一个属性[data-requiremodule]
+    ![avatar](images/require/module_name_script.png)
 
->参数moduleName其实是从其sctipt标签上获取的，在构造script标签时就添加了一个属性[data-requiremodule]
-![avatar](images/require/module_name_script.png)
-
-- completeLoad -> callGetModule -> Module.prototype.init (调用init方法就说明该模块已经没有必要再去加载js文件)
->当 main.test 模块完成定义后会触发main.test模块的defined事件（上面有提到在enable方法会去注册内部模块的依赖模块main.test的defined回调）、
-defined回调中的this就是内部模块(_@r3)，this.check()则会检查该模块是否可以结束定义（通过this.depCount判断，见this.check代码块）
-![avatar](images/require/anoni_on_defined.png) 
+- 启动main.test模块的定义
+    1. 调用栈:completeLoad -> callGetModule -> Module.prototype.init (调用init方法就说明该模块已经没有必要再去加载js文件)
+    2. 当 main.test 模块完成定义后会触发main.test模块的defined事件（上面有提到在enable方法会去注册内部模块的依赖模块main.test的defined回调）
+    
+- 内部模块完成定义    
+    上面说到main.test完成定义后会触发其defined回调，在defined回调中的this就是内部模块(_@r3)，this.check()则会检查该模块是否可以结束定义（通过this.depCount判断，见this.check代码块）
+    ![avatar](images/require/anoni_on_defined.png) 
 
 - 至此 内部模块"_@r3" 定义结束
 

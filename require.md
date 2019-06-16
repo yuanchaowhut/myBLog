@@ -472,27 +472,27 @@ function intakeDefines() {
 - 为什么 在localRequire中需要调用intakeDefines？
 事实上，当该js文件加载并执行完成后会走completeLoad，该方法中也调用了takeGlobalQueue，callGetModule去完成该模块的定义,那么对于localRequire()中的两处 intakeDefines 应该用来处理某些'特殊情况'的。比如以下例
 
-- nextTickTest.js
->先是显示定义了一个模块（但是模块'a1'并未完成加载），然后立即require该模块，即调用localRequire()，通过intakeDefines可以启动模块'a1'的定义
-```
-define('a1', [], function () {
-    return {
-        a: 'yus'
-    }
-});
-
-require(['a1'], function (a) {
-    console.log(a, '----')
-});
-```
-
-- 如果屏蔽localRequire中的两句 intakeDefines() ，执行结果如下
-![avatar](images/require/intake_defines_not.png)
-    1. 有报错，但是require(['a1'])仍然顺利加载完成，
-    2. 之所以报错是因为首先尝试将'a1'作为js文件去加载，因此控制台有加载a1.js文件404的报错
-        >require(['a1'])走context.nextTick回调中，会生成匿名模块，然后执行到该匿名模块的enable（Module.prototype.enable），然后加载其依赖即'a1'，... ，会尝试加载a.js文件
-    3. 之所以仍然能够顺利加载完成是因为在nextTickTest.js文件执行完成以后，走completeLoad回调，该方法中有去加载完成模块'a1'的定义，因此并不影响require(['a1'])的加载
-- 但是如果存在这两句的话，intakeDefines -> callGetModule -> getModule -> Module.prototype.init，将模块'a1' 的 inited置为true，因此后面则不会去加载a1.js
+    - nextTickTest.js
+    >先是显示定义了一个模块（但是模块'a1'并未完成加载），然后立即require该模块，即调用localRequire()，通过intakeDefines可以启动模块'a1'的定义
+    ```
+    define('a1', [], function () {
+        return {
+            a: 'yus'
+        }
+    });
+    
+    require(['a1'], function (a) {
+        console.log(a, '----')
+    });
+    ```
+    
+    - 如果屏蔽localRequire中的两句 intakeDefines() ，执行结果如下
+    ![avatar](images/require/intake_defines_not.png)
+        1. 有报错，但是require(['a1'])仍然顺利加载完成，
+        2. 之所以报错是因为首先尝试将'a1'作为js文件去加载，因此控制台有加载a1.js文件404的报错
+            >require(['a1'])走context.nextTick回调中，会生成匿名模块，然后执行到该匿名模块的enable（Module.prototype.enable），然后加载其依赖即'a1'，... ，会尝试加载a.js文件
+        3. 之所以仍然能够顺利加载完成是因为在nextTickTest.js文件执行完成以后，走completeLoad回调，该方法中有去加载完成模块'a1'的定义，因此并不影响require(['a1'])的加载
+    - 但是如果存在这两句的话，intakeDefines -> callGetModule -> getModule -> Module.prototype.init，将模块'a1' 的 inited置为true，因此后面则不会去加载a1.js
 
 
 

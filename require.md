@@ -1114,7 +1114,6 @@ function checkLoaded(){
       ```
       2. '../lib/jquery/jquery-1.9.2'加载失败，看到jquery仍然被加载成功（打印出了jQuyer的版本号）  
       ![avatar](images/require/jquery_fall_back.png)
-      
       3. checkLoaded中会去调用hasPathFallback，换一种文件路径进行加载
       ```
       function hasPathFallback(id) {
@@ -1127,13 +1126,12 @@ function checkLoaded(){
           }
       }
       ```
+      - localRequire.undef 的作用？ 
 
-3.2.3 循环依赖
-
-
-> 内部模块的一个特征：module.map.isDefine = false
-
-## nameToUrl：把模块名称转为文件路径
+3.2.3 作用3：循环依赖
+ 
+## 3.3部分方法介绍 
+### 3.3.1 nameToUrl：把模块名称转为文件路径
 核心代码
 ![avatar](images/require/durandal_indexttest_name_to_url.png)
 思想：以模块名称为 'a/b/c/d'为例
@@ -1143,20 +1141,21 @@ function checkLoaded(){
 4. a   在config.paths中是否有匹配 => matchRes + '/cbd'
 => url += '文件后缀名' 
 
-## normalize
+### 3.3.2 normalize
 > 将 ./ 路径 转化为基于 baseUrl的路径，为了可以基于config.paths映射路径
 
 
-#Module 与moduleMap的关系
+### 3.3.3 makeModuleMap
+- Module 与 moduleMap的关系
 on操作总是依赖于Module实例，Module实例总是依赖moduleMap，Module构造函数的参数就是moduleMap
 moduleMap：当前模块的基本信息：name,id,prefix 
 Module：用于管理 当前模块 定义过程中的相关属性，主要和其依赖模块的情况有关：比如记录依赖模块的加载情况，以及依赖模块的exports
 
-## localRequire.undef
 
-## 如何支持cmd规范的？
 
-## context.nextTick:setTimeout ，为什么要异步？
+## 3.4 如何支持cmd规范的？
+
+## 3.5 context.nextTick:setTimeout ，为什么要异步？
 >保证同步的代码块中的define被执行
 ```
 req.nextTick = typeof setTimeout !== 'undefined' ? function (fn) {
@@ -1179,7 +1178,7 @@ define('a1', [], function () {
     }
 }) ;
 ```
-### 执行结果
+- 执行结果
 ![avatar](images/require/nextTick_test.png)
 
 1. 报错的原因
@@ -1199,7 +1198,7 @@ define('a1', [], function () {
 >我认为，这里应该是个优化的过程，并不是必须的。比如 nextTickTest.js 中的两句代码颠倒下顺序，也是可以顺利执行的；建议在看requirejs源码时，把这里改为同步
 
 
-## text.js
+## 3.6 text.js 加载 test.json
 ```
 finishLoad
 ```

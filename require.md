@@ -514,16 +514,16 @@ context.nextTick(function () {
 ```
 context.nextTick(function () {
     //... 
-    requireMod.init(deps, callback, errback, {enabled: true});// {enabled:true}使得该模块先开始定义，而不是去检查
+    requireMod.init(deps, callback, errback, {enabled: true});
     //...
 });
 ```
->1. 由于是内部模块因此不存在对应的js文件，又由于是刚创建的模块因此应该开始定义，因此通过init进入enable是合理的；
->2. 通过init是用来表明不要进行js文件的加载了（inited状态是用来标识文件是否已经进行加载）；
->3. 通过enable开始内部模块的定义
+- {enabled:true}的作用？为什么不直接enable而是要先init再enable呢？
+    1. {enabled:true} 的作用就是使得在init方法中直接进入enable 
+    2. 内部模块是requirejs框架自己生成，其并不是在其他的js文件中进行define的，因此其没有对应的js文件，所以调用要通过init将inited标识置为true，然后通过{enable:true}选项进入enable开始其依赖模块的加载
 
     
-#### 2.2.1.3 开始内部模块的定义
+#### 2.2.1.3 内部模块的依赖模块的加载
 > 跳过 Module.prototype.init 来到 Module.prototype.enable，enable方法的主要作用是加载其依赖模块，并添加其依赖模块的defined回调（通知该依赖模块完成了定义）
  
 1. 内部模块的依赖模块处理入口：Module.prototype.enable

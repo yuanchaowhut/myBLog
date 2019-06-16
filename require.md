@@ -866,7 +866,7 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
 3. 这种情况：就这些
 
 
-#### 2.2.2.3  'bootstrap' 
+### 2.2.2.3  'bootstrap' 
 ```
 shim: {
     'bootstrap': {

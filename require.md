@@ -968,26 +968,170 @@ Module.prototype = {
 }
 ```
 - Module实例的几种状态
-    - inited
-    - enabled
-    - defined
-    - defining(忽略，不是那边重要)
+    - inited：启动模块定义（表明模块所在js文件已经加载）
+    - enabled：启动依赖模块的加载
+    - defined：模块完成定义
+    - fetched：构造script标签加载js文件
+    - defining：正在完成定义
     
 - 状态流转的两种情况
-    - 1. inited -> enabled -> defined 
-        1. 主动加载是生成的内部模块其状态就是这样子的，以为只有内部模块可以直接init；
+    - 1. inited -> enabled -> defining -> defined 
+        1. 只有内部模块可以直接init；（并且fetched对该模块没有意义）
         2. 在主动加载章节中虽然显示req(cfg)去主动加载main.test模块，但是该模块仍然是作为内部模块的依赖模块，其初始状态也是enabled
     
-    - 2. enabled -> inited -> defined
+    - 2. enabled -> fetched -> inited -> defining -> defined
     所有作为依赖的模块其状态都是先enabled，当其所在的js文件加载完成后，才会将将状态inited置为true表明js文件已经加载
     
-    - 总结：从这个角度看，requirejs的模块有两种类型：内部模块，依赖模块
+    - 总结：从这个角度看，requirejs的模块有两种类型：内部模块，依赖模块；并且从这状态的流转大致可以看出整个模块的加载流程
      
-# 补充   
-## fetch 构造script标签加载资源
+     
+# 3 补充   
+## 3.1 fetch 构造script标签加载资源
 
-## makeModuleMap
-moduleName的类型：require调用，define调用
+## 3.2 checkLoaded的作用
+```
+function checkLoaded() {
+    var err, usingPathFallback,
+        waitInterval = config.waitSeconds * 1000, 
+        expired = waitInterval && (context.startTime + waitInterval) < new Date().getTime(),
+        noLoads = [],
+        reqCalls = [],
+        stillLoading = false,
+        needCycleCheck = true;
+
+    //Do not bother if this call was a result of a cycle break.
+    if (inCheckLoaded) {
+        return;
+    }
+
+    inCheckLoaded = true;
+ 
+    eachProp(enabledRegistry, function (mod) {
+        var map = mod.map,
+            modId = map.id;
+
+        
+        if (!mod.enabled) {
+            return;
+        }
+
+        if (!map.isDefine) {
+            reqCalls.push(mod);
+        }
+
+        if (!mod.error) {            
+            if (!mod.inited && expired) {
+                if (hasPathFallback(modId)) { 
+                    usingPathFallback = true;
+                    stillLoading = true;
+                } else { 
+                    noLoads.push(modId);
+                    removeScript(modId);
+                }
+            } else if (!mod.inited && mod.fetched && map.isDefine) {
+                stillLoading = true;
+                if (!map.prefix) { 
+                    return (needCycleCheck = false);
+                }
+            }
+        }
+    });
+
+    if (expired && noLoads.length) {
+        err = makeError('timeout', 'Load timeout for modules: ' + noLoads, null, noLoads);
+        err.contextName = context.contextName;
+        return onError(err);
+    }
+
+    //Not expired, check for a cycle.
+    if (needCycleCheck) {
+        each(reqCalls, function (mod) {
+            breakCycle(mod, {}, {});
+        });
+    }
+
+    //If still waiting on loads, and the waiting load is something
+    //other than a plugin resource, or there are still outstanding
+    //scripts, then just try back later.
+    if ((!expired || usingPathFallback) && stillLoading) {
+        //Something is still waiting to load. Wait for it, but only
+        //if a timeout is not already in effect.
+        if ((isBrowser || isWebWorker) && !checkLoadedTimeoutId) {
+            checkLoadedTimeoutId = setTimeout(function () {
+                checkLoadedTimeoutId = 0;
+                checkLoaded();
+            }, 50);
+        }
+    }
+
+    inCheckLoaded = false;
+}
+
+```
+
+
+3.2.1 作用1：检查文件加载是否超时
+```
+function checkLoaded(){
+    //...
+    
+    // 首先一个模块走到这里，一定是尝试this.fetch()，即已经尝试过加载对应的js文件
+    // 如果时间过期并且mod.inited为false（说明js文件没有加载成功）
+    if (!mod.inited && expired) { 
+        if (hasPathFallback(modId)) { 
+            usingPathFallback = true;
+            stillLoading = true;
+        } else { 
+            noLoads.push(modId); // 将加载失败的模块保存下来
+            removeScript(modId);
+        }
+    }
+    //...
+    if (expired && noLoads.length) {
+        err = makeError('timeout', 'Load timeout for modules: ' + noLoads, null, noLoads);
+        err.contextName = context.contextName;
+        return onError(err);
+    }    
+    //...
+}
+
+```
+- expired的判断    
+    
+3.2.2 作用2：可以给一个模块配置多个加载路径（也是在加载超时情况下进行的退化处理）
+      1. 如下面配置中给jQuery的js路径配置在了数组中，当第一个请求失败时，会使用第二个配置的路径进行请求
+      ```
+      //main.test.js
+      paths: {
+          'text': '../lib/require/text',
+          'durandal': '../lib/durandal/js',
+          'plugins': '../lib/durandal/js/plugins',
+          'transitions': '../lib/durandal/js/transitions',
+          'knockout': '../lib/knockout/knockout-3.4.0',
+          'bootstrap': '../lib/bootstrap/js/bootstrap',
+          'jquery': ['../lib/jquery/jquery-1.9.2','../lib/jquery/jquery-1.9.1'] 
+      },
+      ```
+      2. '../lib/jquery/jquery-1.9.2'加载失败，看到jquery仍然被加载成功（打印出了jQuyer的版本号）  
+      ![avatar](images/require/jquery_fall_back.png)
+      
+      3. checkLoaded中会去调用hasPathFallback，换一种文件路径进行加载
+      ```
+      function hasPathFallback(id) {
+          var pathConfig = getOwn(config.paths, id);
+          if (pathConfig && isArray(pathConfig) && pathConfig.length > 1) { 
+              pathConfig.shift();
+              context.require.undef(id); // ***
+              context.require([id]);
+              return true;
+          }
+      }
+      ```
+
+3.2.3 循环依赖
+
+
+> 内部模块的一个特征：module.map.isDefine = false
 
 ## nameToUrl：把模块名称转为文件路径
 核心代码

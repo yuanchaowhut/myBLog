@@ -582,7 +582,7 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
 - 至此 内部模块"_@r3" 完成定义，也表示这主动加载过程的结束
 
 
-### 2.2.2 被动加载
+### 2.2.2 依赖模块的被动加载
 > 不是通过require()显示加载的方式；而是作为主动加载模块的依赖（链）模块被加载的，这些依赖模块的加载称为被动加载
 
 1. 上面说到 main.test.js 加载并执行完成后的调用栈： onScriptLoad -> completeLoad -> callGetModule -> Module.prototype.init （初始化该模块）
@@ -1129,8 +1129,15 @@ function checkLoaded(){
 
 3.2.3 作用3：循环依赖
  
-## 3.3部分方法介绍 
-### 3.3.1 nameToUrl：把模块名称转为文件路径
+## 3.3 部分方法介绍
+### 3.3.1 makeModuleMap
+- Module 与 moduleMap的关系
+on操作总是依赖于Module实例，Module实例总是依赖moduleMap，Module构造函数的参数就是moduleMap
+moduleMap：当前模块的基本信息：name,id,prefix 
+Module：用于管理 当前模块 定义过程中的相关属性，主要和其依赖模块的情况有关：比如记录依赖模块的加载情况，以及依赖模块的exports
+
+ 
+### 3.3.2 nameToUrl：把模块名称转为文件路径
 核心代码
 ![avatar](images/require/durandal_indexttest_name_to_url.png)
 思想：以模块名称为 'a/b/c/d'为例
@@ -1140,15 +1147,8 @@ function checkLoaded(){
 4. a   在config.paths中是否有匹配 => matchRes + '/cbd'
 => url += '文件后缀名' 
 
-### 3.3.2 normalize
+### 3.3.3 normalize
 > 将 ./ 路径 转化为基于 baseUrl的路径，为了可以基于config.paths映射路径
-
-
-### 3.3.3 makeModuleMap
-- Module 与 moduleMap的关系
-on操作总是依赖于Module实例，Module实例总是依赖moduleMap，Module构造函数的参数就是moduleMap
-moduleMap：当前模块的基本信息：name,id,prefix 
-Module：用于管理 当前模块 定义过程中的相关属性，主要和其依赖模块的情况有关：比如记录依赖模块的加载情况，以及依赖模块的exports
 
 
 

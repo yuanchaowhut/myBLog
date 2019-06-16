@@ -473,7 +473,6 @@ function intakeDefines() {
 事实上，当该js文件加载并执行完成后会走completeLoad，该方法中也调用了takeGlobalQueue，callGetModule去完成该模块的定义,那么对于localRequire()中的两处 intakeDefines 应该用来处理某些'特殊情况'的。比如以下例
 
     - nextTickTest.js
-    >先是显示定义了一个模块（但是模块'a1'并未完成加载），然后立即require该模块，即调用localRequire()，通过intakeDefines可以启动模块'a1'的定义
     ```
     define('a1', [], function () {
         return {

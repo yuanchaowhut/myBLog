@@ -404,8 +404,8 @@ define(['durandal/indexTest', 'text!../test.json', '../nextTickTest','bootstrap'
 ```
 
 - 模块加载的模式可以分为两类
-    - 被动加载：作为依赖的模块（比如加载main.test.js时，定义模块的同时指定了依赖模块
-    - 主动加载：使用require方法加载模块，如 app/main.test.js，该文件作为data-main入口，由requirejs使用require方法主动加载（见2.1.2、2.1.3）
+    - 被动加载：作为依赖的模块（比如main.test.js中的依赖模块的加载）
+    - 主动加载：使用require方法加载模块，如 app/main.test.js，该文件作为data-main入口，由requirejs使用require方法主动加载（见2.1.5）
 >durandal使用的system.acquire()就是直接调用require方法主动加载模块
 
 ### 2.2.1 req(cfg) 加载main.test.js 流程 (主动加载)
@@ -438,8 +438,8 @@ function localRequire(deps, callback, errback) {
 ``` 
 
 #### 2.2.1.1 intakeDefines
-- takeGlobalQueue：将globalDefQueue中的配置迁移到defQueue中
-还记得define方法中的globalDefQueue变量吗？ 每当define时都会将模块的基本信息[名称，依赖，回调]保存起来（参考define函数的定义）
+- takeGlobalQueue：将globalDefQueue中的配置迁移到defQueue中<br/>
+还记得define方法中的globalDefQueue变量吗？ 每当define时都会将模块的基本信息[名称，依赖，回调]保存到globalDefQueue变量中（参考define函数的定义）
 >globalDefQueue是requirejs脚本中最外层作用域的变量，defQueue则是newContext函数的私有变量
 
 
@@ -453,8 +453,7 @@ function takeGlobalQueue() {
 ```
 
 
-- intakeDefines
-
+- intakeDefines：启动js文件已经加载的模块
 
 ```
 function intakeDefines() {
@@ -466,6 +465,34 @@ function intakeDefines() {
     }
 }
 ``` 
+
+> takeGlobalQueue 中获取到的模块配置是在define方法中存储的，说明模块所在js文件已经被加载和执行，
+因此在callGetModule方法中调用的是Module.prototype.init设置inited为true，表明该模块不需要去加载对应的js文件，
+事实上，通常情况一个js文件只会定义一个模块（即该文件只会执行一次define），当该js文件加载并执行完成后会走completeLoad，该方法中也调用了takeGlobalQueue，callGetModule，
+因此在js文件最外层定义的模块其实在这里已经开始处理了，那么对于 localRequire()中的两处 intakeDefined 应该用来处理某些'特殊情况'的。比如以下例
+
+- nextTickTest.js
+>先是显示定义了一个模块（但是模块'a1'并未完成加载），然后立即require该模块，即调用localRequire()，通过intakeDefines可以启动模块'a1'的定义
+```
+define('a1', [], function () {
+    return {
+        a: 'yus'
+    }
+});
+
+require(['a1'], function (a) {
+    console.log(a, '----')
+});
+```
+
+- 如果屏蔽localRequire中的两句 intakeDefines() ，执行结果如下
+![avatar](images/require/intake_defines_not.png)
+    1. 有报错，但是require(['a1'])仍然顺利加载完成，
+    2. 之所以报错是因为首先尝试将'a1'作为js文件去加载，因此控制台有加载a1.js文件404的报错
+        >require(['a1'])走context.nextTick回调中，会生成匿名模块，然后执行到该匿名模块的enable（Module.prototype.enable），然后加载其依赖即'a1'，... ，会尝试加载a.js文件
+    3. 之所以仍然能够顺利加载完成是因为在nextTickTest.js文件执行完成以后，走completeLoad回调，该方法中有去加载完成模块'a1'的定义，因此并不影响require(['a1'])的加载
+- 但是如果存在这两句的话，intakeDefines -> callGetModule -> getModule -> Module.prototype.init，将模块'a1' 的 inited置为true，因此后面则不会去加载a1.js
+
 
 
 #### 2.2.1.2. context.nextTick回调

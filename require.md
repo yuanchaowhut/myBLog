@@ -22,15 +22,13 @@
     - [2.2.1 req(cfg) 加载main.test.js 流程 (主动加载)](#221-reqcfg-%E5%8A%A0%E8%BD%BDmaintestjs-%E6%B5%81%E7%A8%8B-%E4%B8%BB%E5%8A%A8%E5%8A%A0%E8%BD%BD)
       - [2.2.1.1 intakeDefines](#2211-intakedefines)
       - [2.2.1.2. context.nextTick回调](#2212-contextnexttick%E5%9B%9E%E8%B0%83)
-      - [2.2.1.3 开始内部模块的定义](#2213-%E5%BC%80%E5%A7%8B%E5%86%85%E9%83%A8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%AE%9A%E4%B9%89)
+      - [2.2.1.3 依赖模块的加载](#2213-%E4%BE%9D%E8%B5%96%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD)
+        - [1. 依赖模块处理入口：Module.prototype.enable](#1-%E4%BE%9D%E8%B5%96%E6%A8%A1%E5%9D%97%E5%A4%84%E7%90%86%E5%85%A5%E5%8F%A3moduleprototypeenable)
+        - [2. 依赖模块'main.test'](#2-%E4%BE%9D%E8%B5%96%E6%A8%A1%E5%9D%97maintest)
     - [2.2.2 被动加载](#222-%E8%A2%AB%E5%8A%A8%E5%8A%A0%E8%BD%BD)
       - [2.2.2.1  'text!./../test.json'](#2221--texttestjson)
-      - [2.2.2.x  'durandal/indexTest'](#222x--durandalindextest)
-      - [2.2.2.x  'bootstrap'](#222x--bootstrap)
-    - [2.2.3 callGetModule](#223-callgetmodule)
-      - [2.2.3.1 makeModuleMap,getModule](#2231-makemodulemapgetmodule)
-        - [1. makeModuleMap](#1-makemodulemap)
-        - [2. getModule](#2-getmodule)
+      - [2.2.2.2  'durandal/indexTest'](#2222--durandalindextest)
+      - [2.2.2.3  'bootstrap'](#2223--bootstrap)
       - [2.2.3.2 Module[状态流转]看加载流程](#2232-module%E7%8A%B6%E6%80%81%E6%B5%81%E8%BD%AC%E7%9C%8B%E5%8A%A0%E8%BD%BD%E6%B5%81%E7%A8%8B)
 - [补充](#%E8%A1%A5%E5%85%85)
   - [context.require = localRequire （闭包）, 为什么这里要这么做呢？](#contextrequire--localrequire-%E9%97%AD%E5%8C%85-%E4%B8%BA%E4%BB%80%E4%B9%88%E8%BF%99%E9%87%8C%E8%A6%81%E8%BF%99%E4%B9%88%E5%81%9A%E5%91%A2)
@@ -863,13 +861,13 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
     - 从思想来看，这里就是先加载 text.js 插件，然后把 text.json 文件的加载交给text.js（注意defined事件的使用，通过该事件的订阅与发布使得父模块得以完成定义）
  
  
-#### 2.2.2.x  'durandal/indexTest'
+#### 2.2.2.2  'durandal/indexTest'
 1. 特殊在于 'durandal/indexTest' 其实代表的路径是：'../lib/durandal/js/indexTest.js' ，因为配置的paths时：durandal作为文件夹存在的
 2. makeModuleMap 通过 nameToUrl() 转换此类路径
 3. 这种情况：就这些
 
 
-#### 2.2.2.x  'bootstrap' 
+#### 2.2.2.3  'bootstrap' 
 ```
 shim: {
     'bootstrap': {
@@ -893,65 +891,10 @@ fetch: function () {
        //...
     }
 },
-```
+```  
 
-### 2.2.3 callGetModule
-```
-1. callGetModule 
-    makeModuleMap
-    getMoule // 返回Module实例
-2. this.init
-3. this.check
-4. this.fetch （构造scriptb标签加载资源）
-    
-
-    
-```
-
-#### 2.2.3.1 makeModuleMap,getModule
-##### 1. makeModuleMap
-
-
- 注意后面的 init
- ```
- function callGetModule(args) { 
-     if (!hasProp(defined, args[0])) {
-         getModule(makeModuleMap(args[0], null, true)).init(args[1], args[2]); 
-     }
- }
- ```
- 
-##### 2. getModule
- 
- getModule：注册到registry中
- ```
- function getModule(depMap) {
-     var id = depMap.id,
-         mod = getOwn(registry, id);
- 
-     if (!mod) {
-         mod = registry[id] = new context.Module(depMap);
-     }
- 
-     return mod;
- }
- ```
- 
-
-#### 2.2.3.2 Module[状态流转]看加载流程
-context.enable
-```
-context = {
-    enable: function (depMap) {
-        var mod = getOwn(registry, depMap.id);
-        if (mod) {
-            getModule(depMap).enable(); // 调用 Module.prototype.enable()
-        }
-    },
-}
-```
-
-Module.prototype
+#### 2.2.3 Module[状态流转]看加载流程 
+- Module.prototype
 ``` 
 Module.prototype = {
     init: function (depMaps, factory, errback, options){ // 该方法执行的前提：模块（js文件）已经加载完成了 或者 框架‘内部模块’（因为内部模块压根不需要加载js文件）
@@ -1024,28 +967,23 @@ Module.prototype = {
 
 }
 ```
- Module.prototype.init：this.inited 用来标识：用来标识该模块（js）文件是否被加载了
- Module.prototype.enabled：this.enabled、this.enabling
-
-# 补充 
-## context.require = localRequire （闭包）, 为什么这里要这么做呢？
-
-```
-context = {
-    //...
-    makeRequire: function (relMap, options) {
-        options = options || {};
-        
-        function localRequire(deps, callback, errback) {  }
-
-        return localRequire;
-    },
-    //...
-}
-```
-
-## useInteractive 的作用
-
+- Module实例的几种状态
+    - inited
+    - enabled
+    - defined
+    - defining(忽略，不是那边重要)
+    
+- 状态流转的两种情况
+    - 1. inited -> enabled -> defined 
+        1. 主动加载是生成的内部模块其状态就是这样子的，以为只有内部模块可以直接init；
+        2. 在主动加载章节中虽然显示req(cfg)去主动加载main.test模块，但是该模块仍然是作为内部模块的依赖模块，其初始状态也是enabled
+    
+    - 2. enabled -> inited -> defined
+    所有作为依赖的模块其状态都是先enabled，当其所在的js文件加载完成后，才会将将状态inited置为true表明js文件已经加载
+    
+    - 总结：从这个角度看，requirejs的模块有两种类型：内部模块，依赖模块
+     
+# 补充   
 ## fetch 构造script标签加载资源
 
 ## makeModuleMap

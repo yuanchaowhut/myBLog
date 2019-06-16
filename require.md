@@ -28,8 +28,8 @@
     - [2.2.2 被动加载](#222-%E8%A2%AB%E5%8A%A8%E5%8A%A0%E8%BD%BD)
       - [2.2.2.1  'text!./../test.json'](#2221--texttestjson)
       - [2.2.2.2  'durandal/indexTest'](#2222--durandalindextest)
-    - [2.2.2.3  'bootstrap'](#2223--bootstrap)
-      - [2.2.3 Module[状态流转]看加载流程](#223-module%E7%8A%B6%E6%80%81%E6%B5%81%E8%BD%AC%E7%9C%8B%E5%8A%A0%E8%BD%BD%E6%B5%81%E7%A8%8B)
+      - [2.2.2.3  'bootstrap'](#2223--bootstrap)
+    - [2.2.3 Module[状态流转]看加载流程](#223-module%E7%8A%B6%E6%80%81%E6%B5%81%E8%BD%AC%E7%9C%8B%E5%8A%A0%E8%BD%BD%E6%B5%81%E7%A8%8B)
 - [3 补充](#3-%E8%A1%A5%E5%85%85)
   - [3.1 fetch 构造script标签加载资源](#31-fetch-%E6%9E%84%E9%80%A0script%E6%A0%87%E7%AD%BE%E5%8A%A0%E8%BD%BD%E8%B5%84%E6%BA%90)
   - [3.2 checkLoaded的作用](#32-checkloaded%E7%9A%84%E4%BD%9C%E7%94%A8)
@@ -866,7 +866,7 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
 3. 这种情况：就这些
 
 
-### 2.2.2.3  'bootstrap' 
+#### 2.2.2.3  'bootstrap' 
 ```
 shim: {
     'bootstrap': {
@@ -892,7 +892,7 @@ fetch: function () {
 },
 ```  
 
-#### 2.2.3 Module[状态流转]看加载流程 
+### 2.2.3 Module[状态流转]看加载流程 
 - Module.prototype
 ``` 
 Module.prototype = {

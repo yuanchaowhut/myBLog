@@ -464,12 +464,13 @@ function intakeDefines() {
         callGetModule(args);
     }
 }
-``` 
+```
+- 为什么在callGetModule中调用Module.prototype.init，而不是enable？
+    1. callGetModule调用的两个地方：1:intakeDefines 2. completeLoad ；这两个方法在调用callGetModule之前都会先调用takeGlobalQueue
+    2. takeGlobalQueue中获取到的模块配置是在define方法中存储的，说明模块所在js文件已经被加载和执行，因此在callGetModule方法中调用的是Module.prototype.init设置inited为true，表明该模块不需要去加载对应的js文件，
 
-> takeGlobalQueue 中获取到的模块配置是在define方法中存储的，说明模块所在js文件已经被加载和执行，
-因此在callGetModule方法中调用的是Module.prototype.init设置inited为true，表明该模块不需要去加载对应的js文件，
-事实上，通常情况一个js文件只会定义一个模块（即该文件只会执行一次define），当该js文件加载并执行完成后会走completeLoad，该方法中也调用了takeGlobalQueue，callGetModule，
-因此在js文件最外层定义的模块其实在这里已经开始处理了，那么对于 localRequire()中的两处 intakeDefined 应该用来处理某些'特殊情况'的。比如以下例
+- 为什么 在localRequire中需要调用intakeDefines？
+事实上，当该js文件加载并执行完成后会走completeLoad，该方法中也调用了takeGlobalQueue，callGetModule去完成该模块的定义,那么对于localRequire()中的两处 intakeDefines 应该用来处理某些'特殊情况'的。比如以下例
 
 - nextTickTest.js
 >先是显示定义了一个模块（但是模块'a1'并未完成加载），然后立即require该模块，即调用localRequire()，通过intakeDefines可以启动模块'a1'的定义

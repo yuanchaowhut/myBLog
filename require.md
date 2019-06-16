@@ -586,11 +586,23 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
 
 
 ### 2.2.2 被动加载
-> 不是使用require显示加载的方式，即模块是作为主动加载模块的依赖（链）模块被加载的，那么次模块的加载称为被动加载
+> 不是通过require()显示加载的方式；而是作为主动加载模块的依赖（链）模块被加载的，这些依赖模块的加载称为被动加载
 
 1. 上面说到 main.test.js 加载并执行完成后的调用栈： onScriptLoad -> completeLoad -> callGetModule -> Module.prototype.init （初始化该模块）
-2. 首先得说下：该模块在作为 内部模块"_@r3" 的依赖模块时  已经被 enabled 了，但是当时对应的js文件尚未加载因此其depMaps =[];
-3. 现在main.test.js已经执行完成即此时该模块已经执行过define方法，因此确定了该模块了依赖模块。此时可以进行该模块的[定义] 进入 Module.prototype.enable
+2. 首先得说下：该模块在作为内部模块"_@r3" 的依赖模块时已经被 enabled 了，但是当时该模块的js文件尚未加载因此其depMaps = [];
+3. 现在main.test.js已经执行完成即此时该模块已经执行过define方法，因此确定了该模块了依赖模块，此时便可以处理main.test的依赖模块了
+    > 第二点和第三点结合在一起也解释了了下面代码块
+    ```
+    Module.prototype = {
+        init: function (depMaps, factory, errback, options) {
+            //...
+            if (options.enabled || this.enabled) { 
+                this.enable();
+            } else {
+                this.check();
+            }
+        }}
+    ```      
 4. 后面的过程和加载 内部模块"_@r3" 的流程一致
 
 #### 2.2.2.1  'text!./../test.json'

@@ -550,9 +550,13 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
     }
     
     this.enabling = false;
-    this.check(); // 检查（1. 有可能调用该方法的模块的js文件尚未加载通过该方法进行检查调用fetch加载js文件，2. 也有可能该模块对应的js文件已经加载（或者是匿名模块）检查该模块是否可以完成定义）
+    this.check(); 
 }
 ```
+
+- 为什么在enable方法的最后调用this.check()?
+    1. 有可能调用该方法的模块的js文件尚未加载通过该方法进行检查调用fetch加载js文件，
+    2. 也有可能该模块对应的js文件已经加载（或者是匿名模块）检查该模块是否可以完成定义）
 
 - 内部模块的依赖模块'main.test'的处理
     makeModuleMap

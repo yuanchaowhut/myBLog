@@ -33,12 +33,6 @@
 - [3 补充](#3-%E8%A1%A5%E5%85%85)
   - [3.1 fetch 构造script标签加载资源](#31-fetch-%E6%9E%84%E9%80%A0script%E6%A0%87%E7%AD%BE%E5%8A%A0%E8%BD%BD%E8%B5%84%E6%BA%90)
   - [3.2 checkLoaded的作用](#32-checkloaded%E7%9A%84%E4%BD%9C%E7%94%A8)
-  - [3.3 部分方法介绍](#33-%E9%83%A8%E5%88%86%E6%96%B9%E6%B3%95%E4%BB%8B%E7%BB%8D)
-    - [3.3.1 makeModuleMap](#331-makemodulemap)
-    - [3.3.2 nameToUrl：把模块名称转为文件路径](#332-nametourl%E6%8A%8A%E6%A8%A1%E5%9D%97%E5%90%8D%E7%A7%B0%E8%BD%AC%E4%B8%BA%E6%96%87%E4%BB%B6%E8%B7%AF%E5%BE%84)
-    - [3.3.3 normalize](#333-normalize)
-  - [3.4 如何支持cmd规范的？](#34-%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81cmd%E8%A7%84%E8%8C%83%E7%9A%84)
-  - [3.5 context.nextTick:setTimeout ，为什么要异步？](#35-contextnextticksettimeout-%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E5%BC%82%E6%AD%A5)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -861,9 +855,9 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
  
  
 #### 2.2.2.2  'durandal/indexTest'
+
 1. 特殊在于 'durandal/indexTest' 其实代表的路径是：'../lib/durandal/js/indexTest.js' ，因为配置的paths时：durandal作为文件夹存在的
-2. makeModuleMap 通过 nameToUrl() 转换此类路径
-3. 这种情况：就这些
+2. 因此在 makeModuleMap方法中 通过 nameToUrl() 转换此类路径为正确的文件路径即可 
 
 
 #### 2.2.2.3  'bootstrap' 
@@ -988,6 +982,7 @@ Module.prototype = {
 ## 3.1 fetch 构造script标签加载资源
 
 ## 3.2 checkLoaded的作用
+> 调用该方法的地方有：localRequire中context.nextTick 、 completeLoad
 ```
 function checkLoaded() {
     var err, usingPathFallback,
@@ -1068,28 +1063,31 @@ function checkLoaded() {
 
 ```
 
-
-3.2.1 作用1：检查文件加载是否超时
+### 3.2.1 作用1：检查文件加载是否超时
 ```
 function checkLoaded(){
-    //...
-    
-    // 首先一个模块走到这里，一定是尝试this.fetch()，即已经尝试过加载对应的js文件
-    // 如果时间过期并且mod.inited为false（说明js文件没有加载成功）
-    if (!mod.inited && expired) { 
-        if (hasPathFallback(modId)) { 
-            usingPathFallback = true;
-            stillLoading = true;
-        } else { 
-            noLoads.push(modId); // 将加载失败的模块保存下来
-            removeScript(modId);
+    //... 
+    eachProp(enabledRegistry, function (mod) {
+        //...
+        // 首先一个模块走到这里，一定是尝试过this.fetch()，即已经尝试过加载对应的js文件
+        // 如果时间过期并且mod.inited为false（说明js文件加载失败）
+        if (!mod.inited && expired) { 
+            if (hasPathFallback(modId)) { 
+                usingPathFallback = true;
+                stillLoading = true;
+            } else { 
+                noLoads.push(modId); // 将加载失败的模块保存下来
+                removeScript(modId);
+            }
         }
+        //...
     }
+
     //...
     if (expired && noLoads.length) {
         err = makeError('timeout', 'Load timeout for modules: ' + noLoads, null, noLoads);
         err.contextName = context.contextName;
-        return onError(err);
+        return onError(err); // 如果过期则终止
     }    
     //...
 }
@@ -1097,8 +1095,8 @@ function checkLoaded(){
 ```
 - expired的判断    
     
-3.2.2 作用2：可以给一个模块配置多个加载路径（也是在加载超时情况下进行的退化处理）
-      1. 如下面配置中给jQuery的js路径配置在了数组中，当第一个请求失败时，会使用第二个配置的路径进行请求
+### 3.2.2 作用2：可以给一个模块配置多个加载路径
+      1. 如下面配置中给jQuery的js路径配置在了数组中，当数组中的第一个路径请求失败后，会使用数组中第二个路径其请求资源
       ```
       //main.test.js
       paths: {
@@ -1127,7 +1125,89 @@ function checkLoaded(){
       ```
       - localRequire.undef 的作用？ 
 
-3.2.3 作用3：循环依赖
+### 3.2.3 作用3：处理循环依赖
+- 1. 案例代码：
+```
+//main.test
+define(['../lib/cycleA'], function (cycleA) {
+    console.log(cycleA, '============================');
+    return 'main.test_module'
+});
+
+// cycleA
+define(['../lib/cycleB'], function (cycleB) {
+    console.log(cycleB,'==========cycleA========');
+    return {
+        cycleA: cycleB
+    }
+})
+
+//cycleB
+define(['../lib/cycleA'], function (cycleA) {
+    console.log(cycleA,'==========cycleB========');
+    return {
+        cycleB: cycleA
+    }
+})
+```
+- 2. 执行结果
+看到main.test还是成功执行了
+![avatar](images/require/cycle_dep_result.png)
+
+- 3. 分析循环依赖是如何处理的
+    checkLoaded    
+    ```
+    function checkLoaded(){
+        //...
+        eachProp(enabledRegistry, function (mod) {
+            //...   
+            if (!map.isDefine) {
+                reqCalls.push(mod);
+            }
+            //...
+        }
+        
+        //... 
+        
+        if (needCycleCheck) { 
+            each(reqCalls, function (mod) {
+                breakCycle(mod, {}, {});
+            });
+        }
+    }
+    ```
+    breakCycle
+    ```
+    function breakCycle(mod, traced, processed) {
+        var id = mod.map.id;
+    
+        if (mod.error) {
+            mod.emit('error', mod.error);
+        } else {
+            traced[id] = true;
+            each(mod.depMaps, function (depMap, i) {
+                var depId = depMap.id, dep = getOwn(registry, depId); 
+                if (dep && !mod.depMatched[i] && !processed[depId]) {
+                    if (getOwn(traced, depId)) {
+                        mod.defineDep(i, defined[depId]);
+                        mod.check(); //pass false?
+                    } else {
+                        breakCycle(dep, traced, processed);
+                    }
+                }
+            });
+            processed[id] = true;
+        }
+    }
+    ```
+
+    - map.isDefine的定义和意义
+        1. 该属性是在makeModuleMap方法中生成的，并且只要内部模块才为false
+        2. 该属性可以用来区分是内部模块还是依赖模块，内部模块是requirejs自己生成的模块，而依赖都是我们（研发）自己定义的模块
+        3. 内部模块一定是作为某次主动加载(require()的显示调用)过程中的的模块链的头，也就是说，我们可以通过内部模块找出这次主动加载过程中涉及的所有模块
+        4. 源码中其实有很多地方都有用到，我就不一一说了
+    
+
  
 ## 3.3 部分方法介绍
 ### 3.3.1 makeModuleMap
@@ -1201,3 +1281,5 @@ define('a1', [], function () {
 ```
 finishLoad
 ```
+
+## 3.7 requirejs的错误处理机制

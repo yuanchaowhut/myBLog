@@ -33,6 +33,12 @@
 - [3 补充](#3-%E8%A1%A5%E5%85%85)
   - [3.1 fetch 构造script标签加载资源](#31-fetch-%E6%9E%84%E9%80%A0script%E6%A0%87%E7%AD%BE%E5%8A%A0%E8%BD%BD%E8%B5%84%E6%BA%90)
   - [3.2 checkLoaded的作用](#32-checkloaded%E7%9A%84%E4%BD%9C%E7%94%A8)
+    - [3.2.1 作用1：检查文件加载是否超时](#321-%E4%BD%9C%E7%94%A81%E6%A3%80%E6%9F%A5%E6%96%87%E4%BB%B6%E5%8A%A0%E8%BD%BD%E6%98%AF%E5%90%A6%E8%B6%85%E6%97%B6)
+    - [3.2.2 作用2：可以给一个模块配置多个加载路径](#322-%E4%BD%9C%E7%94%A82%E5%8F%AF%E4%BB%A5%E7%BB%99%E4%B8%80%E4%B8%AA%E6%A8%A1%E5%9D%97%E9%85%8D%E7%BD%AE%E5%A4%9A%E4%B8%AA%E5%8A%A0%E8%BD%BD%E8%B7%AF%E5%BE%84)
+    - [3.2.3 作用3：处理循环依赖](#323-%E4%BD%9C%E7%94%A83%E5%A4%84%E7%90%86%E5%BE%AA%E7%8E%AF%E4%BE%9D%E8%B5%96)
+  - [3.3 部分方法介绍](#33-%E9%83%A8%E5%88%86%E6%96%B9%E6%B3%95%E4%BB%8B%E7%BB%8D)
+  - [3.4 如何兼容cmd规范写法的模块？](#34-%E5%A6%82%E4%BD%95%E5%85%BC%E5%AE%B9cmd%E8%A7%84%E8%8C%83%E5%86%99%E6%B3%95%E7%9A%84%E6%A8%A1%E5%9D%97)
+  - [3.5 context.nextTick:setTimeout ，为什么要异步？](#35-contextnextticksettimeout-%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E5%BC%82%E6%AD%A5)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -980,6 +986,23 @@ Module.prototype = {
      
 # 3 补充   
 ## 3.1 fetch 构造script标签加载资源
+```
+req.load = function (context, moduleName, url) {
+    var config = (context && context.config) || {}, node;
+    if (isBrowser) {
+        node = req.createNode(config, moduleName, url); 
+        node.setAttribute('data-requirecontext', context.contextName);
+        node.setAttribute('data-requiremodule', moduleName);
+        //兼容性处理（略）...
+        node.addEventListener('load', context.onScriptLoad, false);
+        node.addEventListener('error', context.onScriptError, false); 
+        node.src = url; 
+        head.appendChild(node);
+        return node;
+    }
+    //...
+}
+```
 
 ## 3.2 checkLoaded的作用
 - checkLoaded的执行时机
@@ -996,8 +1019,7 @@ function checkLoaded() {
         reqCalls = [],
         stillLoading = false,
         needCycleCheck = true;
-
-    //Do not bother if this call was a result of a cycle break.
+ 
     if (inCheckLoaded) {
         return;
     }
@@ -1005,10 +1027,7 @@ function checkLoaded() {
     inCheckLoaded = true;
  
     eachProp(enabledRegistry, function (mod) {
-        var map = mod.map,
-            modId = map.id;
-
-        
+        var map = mod.map, modId = map.id; 
         if (!mod.enabled) {
             return;
         }
@@ -1040,20 +1059,14 @@ function checkLoaded() {
         err.contextName = context.contextName;
         return onError(err);
     }
-
-    //Not expired, check for a cycle.
+ 
     if (needCycleCheck) {
         each(reqCalls, function (mod) {
             breakCycle(mod, {}, {});
         });
     }
-
-    //If still waiting on loads, and the waiting load is something
-    //other than a plugin resource, or there are still outstanding
-    //scripts, then just try back later.
-    if ((!expired || usingPathFallback) && stillLoading) {
-        //Something is still waiting to load. Wait for it, but only
-        //if a timeout is not already in effect.
+ 
+    if ((!expired || usingPathFallback) && stillLoading) { 
         if ((isBrowser || isWebWorker) && !checkLoadedTimeoutId) {
             checkLoadedTimeoutId = setTimeout(function () {
                 checkLoadedTimeoutId = 0;
@@ -1163,6 +1176,7 @@ define(['../lib/cycleA'], function (cycleA) {
     1. 存储当前加载过程中所有内部模块
     2. 判断此次检查过程中是否需要进行循环依赖的处理，关键在于 needCycleCheck，只有该变量为true才会进行后面的循环依赖的处理 
         - 只有一种情况为false：在enabledRegistry中存在一个模块满足：1.inted:false 2.fetched:true 3.isDefiene:true 4.map.prefix不存在
+        - 为什么在上述情况下为false，不进行循环依赖的检查呢？
     ```
     function checkLoaded(){
         //...
@@ -1200,7 +1214,9 @@ define(['../lib/cycleA'], function (cycleA) {
     2. 思想是
         1. 首先将父模块traced标识为true，然后再递归遍历其依赖模块，当处理依赖模块的依赖模块时遇到当前链（processed:false）中的父模块traced标识为true，说明存在循环依赖
         2. processed为false用于控制在当前链中查找
+    3. 模块链示意图
     ![avatar](images/require/cycle_alog.png)
+    > 为了形象的表达模块之间的数据结构上的关系，上面使用了模块链这样的说法来表达，其实用是多叉树表达更为严谨些
     
     ```
     function breakCycle(mod, traced, processed) {
@@ -1213,8 +1229,8 @@ define(['../lib/cycleA'], function (cycleA) {
             each(mod.depMaps, function (depMap, i) {
                 var depId = depMap.id, dep = getOwn(registry, depId); 
                 if (dep && !mod.depMatched[i] && !processed[depId]) {
-                    if (getOwn(traced, depId)) { // 存在循环依赖
-                        mod.defineDep(i, defined[depId]);
+                    if (getOwn(traced, depId)) { // 存在循环依赖，以及 循环依赖的处理（关键）
+                        mod.defineDep(i, defined[depId]);  
                         mod.check(); //pass false?
                     } else {
                         breakCycle(dep, traced, processed);
@@ -1224,41 +1240,121 @@ define(['../lib/cycleA'], function (cycleA) {
             processed[id] = true;
         }
     }
-    ```
-
+    ``` 
     - map.isDefine的定义和意义
         1. 该属性是在makeModuleMap方法中生成的，并且只要内部模块才为false
         2. 该属性可以用来区分是内部模块还是依赖模块，内部模块是requirejs自己生成的模块，而依赖都是我们（研发）自己定义的模块
         3. 内部模块一定是作为某次主动加载(require()的显示调用)过程中的的模块链的头，也就是说，我们可以通过内部模块找出这次主动加载过程中涉及的所有模块
         4. 源码中其实有很多地方都有用到，我就不一一说了
     
-
- 
 ## 3.3 部分方法介绍
-### 3.3.1 makeModuleMap
+1. makeModuleMap
 - Module 与 moduleMap的关系
-on操作总是依赖于Module实例，Module实例总是依赖moduleMap，Module构造函数的参数就是moduleMap
-moduleMap：当前模块的基本信息：name,id,prefix 
-Module：用于管理 当前模块 定义过程中的相关属性，主要和其依赖模块的情况有关：比如记录依赖模块的加载情况，以及依赖模块的exports
+    - on操作总是依赖于Module实例，Module实例总是依赖moduleMap，Module构造函数的参数就是moduleMap
+    - moduleMap：当前模块的基本信息：name,id,prefix 
+    - Module：用于管理 当前模块 定义过程中的相关属性，主要和其依赖模块的情况有关：比如记录依赖模块的加载情况，以及依赖模块的exports
 
+2. nameToUrl：把模块名称转为文件路径
+- 核心代码
+    ![avatar](images/require/durandal_indexttest_name_to_url.png)
+    
+- 思想：以模块名称为 'a/b/c/d'为例
+    1. abcd在config.paths中是否有匹配 => matchRes
+    2. abc 在config.paths中是否有匹配 => matchRes + '/d'
+    3. ab  在config.paths中是否有匹配 => matchRes + '/bd'
+    4. a   在config.paths中是否有匹配 => matchRes + '/cbd'
+    => url += '文件后缀名' 
+
+3. normalize
+将 ./ 路径 转化为基于 baseUrl的路径，为了可以基于config.paths映射路径
+
+## 3.4 如何兼容cmd规范写法的模块？
+注意这里是兼容，是说可以加载并执行cmd规范实现的模块，但是执行机制还是按照amd的执行机制处理即异步处理
+> cmd规范和amd规范的区别在于：模块的执行而不是加载
+
+下面说下是如何做到兼容？ 
+
+- 1.如果获取cmd模块的依赖模块呢？
+>cmd规范实现的模块，其模块的引用是在回调中，只有执行具体的模块是才知道该模块有哪些依赖
+
+当requirejs执行define时，会从define的回调中提取所有的依赖（其实正则变量cjsRequireRegExp已经暴露了一切）并保存
+```
+cjsRequireRegExp = /[^.]\s*require\s*\(\s*["']([^'"\s]+)["']\s*\)/g, 
+
+define = function (name, deps, callback) {
+    //...
+    if (!deps && isFunction(callback)) {
+        deps = []; 
+        if (callback.length) {// 函数的length属性指的是该函数的参数的长度
+            callback
+                .toString()
+                .replace(commentRegExp, '') // 去除注释，方式注释中有相关的关键字
+                .replace(cjsRequireRegExp, function (match, dep) {
+                    deps.push(dep);
+                });
  
-### 3.3.2 nameToUrl：把模块名称转为文件路径
-核心代码
-![avatar](images/require/durandal_indexttest_name_to_url.png)
-思想：以模块名称为 'a/b/c/d'为例
-1. abcd在config.paths中是否有匹配 => matchRes
-2. abc 在config.paths中是否有匹配 => matchRes + '/d'
-3. ab  在config.paths中是否有匹配 => matchRes + '/bd'
-4. a   在config.paths中是否有匹配 => matchRes + '/cbd'
-=> url += '文件后缀名' 
-
-### 3.3.3 normalize
-> 将 ./ 路径 转化为基于 baseUrl的路径，为了可以基于config.paths映射路径
-
-
-
-## 3.4 如何支持cmd规范的？
-
+            deps = (callback.length === 1 ? ['require'] : ['require', 'exports', 'module']).concat(deps);
+        }
+    }
+    //...
+}
+``` 
+ 
+ 
+- 2. require.js提供了cmd规范必要的几个变量对象['require','exports','module']
+````
+handlers = {
+    'require': function (mod) {
+        if (mod.require) {
+            return mod.require;
+        } else {
+            return (mod.require = context.makeRequire(mod.map));
+        }
+    },
+    'exports': function (mod) {
+        mod.usingExports = true;
+        if (mod.map.isDefine) {
+            if (mod.exports) {
+                return (defined[mod.map.id] = mod.exports);
+            } else {
+                return (mod.exports = defined[mod.map.id] = {});
+            }
+        }
+    },
+    'module': function (mod) {
+        if (mod.module) {
+            return mod.module;
+        } else {
+            return (mod.module = {
+                id: mod.map.id,
+                uri: mod.map.url,
+                config: function () {
+                    return getOwn(config.config, mod.map.id) || {};
+                },
+                exports: mod.exports || (mod.exports = {})
+            });
+        }
+    }
+};
+````
+- 3. 在模块的加载过程中，如果遇到['require','exports','module']这几个变量，则直接替换，相关代码如下
+使用Moduel.prototype.enable处理依赖模块时针对cmd规范的特殊处理
+``` 
+enable: function () {
+    each(this.depMaps, bind(this, function (depMap, i) {
+        //...
+         handler = getOwn(handlers, depMap.id);
+        
+        if (handler) {
+            this.depExports[i] = handler(this);
+            return;
+        }
+        //...
+    }
+}
+```
+  
+    
 ## 3.5 context.nextTick:setTimeout ，为什么要异步？
 >保证同步的代码块中的define被执行
 ```
@@ -1296,15 +1392,12 @@ define('a1', [], function () {
     3. 当该模块完成定义后，其会触发一个 [defined]事件 ，这个事件的监听者就是依赖 a1 的模块，
     4. 在这里就是 require(['a1']) ，因此 require(['a1'],fn) 的回调也会成功执行
     5. 监听依赖项的defined事件(Module.prototype.check)<br/>
-![avatar](images/require/defined_on.png)
+    ![avatar](images/require/defined_on.png)
 
 3. 如果异步处理，则会先执行后面的同步代码，那么require(['a1'])也就不会尝试加载a1.js文件了；
 >我认为，这里应该是个优化的过程，并不是必须的。比如 nextTickTest.js 中的两句代码颠倒下顺序，也是可以顺利执行的；建议在看requirejs源码时，把这里改为同步
 
+ 
+## 3.6 requirejs的错误处理机制
 
-## 3.6 text.js 加载 test.json
-```
-finishLoad
-```
-
-## 3.7 requirejs的错误处理机制
+# 4 总结

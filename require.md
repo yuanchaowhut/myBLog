@@ -403,7 +403,7 @@ define(['durandal/indexTest', 'text!../test.json', '../nextTickTest','bootstrap'
     - 主动加载：使用require方法加载模块，如 app/main.test.js，该文件作为data-main入口，由requirejs使用require方法主动加载（见2.1.5）
 >durandal使用的system.acquire()就是直接调用require方法主动加载模块
 
-### 2.2.1 req(cfg) 加载main.test.js 流程 (主动加载)
+### 2.2.1 req(cfg) 加载 main.test.js 流程 (主动加载)
 >对于模块的主动加载其实际的加载入口是：localRequire（闭包）
 
 - 入口在require.js的最后一行

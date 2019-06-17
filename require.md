@@ -491,7 +491,7 @@ function intakeDefines() {
 
 
 
-#### 2.2.1.2. context.nextTick回调
+#### 2.2.1.2 context.nextTick回调
 - 主动加载模块的一个特点就是 context.nextTick中会生成一个 内部名称(internal name: '_@r' + number) 的模块（内部模块），其作用是啥呢？
     - 该匿名模块会将deps作为其依赖，然后启动该模块的加载
     - 当这些依赖的模块加载完成后，标志着生成的 '内部模块' 完成定义

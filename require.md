@@ -1175,8 +1175,11 @@ define(['../lib/cycleA'], function (cycleA) {
     - checkLoaded:在这部分的作用
     1. 存储当前加载过程中所有内部模块
     2. 判断此次检查过程中是否需要进行循环依赖的处理，关键在于 needCycleCheck，只有该变量为true才会进行后面的循环依赖的处理 
-        - 只有一种情况为false：在enabledRegistry中存在一个模块满足：1.inted:false 2.fetched:true 3.isDefiene:true 4.map.prefix不存在
-        - 为什么在上述情况下为false，不进行循环依赖的检查呢？
+        - 只有一种情况为false：在enabledRegistry中存在一个模块满足：1.inted:false 2.fetched:true 3.isDefiene:true 4.map.prefix不存在 
+        - 这引出了一个问题：循环依赖检查的时机？ 
+            1. 只要存在一个*非*内部模块并且该模块不是'plugin!resource.suffix'这种形式的处于正在加载过程中（即状态位于fetched阶段，参考2.2.3的状态流转）则不进行循环依赖检查
+            2. 因为形如'plugin!resource.suffix'这样的模块是不存在循环依赖的，因此排除这种情况
+            3. 只考虑非这种形式的模块，并且只有等待所有的模块加载完成之后再去检查循环依赖才有意义
     ```
     function checkLoaded(){
         //...
@@ -1353,7 +1356,6 @@ enable: function () {
     }
 }
 ```
-  
     
 ## 3.5 context.nextTick:setTimeout ，为什么要异步？
 >保证同步的代码块中的define被执行

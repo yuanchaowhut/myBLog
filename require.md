@@ -23,8 +23,6 @@
       - [2.2.1.1 intakeDefines](#2211-intakedefines)
       - [2.2.1.2. context.nextTick回调](#2212-contextnexttick%E5%9B%9E%E8%B0%83)
       - [2.2.1.3 依赖模块的加载](#2213-%E4%BE%9D%E8%B5%96%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD)
-        - [1. 依赖模块处理入口：Module.prototype.enable](#1-%E4%BE%9D%E8%B5%96%E6%A8%A1%E5%9D%97%E5%A4%84%E7%90%86%E5%85%A5%E5%8F%A3moduleprototypeenable)
-        - [2. 依赖模块'main.test'](#2-%E4%BE%9D%E8%B5%96%E6%A8%A1%E5%9D%97maintest)
     - [2.2.2 依赖模块的被动加载](#222-%E4%BE%9D%E8%B5%96%E6%A8%A1%E5%9D%97%E7%9A%84%E8%A2%AB%E5%8A%A8%E5%8A%A0%E8%BD%BD)
       - [2.2.2.1  'text!./../test.json'](#2221--texttestjson)
       - [2.2.2.2  'durandal/indexTest'](#2222--durandalindextest)
@@ -524,7 +522,7 @@ context.nextTick(function () {
 #### 2.2.1.3 依赖模块的加载
 > 跳过 Module.prototype.init 来到 Module.prototype.enable，enable方法的主要作用是加载其依赖模块，并添加其依赖模块的defined回调（通知该依赖模块完成了定义）
  
-##### 1. 依赖模块处理入口：Module.prototype.enable
+1. 依赖模块处理入口：Module.prototype.enable
 ![avatar](images/require/ano_module_deps.png)
 ```
 enable: function () { // 递归 context.enable -> Module.prototype.enable
@@ -555,7 +553,7 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
 - 为什么在enable方法的最后调用this.check()?
     简单来说就是用来确定当前模块的下一个步骤，是加载js文件还是直接完成定义？
     
-##### 2. 依赖模块'main.test'
+2. 依赖模块'main.test'
 - makeModuleMap
 ![avatar](images/require/main.test_map.png)
 

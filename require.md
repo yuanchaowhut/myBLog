@@ -982,8 +982,12 @@ Module.prototype = {
 ## 3.1 fetch 构造script标签加载资源
 
 ## 3.2 checkLoaded的作用
-> 调用该方法的地方有：localRequire中context.nextTick 、 completeLoad
+- checkLoaded的执行时机
+    1. localRequire中的context.nextTick 
+    2. completeLoad 
+    3. 自身的定时器
 ```
+// checkLoaded代码块
 function checkLoaded() {
     var err, usingPathFallback,
         waitInterval = config.waitSeconds * 1000, 
@@ -1154,8 +1158,11 @@ define(['../lib/cycleA'], function (cycleA) {
 看到main.test还是成功执行了
 ![avatar](images/require/cycle_dep_result.png)
 
-- 3. 分析循环依赖是如何处理的
-    checkLoaded    
+- 3. 循环依赖是如何处理的
+    - checkLoaded:在这部分的作用
+    1. 存储当前加载过程中所有内部模块
+    2. 判断此次检查过程中是否需要进行循环依赖的处理，关键在于 needCycleCheck，只有该变量为true才会进行后面的循环依赖的处理 
+        - 只有一种情况为false：在enabledRegistry中存在一个模块满足：1.inted:false 2.fetched:true 3.isDefiene:true 4.map.prefix不存在
     ```
     function checkLoaded(){
         //...
@@ -1165,6 +1172,17 @@ define(['../lib/cycleA'], function (cycleA) {
                 reqCalls.push(mod);
             }
             //...
+            
+            if (!mod.error) { 
+                if (!mod.inited && expired) { 
+                    //...
+                } else if (!mod.inited && mod.fetched && map.isDefine) { 
+                    stillLoading = true;
+                    if (!map.prefix) { // 只有这种情况为false
+                        return (needCycleCheck = false); 
+                    }
+                }
+            }
         }
         
         //... 
@@ -1176,7 +1194,14 @@ define(['../lib/cycleA'], function (cycleA) {
         }
     }
     ```
-    breakCycle
+    
+    - breakCycle的作用
+    1. 判断是否存在循环依赖的核心方法
+    2. 思想是
+        1. 首先将父模块traced标识为true，然后再递归遍历其依赖模块，当处理依赖模块的依赖模块时遇到当前链（processed:false）中的父模块traced标识为true，说明存在循环依赖
+        2. processed为false用于控制在当前链中查找
+    ![avatar](images/require/cycle_alog.png)
+    
     ```
     function breakCycle(mod, traced, processed) {
         var id = mod.map.id;
@@ -1188,7 +1213,7 @@ define(['../lib/cycleA'], function (cycleA) {
             each(mod.depMaps, function (depMap, i) {
                 var depId = depMap.id, dep = getOwn(registry, depId); 
                 if (dep && !mod.depMatched[i] && !processed[depId]) {
-                    if (getOwn(traced, depId)) {
+                    if (getOwn(traced, depId)) { // 存在循环依赖
                         mod.defineDep(i, defined[depId]);
                         mod.check(); //pass false?
                     } else {

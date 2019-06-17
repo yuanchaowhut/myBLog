@@ -1397,9 +1397,84 @@ define('a1', [], function () {
     ![avatar](images/require/defined_on.png)
 
 3. 如果异步处理，则会先执行后面的同步代码，那么require(['a1'])也就不会尝试加载a1.js文件了；
->我认为，这里应该是个优化的过程，并不是必须的。比如 nextTickTest.js 中的两句代码颠倒下顺序，也是可以顺利执行的；建议在看requirejs源码时，把这里改为同步
+>我认为，这里应该是个优化的过程，并不是必须的。比如 nextTickTest.js 中的两句代码颠倒下顺序，也是可以顺利执行的；建议看requirejs源码时，把这里改为同步
 
  
-## 3.6 requirejs的错误处理机制
+## 3.6 requirejs的错误处理
+1. 构造scrpt标签加载js资源时添加了给script标签添加error事件（参考3.1）,当脚本加载失败时，会调用该回调
+```
+// context.onScriptError
+onScriptError: function (evt) { 
+    var data = getScriptData(evt);
+    if (!hasPathFallback(data.id)) { // 参考3.2.2
+        return onError(makeError('scripterror', 'Script error for: ' + data.id, evt, [data.id]));
+    }
+}
+```
+
+2. 模块执行时的错误捕获
+```
+//Module.prototype.check
+check: function () {
+    //...
+    try {
+        exports = context.execCb(id, factory, depExports, exports);
+    } catch (e) {
+        err = e;
+    }
+    //...
+    if (err) { // 保存执行异常的模块的信息
+        err.requireMap = this.map;
+        err.requireModules = this.map.isDefine ? [this.map.id] : null;
+        err.requireType = this.map.isDefine ? 'define' : 'require'; 
+        return onError((this.error = err));
+    }
+    //...
+}
+```
+
+3. 主动加载的异常回调
+require([...],fn,errback) 调用栈：localRequire -> init -> enable -> 监听依赖模块的error事件
+``` 
+// Module.prototype.enable 监听依赖模块的error事件
+if (this.errback) {
+    on(depMap, 'error', bind(this, this.errback));
+}
+```
+
+``` 
+function onError(err, errback) {
+    var ids = err.requireModules,
+    notified = false;
+    //...
+    each(ids, function (id) {
+        var mod = getOwn(registry, id);
+        //...
+        notified = true;
+        mod.emit('error', err);
+    });
+    
+    if (!notified) { // 如果该模块没有被订阅
+        req.onError(err);
+    }
+}
+```
+当依赖模块执行错误时（见第二点）会执行onError() => 触发error事件，如果父模块监听了该事件，则触发errback
+
+4. requirejs提供了全局错误处理函数，你也可以自定义
+- 默认值
+``` 
+req.onError = defaultOnError;
+
+function defaultOnError(err) {
+ throw err;
+}
+```
+- 自定义
+``` 
+requirejs.onError = function (error) {
+    console.log(error)
+};
+```
 
 # 4 总结

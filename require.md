@@ -427,7 +427,7 @@ function localRequire(deps, callback, errback) {
 ``` 
 
 #### 2.2.1.1 intakeDefines
-1. takeGlobalQueue：将globalDefQueue中的配置迁移到defQueue中
+- takeGlobalQueue：将globalDefQueue中的配置迁移到defQueue中
 还记得define方法中的globalDefQueue变量吗？ 每当define时都会将模块的基本信息[名称，依赖，回调]保存到globalDefQueue变量中（参考define函数的定义）
 >globalDefQueue是requirejs脚本中的顶层变量，defQueue则是newContext函数的私有变量
 
@@ -442,7 +442,7 @@ function takeGlobalQueue() {
 ```
 
 
-2. intakeDefines：取出全局队列中的模块配置，启动这些模块的定义
+- intakeDefines：取出全局队列中的模块配置，启动这些模块的定义
 
 ```
 function intakeDefines() {
@@ -455,13 +455,13 @@ function intakeDefines() {
 }
 ```
 
-- 为什么在callGetModule中调用Module.prototype.init，而不是enable？
-    - callGetModule被调用的两个地方：1:intakeDefines 2. completeLoad ；这两个方法在调用callGetModule之前都会先调用takeGlobalQueue
-    - takeGlobalQueue中获取到的模块配置是在define方法中存储的，说明模块所在的js文件已经被加载和执行，因此在callGetModule方法中调用的是Module.prototype.init设置inited为true，表明该模块不需要去加载对应的js文件
+1. 为什么在callGetModule中调用Module.prototype.init，而不是enable？
+    1. callGetModule被调用的两个地方：1:intakeDefines 2. completeLoad ；这两个方法在调用callGetModule之前都会先调用takeGlobalQueue
+    2. takeGlobalQueue中获取到的模块配置是在define方法中存储的，说明模块所在的js文件已经被加载和执行，因此在callGetModule方法中调用的是Module.prototype.init设置inited为true，表明该模块不需要去加载对应的js文件
 
-- 为什么在localRequire中需要调用intakeDefines？
-    - 事实上，当某个js文件加载并执行完成后会走completeLoad，该方法中也会去调用takeGlobalQueue，callGetModule去完成该模块的定义；
-    - 对于localRequire()中的两处 intakeDefines() 其实是用来处理某些'特殊情况'的。比如以下例
+2. 为什么在localRequire中需要调用intakeDefines？
+    1. 事实上，当某个js文件加载并执行完成后会走completeLoad，该方法中也会去调用takeGlobalQueue，callGetModule去完成该模块的定义；
+    2. 对于localRequire()中的两处 intakeDefines() 其实是用来处理某些'特殊情况'的。比如以下例
 
     - nextTickTest.js（定义模块后，立即require该模块）
     ```
@@ -483,13 +483,11 @@ function intakeDefines() {
         - 之所以仍然能够顺利加载完成是因为在nextTickTest.js文件执行完成以后，走completeLoad回调，该方法中有去加载完成模块'a1'的定义，因此并不影响require(['a1'])的加载
     - 但是如果存在这两句的话，intakeDefines -> callGetModule -> getModule -> Module.prototype.init，将模块'a1' 的 inited置为true，因此后面则不会去加载a1.js
 
-
-
-#### 2.2.1.2 context.nextTick回调
-- 主动加载模块的一个特点就是 context.nextTick中会生成一个 内部名称(internal name: '_@r' + number) 的模块（内部模块），其作用是啥呢？
-    - 该匿名模块会将deps作为其依赖，然后启动该模块的加载
-    - 当这些依赖的模块加载完成后，标志着生成的 '内部模块' 完成定义
-    - 因此：该内部模块的作用是用来检测主动加载模块的什么时候完成定义
+#### 2.2.1.2 context.nextTick：启动内部模块的加载
+- 主动加载模块的一个==特点==就是在context.nextTick中会生成一个有内部名称(internal name: '_@r' + number) 的模块（==内部模块==），其作用是啥呢？
+    1. 该匿名模块会将deps作为其依赖，然后启动该模块的加载
+    2. 当这些依赖的模块加载完成后，标志着生成的 '内部模块' 完成定义
+    3. 因此：该内部模块的作用是用来检测主动加载模块的什么时候完成定义
     
 - 内部模块的生成
 ```
@@ -510,7 +508,7 @@ context.nextTick(function () {
 ```
 - {enabled:true}的作用？为什么不直接enable而是要先init再enable呢？
     1. {enabled:true} 的作用就是使得在init方法中直接进入enable 
-    2. 内部模块是requirejs框架自己生成，其并不是在其他的js文件中进行define的，因此其没有对应的js文件，所以调用要通过init将inited标识置为true，然后通过{enable:true}选项进入enable开始其依赖模块的加载
+    2. 内部模块是requirejs框架自己生成的，因此其没有对应的js文件，所以调用init将inited标识置为true，然后通过{enable:true}选项进入enable开始其依赖模块的加载
 
     
 #### 2.2.1.3 依赖模块的加载

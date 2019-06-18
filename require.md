@@ -754,7 +754,8 @@ function (plugin) {
 } 
 ``` 
 
-- 2.2 下面说下 "text!../test.json_unnormalized2" 模块的加载流程
+- 2.2 下面说下 "text!../test.json_unnormalized2" 模块的加载流程<br/>
+
 pluginMap，this
 ![avatar](images/require/text_on_defiend.png)
 
@@ -771,7 +772,7 @@ pluginMap，this
          
         - normalizedMap 监听defined事件 (即 "text!../test.json" 加载完成后 走这里的回调) 
         ```
-        // 注意下面回调中的this是指向哪个模块，下面的回调会使得=="text!../test.json_unnormalized2"完成定义== 
+        // 注意下面回调中的this是指向哪个模块，下面的回调会使得`"text!../test.json_unnormalized2"`完成定义 
         on(normalizedMap, 'defined', bind(this, function (value) {  // 监听defined事件，即当 text!../test.json 模块完成定义的回调
             this.init([], function () { return value; }, null, {
                 enabled: true,

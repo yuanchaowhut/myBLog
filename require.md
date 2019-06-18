@@ -813,8 +813,8 @@ pluginMap，this
         ```
 
 - 2.2.2 context.enable(pluginMap, this)：因为这个模块尚未加载，因此直接enable，开始该模块的定义
->js模块是否加载的标志：inited；<br/>
-当text.js加载完成后会走callGetModule -> init 会将 该模块的inited 重置为 true 表示该模块所在的js文件已被加载
+>js模块是否加载完成的标志：inited，区别于fetched,fetched表示正在获取，但是资源尚未返回<br/>
+当text.js加载完成后会走callGetModule -> init 会将 该模块的inited 置为 true 表示该模块所在的js文件已被加载
 
 
 3 为什么上面的回调要根据 unnormalized 分为两种情况呢？
@@ -945,7 +945,7 @@ Module.prototype = {
         } else if (!this.defining) {
             this.defining = true;
         
-            if (this.depCount < 1 && !this.defined) {
+            if (this.depCount < 1 && !this.defined) { // 当所有的依赖模块定义完成以后，depCount=0，那么该模块可以完成定义了
             
             }
             
@@ -1273,7 +1273,7 @@ define(['../lib/cycleA'], function (cycleA) {
 
 下面说下是如何做到兼容？ 
 
-- 1.如果获取cmd模块的依赖模块呢？
+1. 如果获取cmd模块的依赖模块呢？
 >cmd规范实现的模块，其模块的引用是在回调中，只有执行具体的模块是才知道该模块有哪些依赖
 
 当requirejs执行define时，会从define的回调中提取所有的依赖（其实正则变量cjsRequireRegExp已经暴露了一切）并保存
@@ -1300,7 +1300,7 @@ define = function (name, deps, callback) {
 ``` 
  
  
-- 2. require.js提供了cmd规范必要的几个变量对象['require','exports','module']
+2. require.js提供了cmd规范必要的几个变量对象['require','exports','module']
 ````
 handlers = {
     'require': function (mod) {
@@ -1336,7 +1336,7 @@ handlers = {
     }
 };
 ````
-- 3. 在模块的加载过程中，如果遇到['require','exports','module']这几个变量，则直接替换，相关代码如下
+3. 在模块的加载过程中，如果遇到['require','exports','module']这几个变量，则直接替换，相关代码如下
 使用Moduel.prototype.enable处理依赖模块时针对cmd规范的特殊处理
 ``` 
 enable: function () {
@@ -1474,3 +1474,4 @@ requirejs.onError = function (error) {
 ```
 
 # 4 总结
+不想总结了

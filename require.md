@@ -509,7 +509,7 @@ context.nextTick(function () {
     - 内部模块是requirejs框架自己生成的，因此其没有对应的js文件，所以调用init将inited标识置为true，然后通过{enable:true}选项进入enable开始其依赖模块的加载
 
     
-#### 2.2.1.3 依赖模块的加载
+#### 2.2.1.3 加载内部模块的依赖模块
 > 跳过 Module.prototype.init 来到 Module.prototype.enable，enable方法的主要作用是加载其依赖模块，并添加其依赖模块的defined回调（通知该依赖模块完成了定义）
 
 1. 依赖模块处理入口：Module.prototype.enable

@@ -589,12 +589,12 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
     ```      
 4. 后面的过程和加载 内部模块"_@r3" 的流程一致
 
-require.js支持多种形式的模块加载：见2.2.2.1（plugin!xxx.suffix）、2.2.2.2（文件夹）、2.2.2.3（shim）
+`require.js支持多种形式的模块加载：见2.2.2.1（plugin!xxx.suffix）、2.2.2.2（文件夹）、2.2.2.3（shim）`
 
 #### 2.2.2.1  'text!./../test.json'
 >特殊在于该模块依赖于text.js插件，并且需要通过该模块进行解析
 
-1 父模块[main.test]的enable方法中做了哪些？
+##### 1 父模块[main.test]的enable方法中做了哪些？
 - 1.1 调用makeModuleMap()，生成当前模块的moduleMap，其id为"text!../test.json_unnormalized2"<br/>
     
     - 关于 makeModuleMap 方法对 unnormalized 属性的处理<br/>
@@ -675,7 +675,7 @@ function getModule(depMap) {
     },
     ``` 
     
-2 开始 "text!../test.json_unnormalized2" 模块的定义
+##### 2 开始 "text!../test.json_unnormalized2" 模块的定义
 > 跳过中间步骤（enable -> check）直接来到 fetch() 
 
 ![avatar](images/require/test.json_fetch.png)  
@@ -816,7 +816,7 @@ pluginMap，this
 当text.js加载完成后会走callGetModule -> init 会将 该模块的inited 重置为 true 表示该模块所在的js文件已被加载
 
 
-3 为什么上面的回调要根据 unnormalized 分为两种情况呢？
+##### 3 为什么上面的回调要根据 unnormalized 分为两种情况呢？
 - makeModuleMap 中的 unnormalized
 >If the id is a plugin id that cannot be determined if it needs normalization, stamp it with a unique ID so two matching relative ids that may conflict can be separate.<br/>
 >如果id是一个插件ID，如果需要进行规范化则无法确定，请使用唯一ID标记它，以便可以将两个匹配的可能冲突的相对ID分开。<br/>
@@ -840,10 +840,10 @@ function makeModuleMap(name, parentModuleMap, isNormalized, applyMap) {
 ```
     
     
-4 text.js加载并解析test.json文件流程
+##### 4 text.js加载并解析test.json文件流程
 > 这里没啥好说的
              
-5 总结：
+##### 5 总结
 - 控制台日志看该模块的加载流程
     ![avatar](images/require/console_look_text_test.json.png)    
     - 1. 首先"text!../test.json_unnormalized2"模块有两个依赖：text ，text/..test.json 两个模块

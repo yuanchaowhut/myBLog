@@ -245,8 +245,7 @@ function newContext(contextName) {
 }
 ```
 
-### 2.1.2 define函数
->amd规范模块的定义方法
+### 2.1.2 define函数 
 
 
 
@@ -297,12 +296,12 @@ function newContext(contextName) {
 
 
 ### 2.1.3 默认上下文的创建
-> 这里的默认上下文真的只是默认上下文并不是唯一上下文，因为这里的上下是可以创建多个的，require.js支持多版本功能
+> 上下文是可以创建多个的，require.js支持多版本功能
 
 > 多版本的关键在于 newContext 函数，函数作用域保证了函数内所有变量的私有特性。虽然没有使用'类'，但功能上来看几乎等价于‘类’，甚至比类更加‘简单’
 
 ```
-var defContextName = '_', 
+var defContextName = '_', // 顶层变量
 ```
 
 ```
@@ -380,7 +379,10 @@ if (isBrowser && !cfg.skipDataMain) {
 }
 ```
 
+cfg的值见2.1.5
+
 ### 2.1.5 main.js文件的加载
+>作用：启动应用程序
 ```
 //Set up with config info.
 req(cfg);
@@ -388,28 +390,20 @@ req(cfg);
 ![avatar](images/require/cfg.png)
 
 ## 2.2 模块的加载过程
->以test.html为例
-
-```
-//main.test.js
-define(['durandal/indexTest', 'text!../test.json', '../nextTickTest','bootstrap'], 
-    function (indexTest, json, nextTickTest) {
-        console.log(indexTest, json, nextTickTest)
-});
-```
-
-- 模块加载的模式可以分为两类
-    - 被动加载：作为依赖的模块（比如main.test.js中的依赖模块的加载）
-    - 主动加载：使用require方法加载模块，如 app/main.test.js，该文件作为data-main入口，由requirejs使用require方法主动加载（见2.1.5）
+>[案例代码](https://github.com/yusongjohn/durandal-source)，启动文件：test.html
+ 
+模块加载的模式可以分为两类
+1. 被动加载：作为依赖的模块（比如main.test.js中的依赖模块的加载）
+2. 主动加载：使用require方法加载模块，形如require([xxx],fn)
 >durandal使用的system.acquire()就是直接调用require方法主动加载模块
 
-### 2.2.1 req(cfg) 加载 main.test.js 流程 (主动加载)
+### 2.2.1 主动加载：以 req(cfg) 为例 
 >对于模块的主动加载其实际的加载入口是：localRequire（闭包）
 
 - 入口在require.js的最后一行
 ```
 // cfg.deps = ['main.test']
-req(cfg); // -> context.configure -> context.require （即 context.makeRequire返回的localRequire）
+req(cfg); // 调用栈：-> context.configure -> context.require （即 context.makeRequire返回的localRequire）
 ```
 
 -  localRequire
@@ -433,9 +427,9 @@ function localRequire(deps, callback, errback) {
 ``` 
 
 #### 2.2.1.1 intakeDefines
-- takeGlobalQueue：将globalDefQueue中的配置迁移到defQueue中<br/>
+1. takeGlobalQueue：将globalDefQueue中的配置迁移到defQueue中
 还记得define方法中的globalDefQueue变量吗？ 每当define时都会将模块的基本信息[名称，依赖，回调]保存到globalDefQueue变量中（参考define函数的定义）
->globalDefQueue是requirejs脚本中最外层作用域的变量，defQueue则是newContext函数的私有变量
+>globalDefQueue是requirejs脚本中的顶层变量，defQueue则是newContext函数的私有变量
 
 
 ```
@@ -448,7 +442,7 @@ function takeGlobalQueue() {
 ```
 
 
-- intakeDefines：取出全局队列中的模块配置，启动这些模块的定义
+2. intakeDefines：取出全局队列中的模块配置，启动这些模块的定义
 
 ```
 function intakeDefines() {
@@ -460,15 +454,16 @@ function intakeDefines() {
     }
 }
 ```
+
 - 为什么在callGetModule中调用Module.prototype.init，而不是enable？
-    1. callGetModule调用的两个地方：1:intakeDefines 2. completeLoad ；这两个方法在调用callGetModule之前都会先调用takeGlobalQueue
-    2. takeGlobalQueue中获取到的模块配置是在define方法中存储的，说明模块所在js文件已经被加载和执行，因此在callGetModule方法中调用的是Module.prototype.init设置inited为true，表明该模块不需要去加载对应的js文件，
+    - callGetModule被调用的两个地方：1:intakeDefines 2. completeLoad ；这两个方法在调用callGetModule之前都会先调用takeGlobalQueue
+    - takeGlobalQueue中获取到的模块配置是在define方法中存储的，说明模块所在的js文件已经被加载和执行，因此在callGetModule方法中调用的是Module.prototype.init设置inited为true，表明该模块不需要去加载对应的js文件
 
-- 为什么 在localRequire中需要调用intakeDefines？
-    1. 事实上，当某个js文件加载并执行完成后会走completeLoad，该方法中也调用了takeGlobalQueue，callGetModule去完成该模块的定义；
-    2. 对于localRequire()中的两处 intakeDefines() 其实是用来处理某些'特殊情况'的。比如以下例
+- 为什么在localRequire中需要调用intakeDefines？
+    - 事实上，当某个js文件加载并执行完成后会走completeLoad，该方法中也会去调用takeGlobalQueue，callGetModule去完成该模块的定义；
+    - 对于localRequire()中的两处 intakeDefines() 其实是用来处理某些'特殊情况'的。比如以下例
 
-    - nextTickTest.js
+    - nextTickTest.js（定义模块后，立即require该模块）
     ```
     define('a1', [], function () {
         return {
@@ -481,12 +476,11 @@ function intakeDefines() {
     });
     ```
     
-    - 如果屏蔽localRequire中的两句 intakeDefines() ，执行结果如下
+    - 如果屏蔽localRequire中的两句 intakeDefines() ，执行结果（有报错，但是require(['a1'])仍然顺利加载完成）
     ![avatar](images/require/intake_defines_not.png)
-        1. 有报错，但是require(['a1'])仍然顺利加载完成，
-        2. 之所以报错是因为首先尝试将'a1'作为js文件去加载，因此控制台有加载a1.js文件404的报错
+        - 之所以报错是因为首先尝试将'a1'作为js文件去加载，因此控制台有加载a1.js文件404的报错
             >require(['a1'])走context.nextTick回调中，会生成匿名模块，然后执行到该匿名模块的enable（Module.prototype.enable），然后加载其依赖即'a1'，... ，会尝试加载a.js文件
-        3. 之所以仍然能够顺利加载完成是因为在nextTickTest.js文件执行完成以后，走completeLoad回调，该方法中有去加载完成模块'a1'的定义，因此并不影响require(['a1'])的加载
+        - 之所以仍然能够顺利加载完成是因为在nextTickTest.js文件执行完成以后，走completeLoad回调，该方法中有去加载完成模块'a1'的定义，因此并不影响require(['a1'])的加载
     - 但是如果存在这两句的话，intakeDefines -> callGetModule -> getModule -> Module.prototype.init，将模块'a1' 的 inited置为true，因此后面则不会去加载a1.js
 
 
@@ -1124,8 +1118,10 @@ function checkLoaded(){
           'jquery': ['../lib/jquery/jquery-1.9.2','../lib/jquery/jquery-1.9.1'] 
       },
       ```
+      
       2. '../lib/jquery/jquery-1.9.2'加载失败，看到jquery仍然被加载成功（打印出了jQuyer的版本号）  
       ![avatar](images/require/jquery_fall_back.png)
+      
       3. checkLoaded中会去调用hasPathFallback，换一种文件路径进行加载
       ```
       function hasPathFallback(id) {

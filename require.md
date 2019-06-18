@@ -19,11 +19,11 @@
     - [2.1.4 初始化启动配置项（cfg）](#214-%E5%88%9D%E5%A7%8B%E5%8C%96%E5%90%AF%E5%8A%A8%E9%85%8D%E7%BD%AE%E9%A1%B9cfg)
     - [2.1.5 main.js文件的加载](#215-mainjs%E6%96%87%E4%BB%B6%E7%9A%84%E5%8A%A0%E8%BD%BD)
   - [2.2 模块的加载过程](#22-%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD%E8%BF%87%E7%A8%8B)
-    - [2.2.1 req(cfg) 加载main.test.js 流程 (主动加载)](#221-reqcfg-%E5%8A%A0%E8%BD%BDmaintestjs-%E6%B5%81%E7%A8%8B-%E4%B8%BB%E5%8A%A8%E5%8A%A0%E8%BD%BD)
+    - [2.2.1 主动加载：以 req(cfg) 为例](#221-%E4%B8%BB%E5%8A%A8%E5%8A%A0%E8%BD%BD%E4%BB%A5-reqcfg-%E4%B8%BA%E4%BE%8B)
       - [2.2.1.1 intakeDefines](#2211-intakedefines)
-      - [2.2.1.2. context.nextTick回调](#2212-contextnexttick%E5%9B%9E%E8%B0%83)
-      - [2.2.1.3 依赖模块的加载](#2213-%E4%BE%9D%E8%B5%96%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD)
-    - [2.2.2 依赖模块的被动加载](#222-%E4%BE%9D%E8%B5%96%E6%A8%A1%E5%9D%97%E7%9A%84%E8%A2%AB%E5%8A%A8%E5%8A%A0%E8%BD%BD)
+      - [2.2.1.2 context.nextTick：启动内部模块的加载](#2212-contextnexttick%E5%90%AF%E5%8A%A8%E5%86%85%E9%83%A8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD)
+      - [2.2.1.3 加载内部模块的依赖模块](#2213-%E5%8A%A0%E8%BD%BD%E5%86%85%E9%83%A8%E6%A8%A1%E5%9D%97%E7%9A%84%E4%BE%9D%E8%B5%96%E6%A8%A1%E5%9D%97)
+    - [2.2.2 被动加载：main.test(依赖模块)](#222-%E8%A2%AB%E5%8A%A8%E5%8A%A0%E8%BD%BDmaintest%E4%BE%9D%E8%B5%96%E6%A8%A1%E5%9D%97)
       - [2.2.2.1  'text!./../test.json'](#2221--texttestjson)
       - [2.2.2.2  'durandal/indexTest'](#2222--durandalindextest)
       - [2.2.2.3  'bootstrap'](#2223--bootstrap)
@@ -594,7 +594,7 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
 #### 2.2.2.1  'text!./../test.json'
 >特殊在于该模块依赖于text.js插件，并且需要通过该模块进行解析
 
-##### 1 父模块[main.test]的enable方法中做了哪些？
+1 父模块[main.test]的enable方法中做了哪些？
 - 1.1 调用makeModuleMap()，生成当前模块的moduleMap，其id为"text!../test.json_unnormalized2"<br/>
     
     - 关于 makeModuleMap 方法对 unnormalized 属性的处理<br/>
@@ -675,7 +675,7 @@ function getModule(depMap) {
     },
     ``` 
     
-##### 2 开始 "text!../test.json_unnormalized2" 模块的定义
+2 开始 "text!../test.json_unnormalized2" 模块的定义
 > 跳过中间步骤（enable -> check）直接来到 fetch() 
 
 ![avatar](images/require/test.json_fetch.png)  
@@ -816,7 +816,7 @@ pluginMap，this
 当text.js加载完成后会走callGetModule -> init 会将 该模块的inited 重置为 true 表示该模块所在的js文件已被加载
 
 
-##### 3 为什么上面的回调要根据 unnormalized 分为两种情况呢？
+3 为什么上面的回调要根据 unnormalized 分为两种情况呢？
 - makeModuleMap 中的 unnormalized
 >If the id is a plugin id that cannot be determined if it needs normalization, stamp it with a unique ID so two matching relative ids that may conflict can be separate.<br/>
 >如果id是一个插件ID，如果需要进行规范化则无法确定，请使用唯一ID标记它，以便可以将两个匹配的可能冲突的相对ID分开。<br/>
@@ -840,10 +840,10 @@ function makeModuleMap(name, parentModuleMap, isNormalized, applyMap) {
 ```
     
     
-##### 4 text.js加载并解析test.json文件流程
+4 text.js加载并解析test.json文件流程
 > 这里没啥好说的
              
-##### 5 总结
+5 总结：
 - 控制台日志看该模块的加载流程
     ![avatar](images/require/console_look_text_test.json.png)    
     - 1. 首先"text!../test.json_unnormalized2"模块有两个依赖：text ，text/..test.json 两个模块

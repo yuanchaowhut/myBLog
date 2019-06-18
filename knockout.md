@@ -7,11 +7,13 @@
   - [1.2 防抖与节流](#12-%E9%98%B2%E6%8A%96%E4%B8%8E%E8%8A%82%E6%B5%81)
 - [2 源码分析](#2-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90)
   - [2.1 ko的发布-订阅（系统）](#21-ko%E7%9A%84%E5%8F%91%E5%B8%83-%E8%AE%A2%E9%98%85%E7%B3%BB%E7%BB%9F)
-    - [2.1.2 observable对象](#212-observable%E5%AF%B9%E8%B1%A1)
-        - [observableFn](#observablefn)
-        - [ko.subscribable['fn']](#kosubscribablefn)
+    - [2.1.1 observable对象](#211-observable%E5%AF%B9%E8%B1%A1)
+      - [2.1.1.1 observalbe的继承结构](#2111-observalbe%E7%9A%84%E7%BB%A7%E6%89%BF%E7%BB%93%E6%9E%84)
+      - [2.1.1.2 observableFn](#2112-observablefn)
+      - [2.1.1.3 ko.subscribable['fn']](#2113-kosubscribablefn)
     - [2.1.2 computedObservable对象](#212-computedobservable%E5%AF%B9%E8%B1%A1)
-        - [computedFn](#computedfn)
+      - [2.1.2.1 computedObservable的继承结构](#2121-computedobservable%E7%9A%84%E7%BB%A7%E6%89%BF%E7%BB%93%E6%9E%84)
+      - [2.1.2.2 computedFn](#2122-computedfn)
     - [2.1.3 发布-订阅实现的机制（依赖检测系统）](#213-%E5%8F%91%E5%B8%83-%E8%AE%A2%E9%98%85%E5%AE%9E%E7%8E%B0%E7%9A%84%E6%9C%BA%E5%88%B6%E4%BE%9D%E8%B5%96%E6%A3%80%E6%B5%8B%E7%B3%BB%E7%BB%9F)
       - [2.1.3.1 evaluateImmediate_CallReadWithDependencyDetection](#2131-evaluateimmediate_callreadwithdependencydetection)
       - [2.1.3.2 ko.dependencyDetection管理observable执行环境’](#2132-kodependencydetection%E7%AE%A1%E7%90%86observable%E6%89%A7%E8%A1%8C%E7%8E%AF%E5%A2%83)
@@ -22,9 +24,7 @@
       - [2.1.3.7 computedObservable 添加依赖跟踪](#2137-computedobservable-%E6%B7%BB%E5%8A%A0%E4%BE%9D%E8%B5%96%E8%B7%9F%E8%B8%AA)
       - [2.1.3.8 小结](#2138-%E5%B0%8F%E7%BB%93)
     - [2.1.4 销毁：computedObservable.dispose();](#214-%E9%94%80%E6%AF%81computedobservabledispose)
-- [补充](#%E8%A1%A5%E5%85%85)
-  - [ko.computed options:pure/defer](#kocomputed-optionspuredefer)
-  - [父子组件通信](#%E7%88%B6%E5%AD%90%E7%BB%84%E4%BB%B6%E9%80%9A%E4%BF%A1)
+  - [2.2 API:ko.applyBindings](#22-apikoapplybindings)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -38,9 +38,12 @@
  
 # 2 源码分析
 ## 2.1 ko的发布-订阅（系统）
-### 2.1.2 observable对象
+### 2.1.1 observable对象
 >定义：ko.observable 返回的对象称为observable对象
-#### observalbe的继承结构
+
+#### 2.1.1.1 observalbe的继承结构
+
+
 ``` 
 ko.observable = function (initialValue) {
     function observable() {
@@ -58,7 +61,7 @@ var name = ko.observable()
 ```
 ![avatar](images/knockout/observable_extend_chain.png)
  
-##### observableFn
+#### 2.1.1.2 observableFn
 
 ```
 var observableLatestValue = ko.utils.createSymbolOrString('_latestValue');
@@ -89,7 +92,7 @@ ko.isObservable = function (instance) {
 }
 ```
 
-##### ko.subscribable['fn'] 
+#### 2.1.1.3 ko.subscribable['fn'] 
 作用：
 
 ```
@@ -118,9 +121,11 @@ ko_subscribable_fn 继承了 Function.prototype
 ko.utils.setPrototypeOf(ko_subscribable_fn, Function.prototype);
 ```
  
- ### 2.1.2 computedObservable对象
+### 2.1.2 computedObservable对象
  >定义：ko.computed、ko.dependentObservable 返回的对象称为computedObservable对象
- #### computedObservable的继承结构
+ 
+ 
+#### 2.1.2.1 computedObservable的继承结构
  ```
 var name = ko.observable();
 var canSayHello = ko.computed(function () {
@@ -159,7 +164,7 @@ computedObservable 继承 computedFn
  }
  ```
  
-##### computedFn
+#### 2.1.2.2 computedFn
  ```
 var computedFn = {
     equalityComparer: valuesArePrimitiveAndEqual,
@@ -239,8 +244,6 @@ evaluateImmediate_CallReadWithDependencyDetection: function (notifyChange) {
 - ko.dependencyDetection结构，通过outerFrames（栈）用来管理‘observable执行环境’
 
 
-
-
 ```
 ko.computedContext = ko.dependencyDetection = (function () {
     var outerFrames = [],
@@ -274,7 +277,6 @@ ko.computedContext = ko.dependencyDetection = (function () {
     
 
 #### 2.1.3.3 evaluateImmediate_CallReadThenEndDependencyDetection
-
 
 ```
 evaluateImmediate_CallReadThenEndDependencyDetection: function (state, dependencyDetectionContext) {
@@ -408,8 +410,7 @@ var computedFn = {
 - computedObservable对象（canSayHello）是如何向observable对象（name）添加依赖的呢？
 >computedObservable对象可以理解为Observer，observable对象可以理解为Subject
  
-### 2.1.4 销毁
-#### 2.1.4.1 computedObservable.dispose();
+### 2.1.4 销毁：computedObservable.dispose();
 在 2.1.3.7 小节中说到 computedObservable 将所有的依赖订阅添加到 state.dependencyTracking 中
 ``` 
 var computedFn = {
@@ -445,6 +446,99 @@ function () {
 ```
 - disposeCallback的作用？
 2.1.3.6中说到 computedObservable 向 observable 对象添加订阅，那么当computedObservable销毁的时候，是不是应该将这个订阅移除呢？这里就是这个作用
+
+
+
+## 2.2 API:ko.applyBindings 
+> 该api的作用：将参数中的viewModel绑定到指定的dom节点中
+``` 
+ko.applyBindings = function (viewModelOrBindingContext, rootNode) {
+    //...
+    rootNode = rootNode || window.document.body; // 默认绑定到body节点
+    applyBindingsToNodeAndDescendantsInternal(getBindingContext(viewModelOrBindingContext), rootNode, true);
+};
+```
+
+### 2.2.1 ko.bindingContext:生成绑定上下文
+getBindingContext -> ko.bindingContext 
+```
+ko.bindingContext = function(dataItemOrAccessor, parentContext, dataItemAlias, extendCallback) {
+    function updateContext() {
+        var dataItemOrObservable = isFunc ? dataItemOrAccessor() : dataItemOrAccessor,
+            dataItem = ko.utils.unwrapObservable(dataItemOrObservable);
+
+        //... 父子绑定上下文的处理，在父子组件通信章节再说
+        self['$parents'] = [];
+        self['$root'] = dataItem;
+        self['ko'] = ko;
+        
+        self['$rawData'] = dataItemOrObservable;
+        self['$data'] = dataItem; 
+
+        return self['$data'];
+    }
+    function disposeWhen() { // computedObservable对象销毁的时机
+        return nodes && !ko.utils.anyDomNodeIsAttachedToDocument(nodes); // 所有绑定的节点都已经从document中移除了
+    }
+
+    var self = this,
+        isFunc = typeof(dataItemOrAccessor) == "function" && !ko.isObservable(dataItemOrAccessor),
+        nodes,
+        subscribable = ko.dependentObservable(updateContext, null, { disposeWhen: disposeWhen, disposeWhenNodeIsRemoved: true });
+
+    if (subscribable.isActive()) { 
+        self._subscribable = subscribable;
+        
+        subscribable['equalityComparer'] = null;
+
+        nodes = [];
+        subscribable._addNode = function(node) {
+            nodes.push(node);
+            ko.utils.domNodeDisposal.addDisposeCallback(node, function(node) {
+                ko.utils.arrayRemoveItem(nodes, node);
+                if (!nodes.length) {
+                    subscribable.dispose();
+                    self._subscribable = subscribable = undefined;
+                }
+            });
+        };
+    }
+}
+```
+参数dataItemOrAccessor可以分为两种情况：observable对象、普通对象
+- dataItemOrAccessor是普通对象的情况
+此时对于的有效代码只有下面部分有效，即保存当前的vm
+``` 
+self['$parents'] = [];
+self['$root'] = dataItem;
+self['ko'] = ko;
+
+self['$rawData'] = dataItemOrObservable;
+self['$data'] = dataItem;
+```
+
+- dataItemOrAccessor是observable对象的情况
+情况略复杂些，当dataItemOrAccessor是observable对象时，subscribable会向dataItemOrAccessor添加订阅，subscribable.isActive()为true
+``` 
+subscribable = ko.dependentObservable(updateContext, null, { disposeWhen: disposeWhen, disposeWhenNodeIsRemoved: true });
+```
+
+
+### 2.2.2 applyBindingsToNodeAndDescendantsInternal:dom与vm的绑定入口
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # 补充
 ## ko.computed options:pure/defer

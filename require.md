@@ -1474,4 +1474,4 @@ requirejs.onError = function (error) {
 ```
 
 # 4 总结
-不想总结了
+一个流程图

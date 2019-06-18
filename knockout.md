@@ -25,6 +25,11 @@
       - [2.1.3.8 小结](#2138-%E5%B0%8F%E7%BB%93)
     - [2.1.4 销毁：computedObservable.dispose();](#214-%E9%94%80%E6%AF%81computedobservabledispose)
   - [2.2 API:ko.applyBindings](#22-apikoapplybindings)
+    - [2.2.1 ko.bindingContext:生成绑定上下文](#221-kobindingcontext%E7%94%9F%E6%88%90%E7%BB%91%E5%AE%9A%E4%B8%8A%E4%B8%8B%E6%96%87)
+    - [2.2.2 applyBindingsToNodeAndDescendantsInternal:dom与vm的绑定入口](#222-applybindingstonodeanddescendantsinternaldom%E4%B8%8Evm%E7%9A%84%E7%BB%91%E5%AE%9A%E5%85%A5%E5%8F%A3)
+- [补充](#%E8%A1%A5%E5%85%85)
+  - [ko.computed options:pure/defer](#kocomputed-optionspuredefer)
+  - [父子组件通信](#%E7%88%B6%E5%AD%90%E7%BB%84%E4%BB%B6%E9%80%9A%E4%BF%A1)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 

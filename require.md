@@ -512,7 +512,7 @@ context.nextTick(function () {
 #### 2.2.1.3 依赖模块的加载
 > 跳过 Module.prototype.init 来到 Module.prototype.enable，enable方法的主要作用是加载其依赖模块，并添加其依赖模块的defined回调（通知该依赖模块完成了定义）
  
-1. **依赖模块处理入口：Module.prototype.enable**
+**1. 依赖模块处理入口：Module.prototype.enable**
 ![avatar](images/require/ano_module_deps.png)
 ```
 enable: function () { // 递归 context.enable -> Module.prototype.enable
@@ -542,7 +542,7 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
 - 为什么在enable方法的最后调用this.check()?<br/>
 简单来说就是用来确定当前模块的下一个步骤，是加载js文件还是直接完成定义？
     
-2. **依赖模块'main.test'**
+**2. 依赖模块'main.test'**
 - makeModuleMap
 ![avatar](images/require/main.test_map.png)
 
@@ -559,8 +559,8 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
     ![avatar](images/require/module_name_script.png)
 
 - 启动main.test模块的定义
-    - 调用栈:completeLoad -> callGetModule -> Module.prototype.init (调用init方法就说明该模块已经没有必要再去加载js文件)
-    - 当 main.test 模块完成定义后会触发main.test模块的defined事件（上面有提到在enable方法会去注册内部模块的依赖模块main.test的defined回调）
+    - 调用栈:completeLoad -> callGetModule -> Module.prototype.init (该模块已经加载完成因此调用init)
+    - 当main.test模块完成定义后（main.test模块完成定义的过程见2.2.2）会触发main.test模块的defined事件（上面有提到在enable方法会去注册内部模块的依赖模块main.test的defined回调） 
     
 - 内部模块完成定义    
     上面说到main.test完成定义后会触发其defined回调，在defined回调中的this就是内部模块(_@r3)，this.check()则会检查该模块是否可以结束定义（通过this.depCount判断，见this.check方法）

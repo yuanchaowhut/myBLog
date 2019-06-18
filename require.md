@@ -569,7 +569,7 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
 - 至此 内部模块"_@r3" 完成定义，也表示这主动加载过程的结束
 
 
-### 2.2.2 被动加载：main.test(依赖模块)
+### 2.2.2 被动加载
 > 不是通过require()显示加载的方式；而是作为主动加载模块的依赖（链）模块被加载的，这些依赖模块的加载称为被动加载
 
 1. 上面说到 main.test.js 加载并执行完成后的调用栈： onScriptLoad -> completeLoad -> callGetModule -> Module.prototype.init （初始化该模块）

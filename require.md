@@ -679,8 +679,7 @@ function getModule(depMap) {
 > 跳过中间步骤（enable -> check）直接来到 fetch() 
 
 ![avatar](images/require/test.json_fetch.png)  
-
-- 2.1 callPlugin代码代码解释
+- 2.1 callPlugin
 
 ```
 callPlugin: function () {
@@ -783,15 +782,19 @@ pluginMap，this
         - normalizedMod.enable() 进行 "text!../test.json"模块的定义 
             -> callPlugin -> 2.2.1.2（由于 text.js 已经完成了定义，所以会同步执行defined回调）<br/> 
             -> context.enable(pluginMap, this) （由于 text.js 已经完成了定义，因此会从registry，enabledRegistry中移除） 
-                >当一个模块已经完成了定义，如果再次context.enable时，则不会再次定义 
-                ```
-                enable: function (depMap) {
-                    var mod = getOwn(registry, depMap.id); // 因为已经移除，所以 mod:false
-                    if (mod) {
-                        getModule(depMap).enable();
-                    }
-                },
-                ``` 
+            >当一个模块已经完成了定义，如果再次context.enable时，则不会再次定义  
+           
+            ```
+            enable: function (depMap) {
+                var mod = getOwn(registry, depMap.id); // 因为已经移除，所以 mod:false
+                if (mod) {
+                    getModule(depMap).enable();
+                }
+            },
+            ```  
+            
+            
+            
     - 2.2.1.2 normalized 情况
         >this.map.id = "text!../test.json" 
         ``` 

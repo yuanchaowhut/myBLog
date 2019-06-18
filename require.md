@@ -511,8 +511,8 @@ context.nextTick(function () {
     
 #### 2.2.1.3 依赖模块的加载
 > 跳过 Module.prototype.init 来到 Module.prototype.enable，enable方法的主要作用是加载其依赖模块，并添加其依赖模块的defined回调（通知该依赖模块完成了定义）
- 
-**1. 依赖模块处理入口：Module.prototype.enable**
+
+1. 依赖模块处理入口：Module.prototype.enable
 ![avatar](images/require/ano_module_deps.png)
 ```
 enable: function () { // 递归 context.enable -> Module.prototype.enable
@@ -542,7 +542,7 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
 - 为什么在enable方法的最后调用this.check()?<br/>
 简单来说就是用来确定当前模块的下一个步骤，是加载js文件还是直接完成定义？
     
-**2. 依赖模块'main.test'**
+2. 依赖模块'main.test'的定义完成 到 内部模块的定义完成
 - makeModuleMap
 ![avatar](images/require/main.test_map.png)
 
@@ -569,7 +569,7 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
 - 至此 内部模块"_@r3" 完成定义，也表示这主动加载过程的结束
 
 
-### 2.2.2 依赖模块的被动加载
+### 2.2.2 被动加载：main.test(依赖模块)
 > 不是通过require()显示加载的方式；而是作为主动加载模块的依赖（链）模块被加载的，这些依赖模块的加载称为被动加载
 
 1. 上面说到 main.test.js 加载并执行完成后的调用栈： onScriptLoad -> completeLoad -> callGetModule -> Module.prototype.init （初始化该模块）
@@ -588,6 +588,8 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
         }}
     ```      
 4. 后面的过程和加载 内部模块"_@r3" 的流程一致
+
+require.js支持多种形式的模块加载：见2.2.2.1（plugin!xxx.suffix）、2.2.2.2（文件夹）、2.2.2.3（shim）
 
 #### 2.2.2.1  'text!./../test.json'
 >特殊在于该模块依赖于text.js插件，并且需要通过该模块进行解析

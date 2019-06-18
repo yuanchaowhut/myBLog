@@ -456,33 +456,32 @@ function intakeDefines() {
 ```
 
 1. 为什么在callGetModule中调用Module.prototype.init，而不是enable？
-    1. callGetModule被调用的两个地方：1:intakeDefines 2. completeLoad ；这两个方法在调用callGetModule之前都会先调用takeGlobalQueue
-    2. takeGlobalQueue中获取到的模块配置是在define方法中存储的，说明模块所在的js文件已经被加载和执行，因此在callGetModule方法中调用的是Module.prototype.init设置inited为true，表明该模块不需要去加载对应的js文件
+    - callGetModule被调用的两个地方：1:intakeDefines 2. completeLoad ；这两个方法在调用callGetModule之前都会先调用takeGlobalQueue
+    - takeGlobalQueue中获取到的模块配置是在define方法中存储的，说明模块所在的js文件已经被加载和执行，因此在callGetModule方法中调用的是Module.prototype.init设置inited为true，表明该模块不需要去加载对应的js文件
 
 2. 为什么在localRequire中需要调用intakeDefines？
-    1. 事实上，当某个js文件加载并执行完成后会走completeLoad，该方法中也会去调用takeGlobalQueue，callGetModule去完成该模块的定义；
-    2. 对于localRequire()中的两处 intakeDefines() 其实是用来处理某些'特殊情况'的。比如以下例
-    <div style='border:1px dotted'>
-    nextTickTest.js（定义模块后，立即require该模块）
-    ```
-    define('a1', [], function () {
-        return {
-            a: 'yus'
-        }
-    });
-    
-    require(['a1'], function (a) {
-        console.log(a, '----')
-    });
-    ```
-    
-    - 如果屏蔽localRequire中的两句 intakeDefines() ，执行结果（有报错，但是require(['a1'])仍然顺利加载完成）
-    ![avatar](images/require/intake_defines_not.png)
-        - 之所以报错是因为首先尝试将'a1'作为js文件去加载，因此控制台有加载a1.js文件404的报错
-            >require(['a1'])走context.nextTick回调中，会生成匿名模块，然后执行到该匿名模块的enable（Module.prototype.enable），然后加载其依赖即'a1'，... ，会尝试加载a.js文件
-        - 之所以仍然能够顺利加载完成是因为在nextTickTest.js文件执行完成以后，走completeLoad回调，该方法中有去加载完成模块'a1'的定义，因此并不影响require(['a1'])的加载
-    - 但是如果存在这两句的话，intakeDefines -> callGetModule -> getModule -> Module.prototype.init，将模块'a1' 的 inited置为true，因此后面则不会去加载a1.js
-    </div>
+    - 事实上，当某个js文件加载并执行完成后会走completeLoad，该方法中也会去调用takeGlobalQueue，callGetModule去完成该模块的定义；
+    - 对于localRequire()中的两处 intakeDefines() 其实是用来处理某些'特殊情况'的。比如以下例  
+        - 案例：nextTickTest.js（定义模块后，立即require该模块）
+        ```
+        define('a1', [], function () {
+            return {
+                a: 'yus'
+            }
+        });
+        
+        require(['a1'], function (a) {
+            console.log(a, '----')
+        });
+        ```
+        
+        1. 如果屏蔽localRequire中的两句 intakeDefines() ，执行结果（有报错，但是require(['a1'])仍然顺利加载完成）
+        ![avatar](images/require/intake_defines_not.png)
+            - 之所以报错是因为首先尝试将'a1'作为js文件去加载，因此控制台有加载a1.js文件404的报错
+                >require(['a1'])走context.nextTick回调中，会生成匿名模块，然后执行到该匿名模块的enable（Module.prototype.enable），然后加载其依赖即'a1'，... ，会尝试加载a.js文件
+            - 之所以仍然能够顺利加载完成是因为在nextTickTest.js文件执行完成以后，走completeLoad回调，该方法中有去加载完成模块'a1'的定义，因此并不影响require(['a1'])的加载
+        2. 但是如果存在这两句的话，intakeDefines -> callGetModule -> getModule -> Module.prototype.init，将模块'a1' 的 inited置为true，因此后面则不会去加载a1.js
+
 #### 2.2.1.2 context.nextTick：启动内部模块的加载
 - 主动加载模块的一个==特点==就是在context.nextTick中会生成一个有内部名称(internal name: '_@r' + number) 的模块（==内部模块==），其作用是啥呢？
     1. 该匿名模块会将deps作为其依赖，然后启动该模块的加载

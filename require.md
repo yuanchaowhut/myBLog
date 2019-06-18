@@ -483,9 +483,9 @@ function intakeDefines() {
 
 #### 2.2.1.2 context.nextTick：启动内部模块的加载
 - 主动加载模块的一个`特点`就是在context.nextTick中会生成一个有内部名称(internal name: '_@r' + number) 的模块（`内部模块`），其作用是啥呢？
-    1. 该匿名模块会将deps作为其依赖，然后启动该模块的加载
-    2. 当这些依赖的模块加载完成后，标志着生成的 '内部模块' 完成定义
-    3. 因此：该内部模块的作用是用来检测主动加载模块的什么时候完成定义
+    - 该匿名模块会将deps作为其依赖，然后启动该模块的加载 
+    - 当这些依赖的模块加载完成后，标志着生成的 '内部模块' 完成定义 
+    - 因此：该内部模块的作用是用来检测主动加载模块的什么时候完成定义 
     
 - 内部模块的生成
 ```
@@ -505,14 +505,14 @@ context.nextTick(function () {
 });
 ```
 - {enabled:true}的作用？为什么不直接enable而是要先init再enable呢？
-    1. {enabled:true} 的作用就是使得在init方法中直接进入enable 
-    2. 内部模块是requirejs框架自己生成的，因此其没有对应的js文件，所以调用init将inited标识置为true，然后通过{enable:true}选项进入enable开始其依赖模块的加载
+    - {enabled:true} 的作用就是使得在init方法中直接进入enable 
+    - 内部模块是requirejs框架自己生成的，因此其没有对应的js文件，所以调用init将inited标识置为true，然后通过{enable:true}选项进入enable开始其依赖模块的加载
 
     
 #### 2.2.1.3 依赖模块的加载
 > 跳过 Module.prototype.init 来到 Module.prototype.enable，enable方法的主要作用是加载其依赖模块，并添加其依赖模块的defined回调（通知该依赖模块完成了定义）
  
-1. 依赖模块处理入口：Module.prototype.enable
+1. **依赖模块处理入口：Module.prototype.enable**
 ![avatar](images/require/ano_module_deps.png)
 ```
 enable: function () { // 递归 context.enable -> Module.prototype.enable
@@ -538,20 +538,19 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
     this.enabling = false;
     this.check(); 
 }
-```
-
-- 为什么在enable方法的最后调用this.check()?
-    简单来说就是用来确定当前模块的下一个步骤，是加载js文件还是直接完成定义？
+``` 
+- 为什么在enable方法的最后调用this.check()?<br/>
+简单来说就是用来确定当前模块的下一个步骤，是加载js文件还是直接完成定义？
     
-2. 依赖模块'main.test'
+2. **依赖模块'main.test'**
 - makeModuleMap
 ![avatar](images/require/main.test_map.png)
 
 - 依赖模块'main.test' 的加载流程
     ![avatar](images/require/main.test_module.png)
-    1. 调用栈：enable -> check -> fetch（构造script标签加载main.test.js），当main.test.js文件加载完成后会立即执行js文件中的代码<br/>
-    2. 执行main.test.js中的: requirejs.config <br/>
-    3. 执行main.test.js中的: define -> 添加到模块基本信息到 globalDefQueue
+    - 调用栈：enable -> check -> fetch（构造script标签加载main.test.js），当main.test.js文件加载完成后会立即执行main.test.js文件中的代码<br/>
+    - 执行main.test.js中的: requirejs.config <br/>
+    - 执行main.test.js中的: define -> 添加到模块基本信息到 globalDefQueue
 
 - 执行完js文件中的代码后来到completeLoad回调
  ![avatar](images/require/main.test_success.png)
@@ -560,11 +559,11 @@ enable: function () { // 递归 context.enable -> Module.prototype.enable
     ![avatar](images/require/module_name_script.png)
 
 - 启动main.test模块的定义
-    1. 调用栈:completeLoad -> callGetModule -> Module.prototype.init (调用init方法就说明该模块已经没有必要再去加载js文件)
-    2. 当 main.test 模块完成定义后会触发main.test模块的defined事件（上面有提到在enable方法会去注册内部模块的依赖模块main.test的defined回调）
+    - 调用栈:completeLoad -> callGetModule -> Module.prototype.init (调用init方法就说明该模块已经没有必要再去加载js文件)
+    - 当 main.test 模块完成定义后会触发main.test模块的defined事件（上面有提到在enable方法会去注册内部模块的依赖模块main.test的defined回调）
     
 - 内部模块完成定义    
-    上面说到main.test完成定义后会触发其defined回调，在defined回调中的this就是内部模块(_@r3)，this.check()则会检查该模块是否可以结束定义（通过this.depCount判断，见this.check代码块）
+    上面说到main.test完成定义后会触发其defined回调，在defined回调中的this就是内部模块(_@r3)，this.check()则会检查该模块是否可以结束定义（通过this.depCount判断，见this.check方法）
     ![avatar](images/require/anoni_on_defined.png) 
 
 - 至此 内部模块"_@r3" 完成定义，也表示这主动加载过程的结束

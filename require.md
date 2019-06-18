@@ -482,7 +482,7 @@ function intakeDefines() {
     - 但是如果存在这两句的话，intakeDefines -> callGetModule -> getModule -> Module.prototype.init，将模块'a1' 的 inited置为true，因此后面则不会去加载a1.js
 
 #### 2.2.1.2 context.nextTick：启动内部模块的加载
-- 主动加载模块的一个<font  color="yellow">特点</font >就是在context.nextTick中会生成一个有内部名称(internal name: '_@r' + number) 的模块（<font  color="yellow">内部模块</font >），其作用是啥呢？
+- 主动加载模块的一个**特点**就是在context.nextTick中会生成一个有内部名称(internal name: '_@r' + number) 的模块（**内部模块**），其作用是啥呢？
     1. 该匿名模块会将deps作为其依赖，然后启动该模块的加载
     2. 当这些依赖的模块加载完成后，标志着生成的 '内部模块' 完成定义
     3. 因此：该内部模块的作用是用来检测主动加载模块的什么时候完成定义

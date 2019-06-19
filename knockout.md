@@ -859,6 +859,13 @@ function(node) {
     //...
 }
 ```
+- 案例说明createBindingsStringEvaluatorViaCache的过程
+```
+//html
+<div data-bind="text: displayName,style: { color: currentProfit() < 0 ? 'red' : 'black' },css: { active: currentProfit() < 0 }"></div>
+//js
+ var currentProfit = ko.observable();
+```
 
 - createBindingsStringEvaluatorViaCache -> createBindingsStringEvaluator -> createBindingsStringEvaluator
 ``` 
@@ -893,12 +900,6 @@ ko.expressionRewriting = (function () {
 1. 代码编译的第一个阶段通常是通过词法，语法的分析来判断代码本身是否存在词法或者语法上的问题，parseObjectLiteral的作用有点类似于这个作用；
 2. 方法名也暗示了该方法的作用：合法的装换为对象；这里是需要讲绑定字符串转换为对象
 
-```
-//html
-<div data-bind="text: displayName,style: { color: currentProfit() < 0 ? 'red' : 'black' },css: { active: currentProfit() < 0 }"></div>
-//js
- var currentProfit = ko.observable();
-```
 ![avatar](images/knockout/parse_object_literal_test.png)
 
 ### 3.3.2 preProcessBindings

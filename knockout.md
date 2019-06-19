@@ -64,7 +64,7 @@
 ## 2.1 ko的发布-订阅（系统）
 > 这一部分是整个ko的基石
 ### 2.1.1 observable对象
->定义：ko.observable 返回的对象称为observable对象
+>**定义**：ko.observable 返回的对象称为observable对象
 
 #### 2.1.1.1 observalbe的继承结构
 
@@ -147,7 +147,7 @@ ko.utils.setPrototypeOf(ko_subscribable_fn, Function.prototype);
 ```
  
 ### 2.1.2 computedObservable对象
- >定义：ko.computed、ko.dependentObservable 返回的对象称为computedObservable对象
+ >**定义**：ko.computed、ko.dependentObservable 返回的对象称为computedObservable对象
  
  
 #### 2.1.2.1 computedObservable的继承结构
@@ -692,7 +692,7 @@ ko.bindingContext = function(dataItemOrAccessor, parentContext, dataItemAlias, e
      
 
 ### 2.2.2 applyBindingsToNodeAndDescendantsInternal:dom与vm的绑定入口
-> **绑定关键字**的两种情况：ko.bindingProvider['instance']['nodeHasBindings']
+> **绑定关键字**的两种情况在：ko.bindingProvider['instance']['nodeHasBindings']，见3.2.1
 ``` 
 function applyBindingsToNodeAndDescendantsInternal (bindingContext, nodeVerified, bindingContextMayDifferFromDomParentElement) {
     var shouldBindDescendants = true; 
@@ -709,15 +709,28 @@ function applyBindingsToNodeAndDescendantsInternal (bindingContext, nodeVerified
     }
 }
 ```
+- 参数bindingContextMayDifferFromDomParentElement：用来表示当前节点的绑定上下文和父节点的上下文是否一致
 
 - shouldApplyBindings：用来控制是否需要进行绑定，两种情况需要进行绑定（这里属于优化操作）
     - 当前dom的绑定上下文和父节点的绑定上下文不一致
     - 当前的节点具有绑定关键字，即该dom必须进行绑定
     - 反过来看，也就是当前节点没有绑定关键字并且和父节点的绑定上下文一致，从优化的角度考虑，没必要进行绑定
 
-- shouldBindDescendants：用来控制是否需要对当前节点的孩子节点进行绑定
+- shouldBindDescendants：用来控制是否需要对当前节点的孩子节点进行绑定，这取决于当前节点的 绑定处理器的init的返回值
+    >**定义**：绑定处理器指定义在ko.bindingHandlers对象上的属性，比如系统提供的：text,value,foreach等，当然你也可以自定义，通常包含init,update两个属性
+    ```
+    ko.bindingHandlers['submit'] = {
+      'init': function (element, valueAccessor, allBindings, viewModel, bindingContext) {},
+      'update': function (element, valueAccessor, allBindings, viewModel, bindingContext) {}
+    }
+    ```
+    - 如果返回 controlsDescendantBindings:true ，那么则不进行孩子节点的绑定，会在后面说到
 
-### 2.2.3 applyBindingsToNodeInternal
+### 2.2.3 applyBindingsToNodeInternal（绑定的核心方法）
+先概括地说下该方法的的执行过程
+
+
+### 2.2.4 applyBindingsToDescendantsInternal
 
 
 
@@ -824,7 +837,75 @@ function(node) {
 }
 ```
 - dom节点：<div data-bind=''></div>
-- 注释：<!-- ko foreach: xxx --> 
+- 注释：<!-- ko foreach: xxx -->  
+### 3.2.3 getBindingAccessors
+
+```
+'getBindingAccessors': function(node, bindingContext) {
+    var bindingsString = this['getBindingsString'](node, bindingContext),
+        parsedBindings = bindingsString ? this['parseBindingsString'](bindingsString, bindingContext, node, { 'valueAccessors': true }) : null;
+    return ko.components.addBindingsForCustomElement(parsedBindings, node, bindingContext, /* valueAccessors */ true);
+},
+```
+#### 3.2.3.1 getBindingsString 获取绑定字符串两种情况
+    - dom[nodeType=1]
+    - dom[nodeType=8]即注释
+    
+#### 3.2.3.2 parseBindingsString
+``` 
+'parseBindingsString': function(bindingsString, bindingContext, node, options) {
+    var bindingFunction = createBindingsStringEvaluatorViaCache(bindingsString, this.bindingCache, options);
+    return bindingFunction(bindingContext, node);
+    //...
+}
+```
+
+- createBindingsStringEvaluatorViaCache -> createBindingsStringEvaluator -> createBindingsStringEvaluator
+``` 
+function createBindingsStringEvaluator(bindingsString, options) { 
+    var rewrittenBindings = ko.expressionRewriting.preProcessBindings(bindingsString, options), //见3.3.1
+        functionBody = "with($context){with($data||{}){return{" + rewrittenBindings + "}}}";
+    var funInst = new Function("$context", "$element", functionBody);
+    return funInst
+}
+```
+![avatar](images/knockout/generate_ano-fun.png)
+
+![avatar](images/knockout/ano_resu.png) 
+
+- bindingFunction
+
+
+## 3.3 ko.expressionRewriting
+``` 
+ko.expressionRewriting = (function () { 
+    return {
+        bindingRewriteValidators: [],
+        twoWayBindings: twoWayBindings,
+        parseObjectLiteral: parseObjectLiteral,
+        preProcessBindings: preProcessBindings,
+        keyValueArrayContainsKey: function(keyValueArray, key) {}, 
+        writeValueToProperty: function(property, allBindings, key, value, checkIfDifferent) {}
+    };
+})();
+```
+### 3.3.1 parseObjectLiteral：解析绑定字符串
+1. 代码编译的第一个阶段通常是通过词法，语法的分析来判断代码本身是否存在词法或者语法上的问题，parseObjectLiteral的作用有点类似于这个作用；
+2. 方法名也暗示了该方法的作用：合法的装换为对象；这里是需要讲绑定字符串转换为对象
+
+```
+//html
+<div data-bind="text: displayName,style: { color: currentProfit() < 0 ? 'red' : 'black' },css: { active: currentProfit() < 0 }"></div>
+//js
+ var currentProfit = ko.observable();
+```
+![avatar](images/knockout/parse_object_literal_test.png)
+
+### 3.3.2 preProcessBindings
+
+```
+"'text':function(){return displayName },'style':function(){return { color:currentProfit() < 0 ?'red':'black'} },'css':function(){return { active:currentProfit() < 0} }"
+```
 
 
 # 4 补充

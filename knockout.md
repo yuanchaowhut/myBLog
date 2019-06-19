@@ -6,7 +6,6 @@
   - [1.1 观察者模式与发布订阅](#11-%E8%A7%82%E5%AF%9F%E8%80%85%E6%A8%A1%E5%BC%8F%E4%B8%8E%E5%8F%91%E5%B8%83%E8%AE%A2%E9%98%85)
   - [1.2 防抖与节流](#12-%E9%98%B2%E6%8A%96%E4%B8%8E%E8%8A%82%E6%B5%81)
 - [2 源码分析](#2-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90)
-  - [2.1 ko的发布-订阅（系统）](#21-ko%E7%9A%84%E5%8F%91%E5%B8%83-%E8%AE%A2%E9%98%85%E7%B3%BB%E7%BB%9F)
       - [2.1.1.1 observalbe的继承结构](#2111-observalbe%E7%9A%84%E7%BB%A7%E6%89%BF%E7%BB%93%E6%9E%84)
       - [2.1.1.2 observableFn](#2112-observablefn)
       - [2.1.1.3 ko.subscribable['fn']](#2113-kosubscribablefn)
@@ -30,8 +29,20 @@
       - [2.2.1.1 dataItemOrAccessor是普通对象的情况](#2211-dataitemoraccessor%E6%98%AF%E6%99%AE%E9%80%9A%E5%AF%B9%E8%B1%A1%E7%9A%84%E6%83%85%E5%86%B5)
       - [2.2.1.2 dataItemOrAccessor是observable对象的情况](#2212-dataitemoraccessor%E6%98%AFobservable%E5%AF%B9%E8%B1%A1%E7%9A%84%E6%83%85%E5%86%B5)
     - [2.2.2 applyBindingsToNodeAndDescendantsInternal:dom与vm的绑定入口](#222-applybindingstonodeanddescendantsinternaldom%E4%B8%8Evm%E7%9A%84%E7%BB%91%E5%AE%9A%E5%85%A5%E5%8F%A3)
+    - [2.2.3 applyBindingsToNodeInternal（绑定的核心方法）](#223-applybindingstonodeinternal%E7%BB%91%E5%AE%9A%E7%9A%84%E6%A0%B8%E5%BF%83%E6%96%B9%E6%B3%95)
+    - [2.2.4 applyBindingsToDescendantsInternal](#224-applybindingstodescendantsinternal)
 - [3 工具类介绍](#3-%E5%B7%A5%E5%85%B7%E7%B1%BB%E4%BB%8B%E7%BB%8D)
   - [3.1 ko.virtualElements](#31-kovirtualelements)
+    - [3.1.1 hasBindingValue](#311-hasbindingvalue)
+    - [3.1.2 normaliseVirtualElementDomStructure](#312-normalisevirtualelementdomstructure)
+  - [3.2 ko.bindingProvider['instance']](#32-kobindingproviderinstance)
+    - [3.2.1 nodeHasBindings](#321-nodehasbindings)
+    - [3.2.3 getBindingAccessors](#323-getbindingaccessors)
+      - [3.2.3.1 getBindingsString 获取绑定字符串两种情况](#3231-getbindingsstring-%E8%8E%B7%E5%8F%96%E7%BB%91%E5%AE%9A%E5%AD%97%E7%AC%A6%E4%B8%B2%E4%B8%A4%E7%A7%8D%E6%83%85%E5%86%B5)
+      - [3.2.3.2 parseBindingsString](#3232-parsebindingsstring)
+  - [3.3 ko.expressionRewriting](#33-koexpressionrewriting)
+    - [3.3.1 parseObjectLiteral：解析绑定字符串](#331-parseobjectliteral%E8%A7%A3%E6%9E%90%E7%BB%91%E5%AE%9A%E5%AD%97%E7%AC%A6%E4%B8%B2)
+    - [3.3.2 preProcessBindings](#332-preprocessbindings)
 - [4 补充](#4-%E8%A1%A5%E5%85%85)
   - [ko.computed options:pure/deferEvaluation](#kocomputed-optionspuredeferevaluation)
     - [options.pure:true](#optionspuretrue)
@@ -693,6 +704,9 @@ ko.bindingContext = function(dataItemOrAccessor, parentContext, dataItemAlias, e
 
 ### 2.2.2 applyBindingsToNodeAndDescendantsInternal:dom与vm的绑定入口
 > **绑定关键字**的两种情况在：ko.bindingProvider['instance']['nodeHasBindings']，见3.2.1
+
+
+
 ``` 
 function applyBindingsToNodeAndDescendantsInternal (bindingContext, nodeVerified, bindingContextMayDifferFromDomParentElement) {
     var shouldBindDescendants = true; 
@@ -709,6 +723,8 @@ function applyBindingsToNodeAndDescendantsInternal (bindingContext, nodeVerified
     }
 }
 ```
+
+
 - 参数bindingContextMayDifferFromDomParentElement：用来表示当前节点的绑定上下文和父节点的上下文是否一致
 
 - shouldApplyBindings：用来控制是否需要进行绑定，两种情况需要进行绑定（这里属于优化操作）
@@ -726,25 +742,23 @@ function applyBindingsToNodeAndDescendantsInternal (bindingContext, nodeVerified
     ```
     - 如果返回 controlsDescendantBindings:true ，那么则不进行孩子节点的绑定，会在后面说到
 
+
+
 ### 2.2.3 applyBindingsToNodeInternal（绑定的核心方法）
 先概括地说下该方法的的执行过程
 
 
+
+
 ### 2.2.4 applyBindingsToDescendantsInternal
-
-
-
-
-
-
-
+hhh
 
 
 
 # 3 工具类介绍 
 ## 3.1 ko.virtualElements
 - 虚拟元素意义是什么？
-    1. The point of all this is to support containerless templates (e.g., <!-- ko foreach:someCollection -->blah<!-- /ko -->)
+1. The point of all this is to support containerless templates (e.g., <!-- ko foreach:someCollection -->blah<!-- /ko -->)
     
 ``` 
 ko.virtualElements = {

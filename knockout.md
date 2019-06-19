@@ -27,12 +27,17 @@
     - [2.1.4 销毁：computedObservable.dispose();](#214-%E9%94%80%E6%AF%81computedobservabledispose)
   - [2.2 API:ko.applyBindings](#22-apikoapplybindings)
     - [2.2.1 ko.bindingContext:生成绑定上下文](#221-kobindingcontext%E7%94%9F%E6%88%90%E7%BB%91%E5%AE%9A%E4%B8%8A%E4%B8%8B%E6%96%87)
+      - [2.2.1.1 dataItemOrAccessor是普通对象的情况](#2211-dataitemoraccessor%E6%98%AF%E6%99%AE%E9%80%9A%E5%AF%B9%E8%B1%A1%E7%9A%84%E6%83%85%E5%86%B5)
+      - [2.2.1.2 dataItemOrAccessor是observable对象的情况](#2212-dataitemoraccessor%E6%98%AFobservable%E5%AF%B9%E8%B1%A1%E7%9A%84%E6%83%85%E5%86%B5)
     - [2.2.2 applyBindingsToNodeAndDescendantsInternal:dom与vm的绑定入口](#222-applybindingstonodeanddescendantsinternaldom%E4%B8%8Evm%E7%9A%84%E7%BB%91%E5%AE%9A%E5%85%A5%E5%8F%A3)
-- [补充](#%E8%A1%A5%E5%85%85)
+- [3 工具类介绍](#3-%E5%B7%A5%E5%85%B7%E7%B1%BB%E4%BB%8B%E7%BB%8D)
+  - [3.1 ko.virtualElements](#31-kovirtualelements)
+- [4 补充](#4-%E8%A1%A5%E5%85%85)
   - [ko.computed options:pure/deferEvaluation](#kocomputed-optionspuredeferevaluation)
     - [options.pure:true](#optionspuretrue)
     - [options.deferEvaluation:true](#optionsdeferevaluationtrue)
   - [父子组件通信](#%E7%88%B6%E5%AD%90%E7%BB%84%E4%BB%B6%E9%80%9A%E4%BF%A1)
+  - [工具类介绍](#%E5%B7%A5%E5%85%B7%E7%B1%BB%E4%BB%8B%E7%BB%8D)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -55,6 +60,7 @@
 举两个案例吧
  
 # 2 源码分析
+>关于兼容性问题尤其是ie低版本的问题，直接略过
 ## 2.1 ko的发布-订阅（系统）
 > 这一部分是整个ko的基石
 ### 2.1.1 observable对象
@@ -512,7 +518,16 @@ var canSayHello = ko.computed(function () {
     -  Observer 对 Subject 有依赖所有才添加订阅
     - 就像require.js中的模块的依赖一样，父模块依赖子模块，所有向子模块添加订阅（订阅子模块的defined事件）
     
-   
+    
+- 关于代码的优化
+    1. evaluateImmediate_CallReadThenEndDependencyDetection、evaluateImmediate_CallReadWithDependencyDetection
+    > Factoring it out means that evaluateImmediate_CallReadWithDependencyDetection（、evaluateImmediate_CallReadThenEndDependencyDetection） 
+      can be independent of try/finally blocks, which contributes to saving about 40% off the CPU 
+      overhead of computed evaluation (on V8 at least).
+    2. computedBeginDependencyDetectionCallback
+    > This function gets called each time a dependency is detected while evaluating a computed. 
+      It's factored out as a shared function to avoid creating unnecessary function instances during evaluation.
+       
  
 ### 2.1.4 销毁：computedObservable.dispose();
 在 2.1.3.7 小节中说到 computedObservable 将所有的依赖订阅添加到 state.dependencyTracking 中
@@ -636,11 +651,10 @@ subscribable = ko.dependentObservable(updateContext, null, { disposeWhen: dispos
     }
     ```
     - 关于 this[computedState].isStale
-        ko.computed()参数的options中如果pure和deferEvaluation有其一为ture的话，this[computedState].isStale为true，否则为false （即已经完成值的计算，不是脏数据）
+        ko.computed()参数的options中如果pure和deferEvaluation有其一为ture的话，this[computedState].isStale为true，否则为false （即已经完成值的计算，不是脏数据，参考方法computedFn.evaluateImmediate_CallReadThenEndDependencyDetection）
         1. options.pure = true：这种情况是针对‘纯函数’的情况
         2. options.deferEvaluation = true，表示computedObservable的值是需要延迟计算的
-        3. 在补充部分介绍这两种情况
-        
+        3. 在补充部分介绍这两种情况 
         ``` 
         ko.computed = ko.dependentObservable = function (evaluatorFunctionOrOptions, evaluatorFunctionTarget, options) {
             //...
@@ -652,20 +666,58 @@ subscribable = ko.dependentObservable(updateContext, null, { disposeWhen: dispos
                 state.isSleeping = true;  
             }
             //...
-            if (!state.isSleeping && !options['deferEvaluation']) { // 那么 则不会进行估算
+            if (!state.isSleeping && !options['deferEvaluation']) { // 那么 则不会进行估算，因此isStale仍为true
                 computedObservable.evaluateImmediate();
             } 
         }
         ```
     - 关于 this[computedState].dependenciesCount    
-        2.1.3.7 小节中看到添加Observer向Subject添加订阅后，也会在自身的状态属性上记录下依赖的数量（每添加一个订阅，就多一个依赖）
+        - 2.1.3.7 小节中看到Observer向Subject添加订阅后，也会在自身的状态属性上记录下依赖的数量（每添加一个订阅，就多一个依赖）
+        - 因此，如果dataItemOrAccessor是observable对象的话，当在updateContext中执行时，便会添加订阅，作为subscribable的依赖，因此这种情况下为 this[computedState].dependenciesCount = 1;
+因此，在这种情况下，subscribable.isActive()为true        
+
+```
+ko.bindingContext = function(dataItemOrAccessor, parentContext, dataItemAlias, extendCallback) {
+    //...
+    if (subscribable.isActive()) {
+        self._subscribable = subscribable; 
+        subscribable['equalityComparer'] = null; 
+        // Add properties to *subscribable* instead of *self* because any properties added to *self* may be overwritten on updates
+        nodes = [];
+        subscribable._addNode = function(node) {  };
+    }
+}
+```    
     
-    
-    
-    
-    
+     
 
 ### 2.2.2 applyBindingsToNodeAndDescendantsInternal:dom与vm的绑定入口
+> **绑定关键字**的两种情况：ko.bindingProvider['instance']['nodeHasBindings']
+``` 
+function applyBindingsToNodeAndDescendantsInternal (bindingContext, nodeVerified, bindingContextMayDifferFromDomParentElement) {
+    var shouldBindDescendants = true; 
+    
+    // 兼容下处理，纠正dom树结构,...
+    
+    var shouldApplyBindings = (isElement && bindingContextMayDifferFromDomParentElement) // Case (1)
+        || ko.bindingProvider['instance']['nodeHasBindings'](nodeVerified);              // Case (2)
+    if (shouldApplyBindings)
+        shouldBindDescendants = applyBindingsToNodeInternal(nodeVerified, null, bindingContext, bindingContextMayDifferFromDomParentElement)['shouldBindDescendants'];
+
+    if (shouldBindDescendants && !bindingDoesNotRecurseIntoElementTypes[ko.utils.tagNameLower(nodeVerified)]) { 
+        applyBindingsToDescendantsInternal(bindingContext, nodeVerified, /* bindingContextsMayDifferFromDomParentElement: */ !isElement);
+    }
+}
+```
+
+- shouldApplyBindings：用来控制是否需要进行绑定，两种情况需要进行绑定（这里属于优化操作）
+    - 当前dom的绑定上下文和父节点的绑定上下文不一致
+    - 当前的节点具有绑定关键字，即该dom必须进行绑定
+    - 反过来看，也就是当前节点没有绑定关键字并且和父节点的绑定上下文一致，从优化的角度考虑，没必要进行绑定
+
+- shouldBindDescendants：用来控制是否需要对当前节点的孩子节点进行绑定
+
+### 2.2.3 applyBindingsToNodeInternal
 
 
 
@@ -676,15 +728,111 @@ subscribable = ko.dependentObservable(updateContext, null, { disposeWhen: dispos
 
 
 
+# 3 工具类介绍 
+## 3.1 ko.virtualElements
+- 虚拟元素意义是什么？
+    1. The point of all this is to support containerless templates (e.g., <!-- ko foreach:someCollection -->blah<!-- /ko -->)
+    
+``` 
+ko.virtualElements = {
+    allowedBindings: {},
+    childNodes: function(node) {},
+    emptyNode: function(node) {},
+    setDomNodeChildren: function(node, childNodes) {},
+    prepend: function(containerNode, nodeToPrepend) {},
+    insertAfter: function(containerNode, nodeToInsert, insertAfterNode) {},
+    firstChild: function(node) {},
+    nextSibling: function(node) {},
+    hasBindingValue: isStartComment,
+    virtualNodeBindingValue: function(node) {},
+    normaliseVirtualElementDomStructure: function(elementVerified) {}
+};
+```
+
+### 3.1.1 hasBindingValue
+作用：用来判断注释节点是否具有绑定关键字
+``` 
+var commentNodesHaveTextProperty = document && document.createComment("test").text === "<!--test-->";
+var startCommentRegex = commentNodesHaveTextProperty ? /^<!--\s*ko(?:\s+([\s\S]+))?\s*-->$/ : /^\s*ko(?:\s+([\s\S]+))?\s*$/;
+
+function isStartComment(node) {
+    return (node.nodeType == 8) && startCommentRegex.test(commentNodesHaveTextProperty ? node.text : node.nodeValue);
+}
+```
+- commentNodesHaveTextProperty的作用：兼容ie9不能通过nodeValue获取注释节点的值
+![avatar](images/knockout/google-test_comment.png)
+![avatar](images/knockout/ie9_test_comment.png)
+
+- 正向预查：(?:pattern) 和 (?=pattern)的异同点
+    - 相同点：均不会获取匹配结果
+    - 差异：是否消耗字符
+        - (?:pattern) 消耗字符，下一字符匹配会从已匹配后的位置开始。 
+        - (?=pattern) 不消耗字符，下一字符匹配会从预查之前的位置开始。 
+这里其实没必要使用正向预查
+  
+  
+### 3.1.2 normaliseVirtualElementDomStructure
+>IE <= 8 or IE 9 quirks mode parses your HTML weirdly, treating closing </li> tags as if they don't exist <br/>
+作用：在IE <= 8 或者 IE 9 怪异模式下，会忽略 </li>，因此需要做兼容处理即纠正dom树的结构 
+- [案例参考](https://segmentfault.com/q/1010000004277806/a-1020000004279979)  
+``` 
+<ul id="ul1">
+   <a href="#">li之前的a标签</a>
+   <span>li之前的span标签</span>
+   <li></li>
+   <li></li>
+   <span>li之前的span标签</span><!-- IE7下无法识别这个span标签，不知道为啥 -->
+   <li></li>
+   <span>li之后的span标签</span><!-- IE7下无法识别这个span标签，不知道为啥 -->
+   <a href="#">li之后的a标签</a><!-- IE7下无法识别这个a标签，不知道为啥 -->
+   2222
+</ul>
+```
+
+- knockout-issue：https://github.com/knockout/knockout/issues/155
+> IE7 will not allow anything but <li> as children of an <ul> 
+
+## 3.2 ko.bindingProvider['instance']
+// 单例模式
+```
+(function() {
+    var defaultBindingAttributeName = "data-bind";
+    ko.bindingProvider = function() {};
+    ko.utils.extend(ko.bindingProvider.prototype, {
+        'nodeHasBindings': function(node) {},
+        'getBindings': function(node, bindingContext) {},
+        'getBindingAccessors': function(node, bindingContext) {},
+        'getBindingsString': function(node, bindingContext) {},
+        'parseBindingsString': function(bindingsString, bindingContext, node, options) {}
+    });
+    ko.bindingProvider['instance'] = new ko.bindingProvider(); 
+    function createBindingsStringEvaluatorViaCache(bindingsString, cache, options) {}
+    function createBindingsStringEvaluator(bindingsString, options) {}
+})(); 
+```
+### 3.2.1 nodeHasBindings
+作用：用来判断节点是否具有绑定关键字
+``` 
+function(node) {
+    switch (node.nodeType) {
+        case 1: // Element
+            return node.getAttribute(defaultBindingAttributeName) != null || ko.components['getComponentNameForNode'](node);
+        case 8: // Comment node
+            return ko.virtualElements.hasBindingValue(node);
+        default: return false;
+    }
+}
+```
+- dom节点：<div data-bind=''></div>
+- 注释：<!-- ko foreach: xxx --> 
 
 
-
-
-
-# 补充
+# 4 补充
 ## ko.computed options:pure/deferEvaluation
 ### options.pure:true
 ### options.deferEvaluation:true
 deferUpdates 与 deferEvaluation 的区别
 
 ## 父子组件通信
+
+## 工具类介绍 

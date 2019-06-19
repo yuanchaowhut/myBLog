@@ -7,7 +7,6 @@
   - [1.2 防抖与节流](#12-%E9%98%B2%E6%8A%96%E4%B8%8E%E8%8A%82%E6%B5%81)
 - [2 源码分析](#2-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90)
   - [2.1 ko的发布-订阅（系统）](#21-ko%E7%9A%84%E5%8F%91%E5%B8%83-%E8%AE%A2%E9%98%85%E7%B3%BB%E7%BB%9F)
-    - [2.1.1 observable对象](#211-observable%E5%AF%B9%E8%B1%A1)
       - [2.1.1.1 observalbe的继承结构](#2111-observalbe%E7%9A%84%E7%BB%A7%E6%89%BF%E7%BB%93%E6%9E%84)
       - [2.1.1.2 observableFn](#2112-observablefn)
       - [2.1.1.3 ko.subscribable['fn']](#2113-kosubscribablefn)
@@ -20,15 +19,19 @@
       - [2.1.3.3 evaluateImmediate_CallReadThenEndDependencyDetection](#2133-evaluateimmediate_callreadthenenddependencydetection)
       - [2.1.3.4 observable对象的‘读’](#2134-observable%E5%AF%B9%E8%B1%A1%E7%9A%84%E8%AF%BB)
       - [2.1.3.5 ko.dependencyDetection.registerDependency](#2135-kodependencydetectionregisterdependency)
-      - [2.1.3.6 computedObservable 向 observable对象添加订阅](#2136-computedobservable-%E5%90%91-observable%E5%AF%B9%E8%B1%A1%E6%B7%BB%E5%8A%A0%E8%AE%A2%E9%98%85)
+      - [2.1.3.6 订阅：computedObservable 向 observable对象添加订阅](#2136-%E8%AE%A2%E9%98%85computedobservable-%E5%90%91-observable%E5%AF%B9%E8%B1%A1%E6%B7%BB%E5%8A%A0%E8%AE%A2%E9%98%85)
       - [2.1.3.7 computedObservable 添加依赖跟踪](#2137-computedobservable-%E6%B7%BB%E5%8A%A0%E4%BE%9D%E8%B5%96%E8%B7%9F%E8%B8%AA)
-      - [2.1.3.8 小结](#2138-%E5%B0%8F%E7%BB%93)
+      - [2.1.3.8 发布：observable对象发布通知](#2138-%E5%8F%91%E5%B8%83observable%E5%AF%B9%E8%B1%A1%E5%8F%91%E5%B8%83%E9%80%9A%E7%9F%A5)
+      - [2.1.3.9 ko_subscribable_fn.notifySubscribers](#2139-ko_subscribable_fnnotifysubscribers)
+      - [2.1.3.10 小结](#21310-%E5%B0%8F%E7%BB%93)
     - [2.1.4 销毁：computedObservable.dispose();](#214-%E9%94%80%E6%AF%81computedobservabledispose)
   - [2.2 API:ko.applyBindings](#22-apikoapplybindings)
     - [2.2.1 ko.bindingContext:生成绑定上下文](#221-kobindingcontext%E7%94%9F%E6%88%90%E7%BB%91%E5%AE%9A%E4%B8%8A%E4%B8%8B%E6%96%87)
     - [2.2.2 applyBindingsToNodeAndDescendantsInternal:dom与vm的绑定入口](#222-applybindingstonodeanddescendantsinternaldom%E4%B8%8Evm%E7%9A%84%E7%BB%91%E5%AE%9A%E5%85%A5%E5%8F%A3)
 - [补充](#%E8%A1%A5%E5%85%85)
-  - [ko.computed options:pure/defer](#kocomputed-optionspuredefer)
+  - [ko.computed options:pure/deferEvaluation](#kocomputed-optionspuredeferevaluation)
+    - [options.pure:true](#optionspuretrue)
+    - [options.deferEvaluation:true](#optionsdeferevaluationtrue)
   - [父子组件通信](#%E7%88%B6%E5%AD%90%E7%BB%84%E4%BB%B6%E9%80%9A%E4%BF%A1)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -38,11 +41,22 @@
 ## 1.1 观察者模式与发布订阅
 >参考：https://www.cnblogs.com/viaiu/p/9939301.html
 
+- 二者的差异
+![avatar](images/knockout/observer-pub-sub-differ.png)
+    - 在Observer模式中，Observers知道Subject，同时Subject还保留了Observers的记录。
+    - 在Publisher / Subscriber模式中，发布者和订阅者不需要彼此了解。他们只是在消息队列或代理的帮助下进行通信。
+    - 在Publisher / Subscriber模式中，组件是松散耦合的，而不是Observer模式。  
+
+- 小结
+1. durandal中的event.js属于 发布-订阅模式
+2. knokcout中computedObservable对象和observable对象都继承了ko_subscribable_fn模块，从该模块的实现来看属于观察者模式
+
 ## 1.2 防抖与节流
 举两个案例吧
  
 # 2 源码分析
 ## 2.1 ko的发布-订阅（系统）
+> 这一部分是整个ko的基石
 ### 2.1.1 observable对象
 >定义：ko.observable 返回的对象称为observable对象
 
@@ -247,7 +261,8 @@ evaluateImmediate_CallReadWithDependencyDetection: function (notifyChange) {
 
 > ko.dependencyDetection 是依赖检测双方的连接点
 - ko.dependencyDetection结构，通过outerFrames（栈）用来管理‘observable执行环境’
-
+    - 注意：ko.dependencyDetection.begin\end总是成对出现
+    - 称 currentFrame 为‘当前observable执行环境’
 
 ```
 ko.computedContext = ko.dependencyDetection = (function () {
@@ -348,7 +363,7 @@ function computedBeginDependencyDetectionCallback(subscribable, id) { // subscri
 state.isSleeping通常为false，特殊情况下true，这种特殊留在后面部分说。因此这里会去执行  computedObservable.subscribeToDependency(subscribable)
 
 
-#### 2.1.3.6 computedObservable 向 observable对象添加订阅
+#### 2.1.3.6 订阅：computedObservable 向 observable对象添加订阅
 > computedObservable对象向observable对象添加订阅
 ``` 
 var computedFn = {
@@ -411,9 +426,93 @@ var computedFn = {
 }
 ```            
 
-#### 2.1.3.8 小结
-- computedObservable对象（canSayHello）是如何向observable对象（name）添加依赖的呢？
->computedObservable对象可以理解为Observer，observable对象可以理解为Subject
+#### 2.1.3.8 发布：observable对象发布通知
+```
+name('john')
+```
+- observable
+``` 
+function observable() {
+    if (arguments.length > 0) { // 写 
+        if (observable.isDifferent(observable[observableLatestValue], arguments[0])) {
+            observable.valueWillMutate();  // 触发 'beforeChange' 
+            observable[observableLatestValue] = arguments[0];
+            observable.valueHasMutated();  // 触发 'change' ，调用ko_subscribable_fn.notifySubscribers
+        }
+        return this;  
+    }
+    else {
+        // 读
+    }
+}
+```
+在2.1.1.1小节中说到observable继承了observableFn，observableFn对具体结构见2.1.1.2
+并且observableFn 继承了 ko.subscribable['fn']（即ko_subscribable_fn）
+
+#### 2.1.3.9 ko_subscribable_fn.notifySubscribers
+``` 
+var ko_subscribable_fn = {
+    "notifySubscribers": function (valueToNotify, event) {
+        event = event || defaultEvent;
+        if (event === defaultEvent) {
+            this.updateVersion();
+        }
+        if (this.hasSubscriptionsForEvent(event)) {
+            try {
+                ko.dependencyDetection.begin(); // 关键：抑制依赖性检测
+                for (var a = this._subscriptions[event].slice(0), i = 0, subscription; subscription = a[i]; ++i) {  // 触发在2.1.3.6添加的订阅
+                    if (!subscription.isDisposed)
+                        subscription.callback(valueToNotify);
+                }
+            } finally {
+                ko.dependencyDetection.end(); 
+            }
+        }
+    }, 
+}
+```
+
+这里抑制依赖性检测的作用：observable的写并不会添加依赖和订阅，即下例是不会构成依赖关系的
+```
+var name = ko.observable();
+var canSayHello = ko.computed(function () {
+    name('john') ;// 因为是写操作，抑制依赖性检测
+    return 1;
+});
+```
+
+
+
+#### 2.1.3.10 小结
+- 观察者模式
+    - computedObservable对象可以理解为Observer，observable对象可以理解为Subject
+        - 整个2.1章节都是以此为例，但并不总是这样（：computedObservalbe也可以作为Subject，但是observable对象不能作为Observe）
+        ``` 
+        var middle = 'c';
+        var a = ko.computed({
+            read: function () {
+                return middle
+            },
+            write: function (value) {
+                middle = value
+            }
+        })
+        var b = ko.computed(function () {
+            return a();
+        })
+        ```
+        ![avatar](images/knockout/computedobservalbe_as_subject.png)  
+        
+    - computedObservable对象（canSayHello）是如何向observable对象（name）添加依赖的呢？
+        
+    - 为什么观察者只能是computedObservable？
+        - 因为只有ko.computed/ko.dependentObservable才会创建新的ko.dependencyDetection中的currentFrame
+        
+- 依赖 与 订阅
+    -  Observer 对 Subject 有依赖所有才添加订阅
+    - 就像require.js中的模块的依赖一样，父模块依赖子模块，所有向子模块添加订阅（订阅子模块的defined事件）
+    
+   
  
 ### 2.1.4 销毁：computedObservable.dispose();
 在 2.1.3.7 小节中说到 computedObservable 将所有的依赖订阅添加到 state.dependencyTracking 中
@@ -511,7 +610,7 @@ ko.bindingContext = function(dataItemOrAccessor, parentContext, dataItemAlias, e
 }
 ```
 参数dataItemOrAccessor可以分为两种情况：observable对象、普通对象
-- dataItemOrAccessor是普通对象的情况
+#### 2.2.1.1 dataItemOrAccessor是普通对象的情况
 此时对于的有效代码只有下面部分有效，即保存当前的vm
 ``` 
 self['$parents'] = [];
@@ -522,12 +621,49 @@ self['$rawData'] = dataItemOrObservable;
 self['$data'] = dataItem;
 ```
 
-- dataItemOrAccessor是observable对象的情况
+#### 2.2.1.2 dataItemOrAccessor是observable对象的情况
 情况略复杂些，当dataItemOrAccessor是observable对象时，subscribable会向dataItemOrAccessor添加订阅，subscribable.isActive()为true
 ``` 
-subscribable = ko.dependentObservable(updateContext, null, { disposeWhen: disposeWhen, disposeWhenNodeIsRemoved: true });
-```
-
+subscribable = ko.dependentObservable(updateContext, null, { disposeWhen: disposeWhen, disposeWhenNodeIsRemoved: true }); // 返回的subscriable是computedObservalbe对象
+```    
+- subscribable.isActive()的计算
+    在2.1.2computedObservble继承结构说到computedObservble继承了computedFn
+    ```
+    var computedFn = {
+        isActive: function () {  // isStale用来表示是不是脏状态
+            return this[computedState].isStale || this[computedState].dependenciesCount > 0;  
+        },
+    }
+    ```
+    - 关于 this[computedState].isStale
+        ko.computed()参数的options中如果pure和deferEvaluation有其一为ture的话，this[computedState].isStale为true，否则为false （即已经完成值的计算，不是脏数据）
+        1. options.pure = true：这种情况是针对‘纯函数’的情况
+        2. options.deferEvaluation = true，表示computedObservable的值是需要延迟计算的
+        3. 在补充部分介绍这两种情况
+        
+        ``` 
+        ko.computed = ko.dependentObservable = function (evaluatorFunctionOrOptions, evaluatorFunctionTarget, options) {
+            //...
+            var state = { 
+                isStale: true, // 默认为脏状态，即尚未计算computedObservable的值
+                //...
+            };
+            if (options['pure']) { 
+                state.isSleeping = true;  
+            }
+            //...
+            if (!state.isSleeping && !options['deferEvaluation']) { // 那么 则不会进行估算
+                computedObservable.evaluateImmediate();
+            } 
+        }
+        ```
+    - 关于 this[computedState].dependenciesCount    
+        2.1.3.7 小节中看到添加Observer向Subject添加订阅后，也会在自身的状态属性上记录下依赖的数量（每添加一个订阅，就多一个依赖）
+    
+    
+    
+    
+    
 
 ### 2.2.2 applyBindingsToNodeAndDescendantsInternal:dom与vm的绑定入口
 
@@ -546,6 +682,9 @@ subscribable = ko.dependentObservable(updateContext, null, { disposeWhen: dispos
 
 
 # 补充
-## ko.computed options:pure/defer
+## ko.computed options:pure/deferEvaluation
+### options.pure:true
+### options.deferEvaluation:true
+deferUpdates 与 deferEvaluation 的区别
 
 ## 父子组件通信

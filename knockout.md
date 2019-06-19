@@ -6,6 +6,8 @@
   - [1.1 观察者模式与发布订阅](#11-%E8%A7%82%E5%AF%9F%E8%80%85%E6%A8%A1%E5%BC%8F%E4%B8%8E%E5%8F%91%E5%B8%83%E8%AE%A2%E9%98%85)
   - [1.2 防抖与节流](#12-%E9%98%B2%E6%8A%96%E4%B8%8E%E8%8A%82%E6%B5%81)
 - [2 源码分析](#2-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90)
+  - [2.1 ko的发布-订阅（系统）](#21-ko%E7%9A%84%E5%8F%91%E5%B8%83-%E8%AE%A2%E9%98%85%E7%B3%BB%E7%BB%9F)
+    - [2.1.1 observable对象](#211-observable%E5%AF%B9%E8%B1%A1)
       - [2.1.1.1 observalbe的继承结构](#2111-observalbe%E7%9A%84%E7%BB%A7%E6%89%BF%E7%BB%93%E6%9E%84)
       - [2.1.1.2 observableFn](#2112-observablefn)
       - [2.1.1.3 ko.subscribable['fn']](#2113-kosubscribablefn)
@@ -72,8 +74,10 @@
  
 # 2 源码分析
 >关于兼容性问题尤其是ie低版本的问题，直接略过
+
 ## 2.1 ko的发布-订阅（系统）
 > 这一部分是整个ko的基石
+
 ### 2.1.1 observable对象
 >**定义**：ko.observable 返回的对象称为observable对象
 

@@ -995,6 +995,8 @@ ko.dependencyDetection.ignore(function() {
     }
 });
 ```
+- initResult['controlsDescendantBindings']的作用？
+控制是否继续绑定孩子节点
     
 2.2 ko.bindingHandlers[xxx].update()：
 ```
@@ -1080,11 +1082,14 @@ function validateThatBindingIsAllowedForVirtualElements(bindingName) {
  
 
 ### 2.2.4 applyBindingsToDescendantsInternal
-hhh
+递归 -> applyBindingsToNodeAndDescendantsInternal（2.2.2）
 
 
-# 3 ko.bindingHandlers（绑定处理器）
+# 3 ko.bindingHandlers（内置的绑定处理器）
 ## 3.1 value:双向绑定
+
+
+
 ### 3.1.1 input[type='checkbox']、input[type='radio']说sourceBindings的作用
 
 
@@ -1093,6 +1098,9 @@ hhh
 ## 3.3 foreach
 
 ## 3.4 component
+
+
+
 ### 3.4.1 父子组件通信
 
 # 4 工具类介绍 

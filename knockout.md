@@ -332,7 +332,7 @@ ko.computedContext = ko.dependencyDetection = (function () {
 ##### 2.1.3.2.1 begin、end
 
 
-##### 2.1.3.2.2 ignore
+##### 2.1.3.2.2 ignore：抑制依赖性检测
 ``` 
 ignore: function (callback, callbackTarget, callbackArgs) {
     try {
@@ -932,11 +932,16 @@ function applyBindingsToNodeInternal(node, sourceBindings, bindingContext, bindi
 }
 ```
 
-- getValueAccessor 获取viewModel的取值器函数
+- 既然说到参数准备，那么这里的参数是为谁准备的呢？
+
+- getValueAccessor 获取viewModel的取值器函数 （ko.bindingHandlers[xxx].update/init参数之一:valueAccessor)
     - 对于viewModel是observable的情况，bindingsUpdater的值是变化的，因此这里要通过闭包的形式以便能获取最新的bindings（bindingsUpdater用来获取bindings的，见2.2.3.2关于bindingsUpdater作用的介绍）
     并且bindingsUpdater的执行是需要在ko.bindingHandlers[xxx].update/init中执行才有意义，这样才能使得ko.bindingHandlers[xxx].update对bindingsUpdater添加订阅，当bindingsUpdater更新时会触发ko.bindingHandlers[xxx].update更新
+    > 因此viewModel是observable的情况，getValueAccessor的作用：1. 最新的bindings（主要是with作用生成的绑定上下文的更新） 2.在ko.bindingHandlers[xxx].update中注册依赖<br/>
     > 这段描述能够解释：如果viewModel是observable对象是，当viewModel更新时会触发 ko.bindingHandlers[xxx].update （这个过程涉及了一堆computedObservable对象，他们之间形成了依赖链）
-   - 如果viewModel是普通对象，就简单很多了，因为不涉及到更新的问题
+   - 如果viewModel是普通对象，就简单很多了（因为不涉及到更新的问题）
+
+- allBindings也是 ko.bindingHandlers[xxx].update/init 参数之一
 
 ##### 2.2.3.3.2 绑定处理器的执行
 ```
@@ -974,26 +979,54 @@ function applyBindingsToNodeInternal(node, sourceBindings, bindingContext, bindi
  ![avatar](images/knockout/order_bindings.png)
  
 2. 执行绑定处理器，两个步骤
-    - ko.bindingHandlers[xxx].init()
-    ```
-    ko.dependencyDetection.ignore(function() {
-        var initResult = handlerInitFn(node, getValueAccessor(bindingKey), allBindings, bindingContext['$data'], bindingContext);
-        if (initResult && initResult['controlsDescendantBindings']) {
-            if (bindingHandlerThatControlsDescendantBindings !== undefined)
-                throw new Error("Multiple bindings (" + bindingHandlerThatControlsDescendantBindings + " and " + bindingKey + ") are trying to control descendant bindings of the same element. You cannot use these bindings together on the same element.");
-            bindingHandlerThatControlsDescendantBindings = bindingKey;
-        }
-    });
-    ```
-    - ko.bindingHandlers[xxx].update() 
-    ```
-    ko.dependentObservable(
-        function() {
-            handlerUpdateFn(node, getValueAccessor(bindingKey), allBindings, bindingContext['$data'], bindingContext);
-        }, 
-        null, { disposeWhenNodeIsRemoved: node }
-    );
-    ```
+2.1 ko.bindingHandlers[xxx].init()：单纯的初始化
+> ko.dependencyDetection.ignore抑制依赖性检测，单纯的执行的 ko.bindingHandlers[xxx].init()，不订阅不依赖，单纯的初始化
+```
+ko.dependencyDetection.ignore(function() {
+    var initResult = handlerInitFn(node, getValueAccessor(bindingKey), allBindings, bindingContext['$data'], bindingContext);
+    if (initResult && initResult['controlsDescendantBindings']) {
+        if (bindingHandlerThatControlsDescendantBindings !== undefined)
+            throw new Error("Multiple bindings (" + bindingHandlerThatControlsDescendantBindings + " and " + bindingKey + ") are trying to control descendant bindings of the same element. You cannot use these bindings together on the same element.");
+        bindingHandlerThatControlsDescendantBindings = bindingKey;
+    }
+});
+```
+    
+2.2 ko.bindingHandlers[xxx].update()：
+```
+ko.dependentObservable( 
+    function() {
+        handlerUpdateFn(node, getValueAccessor(bindingKey), allBindings, bindingContext['$data'], bindingContext); 
+    }, 
+    null, { disposeWhenNodeIsRemoved: node }
+);
+```
+
+- 如果在handlerUpdateFn中执行了observable对象的读取操作会发生什么：添加订阅注册依赖
+- 这里有一个闭包，你看到了吗？ ko.dependentObservable会返回一个computedObservable函数，computedObservable有一个属性state，state.readFunction就是上面传递的函数，即
+```
+function() {
+    handlerUpdateFn(node, getValueAccessor(bindingKey), allBindings, bindingContext['$data'], bindingContext);
+}
+```
+
+1. 这个函数是一个**闭包**：handlerUpdateFn(node, getValueAccessor(bindingKey), allBindings, bindingContext['$data'], bindingContext);这里面的参数全部被记录下来了；
+2. 为什么要在这里强调下闭包呢？好，我问个问题哈：当由于依赖更新导致handlerUpdateFn被执行，那么这些参数都指向谁？如果这里不是闭包，会有什么样的后果呢？
+3. 这里得出：dom节点是如何与绑定的observable对象进行绑定的，observable对象的更新又是如何更新dom节点的
+
+- 因为这里比较重要，下面案例验证下闭包
+```
+//html
+<div data-bind="text: displayName"></div>
+//js
+var name = ko.observable('init-value');
+setTimeout(function () {
+    name('update-john')
+
+     }, 1000)
+```
+![avatar](images/knockout/handler_update_closure.png)
+        
 
 ##### 2.2.3.3.3 topologicalSortBindings
 ```
@@ -1236,6 +1269,9 @@ ko.expressionRewriting = (function () {
 ### options.pure:true
 ### options.deferEvaluation:true
 deferUpdates 与 deferEvaluation 的区别
+
+
+# 闭包几种形式
  
 
 

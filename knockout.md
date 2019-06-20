@@ -16,7 +16,9 @@
       - [2.1.2.2 computedFn](#2122-computedfn)
     - [2.1.3 发布-订阅实现的机制（依赖检测系统）](#213-%E5%8F%91%E5%B8%83-%E8%AE%A2%E9%98%85%E5%AE%9E%E7%8E%B0%E7%9A%84%E6%9C%BA%E5%88%B6%E4%BE%9D%E8%B5%96%E6%A3%80%E6%B5%8B%E7%B3%BB%E7%BB%9F)
       - [2.1.3.1 evaluateImmediate_CallReadWithDependencyDetection](#2131-evaluateimmediate_callreadwithdependencydetection)
-      - [2.1.3.2 ko.dependencyDetection管理observable执行环境’](#2132-kodependencydetection%E7%AE%A1%E7%90%86observable%E6%89%A7%E8%A1%8C%E7%8E%AF%E5%A2%83)
+      - [2.1.3.2 ko.dependencyDetection 管理observable执行环境’](#2132-kodependencydetection-%E7%AE%A1%E7%90%86observable%E6%89%A7%E8%A1%8C%E7%8E%AF%E5%A2%83)
+        - [2.1.3.2.1 begin、end](#21321-beginend)
+        - [2.1.3.2.2 ignore](#21322-ignore)
       - [2.1.3.3 evaluateImmediate_CallReadThenEndDependencyDetection](#2133-evaluateimmediate_callreadthenenddependencydetection)
       - [2.1.3.4 observable对象的‘读’](#2134-observable%E5%AF%B9%E8%B1%A1%E7%9A%84%E8%AF%BB)
       - [2.1.3.5 ko.dependencyDetection.registerDependency](#2135-kodependencydetectionregisterdependency)
@@ -35,7 +37,11 @@
       - [2.2.3.1 判断当前节点是否进行过ko绑定](#2231-%E5%88%A4%E6%96%AD%E5%BD%93%E5%89%8D%E8%8A%82%E7%82%B9%E6%98%AF%E5%90%A6%E8%BF%9B%E8%A1%8C%E8%BF%87ko%E7%BB%91%E5%AE%9A)
       - [2.2.3.2 获取'绑定字符串对象'](#2232-%E8%8E%B7%E5%8F%96%E7%BB%91%E5%AE%9A%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%AF%B9%E8%B1%A1)
       - [2.2.3.3  获取关联的绑定处理器，执行每个绑定处理器（核心过程）](#2233--%E8%8E%B7%E5%8F%96%E5%85%B3%E8%81%94%E7%9A%84%E7%BB%91%E5%AE%9A%E5%A4%84%E7%90%86%E5%99%A8%E6%89%A7%E8%A1%8C%E6%AF%8F%E4%B8%AA%E7%BB%91%E5%AE%9A%E5%A4%84%E7%90%86%E5%99%A8%E6%A0%B8%E5%BF%83%E8%BF%87%E7%A8%8B)
-        - [2.2.3.3.1 当vm是observable对象时，子节点是如何添加订阅的](#22331-%E5%BD%93vm%E6%98%AFobservable%E5%AF%B9%E8%B1%A1%E6%97%B6%E5%AD%90%E8%8A%82%E7%82%B9%E6%98%AF%E5%A6%82%E4%BD%95%E6%B7%BB%E5%8A%A0%E8%AE%A2%E9%98%85%E7%9A%84)
+        - [2.2.3.3.1 参数准备](#22331-%E5%8F%82%E6%95%B0%E5%87%86%E5%A4%87)
+        - [2.2.3.3.2 绑定处理器的执行](#22332-%E7%BB%91%E5%AE%9A%E5%A4%84%E7%90%86%E5%99%A8%E7%9A%84%E6%89%A7%E8%A1%8C)
+        - [2.2.3.3.3 topologicalSortBindings](#22333-topologicalsortbindings)
+        - [2.2.3.3.4 validateThatBindingIsAllowedForVirtualElements](#22334-validatethatbindingisallowedforvirtualelements)
+        - [2.2.3.3.5 当vm是observable对象时，子节点是如何添加订阅的](#22335-%E5%BD%93vm%E6%98%AFobservable%E5%AF%B9%E8%B1%A1%E6%97%B6%E5%AD%90%E8%8A%82%E7%82%B9%E6%98%AF%E5%A6%82%E4%BD%95%E6%B7%BB%E5%8A%A0%E8%AE%A2%E9%98%85%E7%9A%84)
     - [2.2.4 applyBindingsToDescendantsInternal](#224-applybindingstodescendantsinternal)
 - [3 ko.bindingHandlers（绑定处理器）](#3-kobindinghandlers%E7%BB%91%E5%AE%9A%E5%A4%84%E7%90%86%E5%99%A8)
   - [3.1 value:双向绑定](#31-value%E5%8F%8C%E5%90%91%E7%BB%91%E5%AE%9A)
@@ -287,15 +293,14 @@ evaluateImmediate_CallReadWithDependencyDetection: function (notifyChange) {
 
 
 
-#### 2.1.3.2 ko.dependencyDetection管理observable执行环境’
-
-
-
+#### 2.1.3.2 ko.dependencyDetection 管理observable执行环境’
 > ko.dependencyDetection 是依赖检测双方的连接点
+
 - ko.dependencyDetection结构，通过outerFrames（栈）用来管理‘observable执行环境’
     - 注意：ko.dependencyDetection.begin\end总是成对出现
     - 称 currentFrame 为‘当前observable执行环境’
 
+- ko.dependencyDetection
 ```
 ko.computedContext = ko.dependencyDetection = (function () {
     var outerFrames = [],
@@ -323,11 +328,23 @@ ko.computedContext = ko.dependencyDetection = (function () {
     };
 })();
 ```
-    
-    
-    
-    
 
+##### 2.1.3.2.1 begin、end
+
+
+##### 2.1.3.2.2 ignore
+``` 
+ignore: function (callback, callbackTarget, callbackArgs) {
+    try {
+        begin();
+        return callback.apply(callbackTarget, callbackArgs || []);
+    } finally {
+        end();
+    }
+},
+```    
+    
+    
 #### 2.1.3.3 evaluateImmediate_CallReadThenEndDependencyDetection
 
 ```
@@ -341,7 +358,9 @@ evaluateImmediate_CallReadThenEndDependencyDetection: function (state, dependenc
     }
 }
 ```
+
 - 上面的readFunction（ko.computed的参数）
+
 ``` 
 function () { 
     return name() ? true : false;
@@ -743,7 +762,7 @@ subscribable = ko.dependentObservable(updateContext, null, { disposeWhen: dispos
     
     - 为什么要销毁创建的subscribable呢？为了避免内存泄漏，当节点从document移除时，需要清理相关的数据（订阅等）
     1. 由于当前vm是一个observable对象，每个子节点在执行绑定处理器时都会去执行这个vm去获取数据，并且这个这个执行过程是在 ko.dependentObservable(ko.bindingHandlers.update)下执行的，因此会添加订阅
-    2. 这个过程有点复杂：2.2.3.3.4：当vm是observable对象时，子节点是如何添加订阅的    
+    2. 这个过程有点复杂：2.2.3.3.5：当vm是observable对象时，子节点是如何添加订阅的    
 
 ### 2.2.2 applyBindingsToNodeAndDescendantsInternal:dom与vm的绑定入口
 > **绑定关键字**的两种情况在：ko.bindingProvider['instance']['nodeHasBindings']，见3.2.1
@@ -865,18 +884,28 @@ function applyBindingsToNodeInternal(node, sourceBindings, bindingContext, bindi
 2. 通过ko.bindingProvider['instance'].getBindingAccessors获取bindings，具体过程见 4.2.3 
 3. 当viewModel是observable对象（见2.2.1.2），那么此时会注册一个依赖：即bindingsUpdater依赖bindingContext._subscribable，2.2.1.2小节说到bindingContext._subscribable依赖viewModel（形成了一个依赖链）
     因此，这种情况下当viewModel变化时会触发bindingContext._subscribable更新，进而触发bindingsUpdater更新
+     
+ - bindings长什么样呢？
+ ![avatar](images/knockout/bindings.png)
+ 1. 其实你看到的只是表象，本质见下面两图：通过with改变了作用域（链）
+ >关于with的作用可以参考：你不知道的js-上卷
+ ![avatar](images/knockout/generate_ano-fun.png)
+ 
+ ![avatar](images/knockout/ano_resu.png) 
+ 
+- bindingsUpdater的作用？这对于viewModel是observable的情况意义非凡
+1. 变量名暗示了该变量的作用：更新bindings 
+2. getBindingAccessors调用栈中会生成匿名函数，并通过with绑定绑定上下文，对于viewModel是普通对象时，这个绑定上下文是不会变化的，但是如果viewModel是observable对象时，这个绑定上下文是会变化的
+3. 那么，绑定上下文的变化，这里生成的匿名函数的绑定上下文也应该要变更到最新才对，也就是这里返回的bindings是需要根据viewModel更新的
     
 小节：这里执行完会有三种情况
     1. bindings、bindingsUpdater均不存在
     2. bindings存在，bindingsUpdater不存在（viewModel是普通对象：如 ko.applyBindings({xxx},node) ）
     3. bindings、bindingsUpdater均存在（即viewModel是observable对象：如 ko.applyBindings(ko.observable({xxx}),node) ）
- 
- - bindings长什么样呢？
- ![avatar](images/knockout/bindings.png)
+
  
 #### 2.2.3.3  获取关联的绑定处理器，执行每个绑定处理器（核心过程）
-
-这部分内容较多，分为两部分
+分为两部分
 ##### 2.2.3.3.1 参数准备
 ```
 function applyBindingsToNodeInternal(node, sourceBindings, bindingContext, bindingContextMayDifferFromDomParentElement) {
@@ -903,6 +932,11 @@ function applyBindingsToNodeInternal(node, sourceBindings, bindingContext, bindi
 }
 ```
 
+- getValueAccessor 获取viewModel的取值器函数
+    - 对于viewModel是observable的情况，bindingsUpdater的值是变化的，因此这里要通过闭包的形式以便能获取最新的bindings（bindingsUpdater用来获取bindings的，见2.2.3.2关于bindingsUpdater作用的介绍）
+    并且bindingsUpdater的执行是需要在ko.bindingHandlers[xxx].update/init中执行才有意义，这样才能使得ko.bindingHandlers[xxx].update对bindingsUpdater添加订阅，当bindingsUpdater更新时会触发ko.bindingHandlers[xxx].update更新
+    > 这段描述能够解释：如果viewModel是observable对象是，当viewModel更新时会触发 ko.bindingHandlers[xxx].update （这个过程涉及了一堆computedObservable对象，他们之间形成了依赖链）
+   - 如果viewModel是普通对象，就简单很多了，因为不涉及到更新的问题
 
 ##### 2.2.3.3.2 绑定处理器的执行
 ```
@@ -914,29 +948,16 @@ function applyBindingsToNodeInternal(node, sourceBindings, bindingContext, bindi
             handlerUpdateFn = bindingKeyAndHandler.handler["update"],
             bindingKey = bindingKeyAndHandler.key;
 
-        if (node.nodeType === 8) {
+        if (node.nodeType === 8) { // 如果是注释元素，则需要验证注释元素的绑定处理器是否允许执行
             validateThatBindingIsAllowedForVirtualElements(bindingKey);
         }
 
         try {
             if (typeof handlerInitFn == "function") {
-                ko.dependencyDetection.ignore(function() {
-                    var initResult = handlerInitFn(node, getValueAccessor(bindingKey), allBindings, bindingContext['$data'], bindingContext);
-                    if (initResult && initResult['controlsDescendantBindings']) {
-                        if (bindingHandlerThatControlsDescendantBindings !== undefined)
-                            throw new Error("Multiple bindings (" + bindingHandlerThatControlsDescendantBindings + " and " + bindingKey + ") are trying to control descendant bindings of the same element. You cannot use these bindings together on the same element.");
-                        bindingHandlerThatControlsDescendantBindings = bindingKey;
-                    }
-                });
+                // ko.bindingHandlers[xxx].init()
             }
             if (typeof handlerUpdateFn == "function") {
-                ko.dependentObservable(
-                    function() {
-                        handlerUpdateFn(node, getValueAccessor(bindingKey), allBindings, bindingContext['$data'], bindingContext);
-                    },
-                    null,
-                    { disposeWhenNodeIsRemoved: node }
-                );
+                 // ko.bindingHandlers[xxx].update() 
             }
         } catch (ex) {
             ex.message = "Unable to process binding \"" + bindingKey + ": " + bindings[bindingKey] + "\"\nMessage: " + ex.message;
@@ -947,19 +968,34 @@ function applyBindingsToNodeInternal(node, sourceBindings, bindingContext, bindi
     return {
         'shouldBindDescendants': bindingHandlerThatControlsDescendantBindings === undefined
     };
-            
 ```
 
-- 获取orderedBindings，作用：存储关联的绑定处理器
+1. 获取orderedBindings，作用：存储关联的绑定处理器
  ![avatar](images/knockout/order_bindings.png)
  
-- 执行绑定处理器，两个步骤
-    - init
-    - update 
-
+2. 执行绑定处理器，两个步骤
+    - ko.bindingHandlers[xxx].init()
+    ```
+    ko.dependencyDetection.ignore(function() {
+        var initResult = handlerInitFn(node, getValueAccessor(bindingKey), allBindings, bindingContext['$data'], bindingContext);
+        if (initResult && initResult['controlsDescendantBindings']) {
+            if (bindingHandlerThatControlsDescendantBindings !== undefined)
+                throw new Error("Multiple bindings (" + bindingHandlerThatControlsDescendantBindings + " and " + bindingKey + ") are trying to control descendant bindings of the same element. You cannot use these bindings together on the same element.");
+            bindingHandlerThatControlsDescendantBindings = bindingKey;
+        }
+    });
+    ```
+    - ko.bindingHandlers[xxx].update() 
+    ```
+    ko.dependentObservable(
+        function() {
+            handlerUpdateFn(node, getValueAccessor(bindingKey), allBindings, bindingContext['$data'], bindingContext);
+        }, 
+        null, { disposeWhenNodeIsRemoved: node }
+    );
+    ```
 
 ##### 2.2.3.3.3 topologicalSortBindings
-
 ```
 function topologicalSortBindings(bindings) { //深度优先遍历
     // Depth-first sort
@@ -996,7 +1032,17 @@ function topologicalSortBindings(bindings) { //深度优先遍历
 ```
 
 
-##### 2.2.3.3.4 当vm是observable对象时，子节点是如何添加订阅的
+##### 2.2.3.3.4 validateThatBindingIsAllowedForVirtualElements
+```
+function validateThatBindingIsAllowedForVirtualElements(bindingName) {
+    var validator = ko.virtualElements.allowedBindings[bindingName];
+    if (!validator)
+        throw new Error("The binding '" + bindingName + "' cannot be used with virtual elements")
+}
+```
+
+
+##### 2.2.3.3.5 当vm是observable对象时，子节点是如何添加订阅的
 
 
 ### 2.2.4 applyBindingsToDescendantsInternal

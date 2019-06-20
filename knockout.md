@@ -31,26 +31,37 @@
       - [2.2.1.1 dataItemOrAccessor是普通对象的情况](#2211-dataitemoraccessor%E6%98%AF%E6%99%AE%E9%80%9A%E5%AF%B9%E8%B1%A1%E7%9A%84%E6%83%85%E5%86%B5)
       - [2.2.1.2 dataItemOrAccessor是observable对象的情况](#2212-dataitemoraccessor%E6%98%AFobservable%E5%AF%B9%E8%B1%A1%E7%9A%84%E6%83%85%E5%86%B5)
     - [2.2.2 applyBindingsToNodeAndDescendantsInternal:dom与vm的绑定入口](#222-applybindingstonodeanddescendantsinternaldom%E4%B8%8Evm%E7%9A%84%E7%BB%91%E5%AE%9A%E5%85%A5%E5%8F%A3)
-    - [2.2.3 applyBindingsToNodeInternal（绑定的核心方法）](#223-applybindingstonodeinternal%E7%BB%91%E5%AE%9A%E7%9A%84%E6%A0%B8%E5%BF%83%E6%96%B9%E6%B3%95)
+    - [2.2.3 applyBindingsToNodeInternal（dom与vm绑定的核心方法）](#223-applybindingstonodeinternaldom%E4%B8%8Evm%E7%BB%91%E5%AE%9A%E7%9A%84%E6%A0%B8%E5%BF%83%E6%96%B9%E6%B3%95)
+      - [2.2.3.1 判断当前节点是否进行过ko绑定](#2231-%E5%88%A4%E6%96%AD%E5%BD%93%E5%89%8D%E8%8A%82%E7%82%B9%E6%98%AF%E5%90%A6%E8%BF%9B%E8%A1%8C%E8%BF%87ko%E7%BB%91%E5%AE%9A)
+      - [2.2.3.2 获取'绑定字符串对象'](#2232-%E8%8E%B7%E5%8F%96%E7%BB%91%E5%AE%9A%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%AF%B9%E8%B1%A1)
+      - [2.2.3.3  获取关联的绑定处理器，执行每个绑定处理器（核心过程）](#2233--%E8%8E%B7%E5%8F%96%E5%85%B3%E8%81%94%E7%9A%84%E7%BB%91%E5%AE%9A%E5%A4%84%E7%90%86%E5%99%A8%E6%89%A7%E8%A1%8C%E6%AF%8F%E4%B8%AA%E7%BB%91%E5%AE%9A%E5%A4%84%E7%90%86%E5%99%A8%E6%A0%B8%E5%BF%83%E8%BF%87%E7%A8%8B)
+        - [2.2.3.3.1 当vm是observable对象时，子节点是如何添加订阅的](#22331-%E5%BD%93vm%E6%98%AFobservable%E5%AF%B9%E8%B1%A1%E6%97%B6%E5%AD%90%E8%8A%82%E7%82%B9%E6%98%AF%E5%A6%82%E4%BD%95%E6%B7%BB%E5%8A%A0%E8%AE%A2%E9%98%85%E7%9A%84)
     - [2.2.4 applyBindingsToDescendantsInternal](#224-applybindingstodescendantsinternal)
-- [3 工具类介绍](#3-%E5%B7%A5%E5%85%B7%E7%B1%BB%E4%BB%8B%E7%BB%8D)
-  - [3.1 ko.virtualElements](#31-kovirtualelements)
-    - [3.1.1 hasBindingValue](#311-hasbindingvalue)
-    - [3.1.2 normaliseVirtualElementDomStructure](#312-normalisevirtualelementdomstructure)
-  - [3.2 ko.bindingProvider['instance']](#32-kobindingproviderinstance)
-    - [3.2.1 nodeHasBindings](#321-nodehasbindings)
-    - [3.2.3 getBindingAccessors](#323-getbindingaccessors)
-      - [3.2.3.1 getBindingsString 获取绑定字符串两种情况](#3231-getbindingsstring-%E8%8E%B7%E5%8F%96%E7%BB%91%E5%AE%9A%E5%AD%97%E7%AC%A6%E4%B8%B2%E4%B8%A4%E7%A7%8D%E6%83%85%E5%86%B5)
-      - [3.2.3.2 parseBindingsString](#3232-parsebindingsstring)
-  - [3.3 ko.expressionRewriting](#33-koexpressionrewriting)
-    - [3.3.1 parseObjectLiteral：解析绑定字符串](#331-parseobjectliteral%E8%A7%A3%E6%9E%90%E7%BB%91%E5%AE%9A%E5%AD%97%E7%AC%A6%E4%B8%B2)
+- [3 ko.bindingHandlers（绑定处理器）](#3-kobindinghandlers%E7%BB%91%E5%AE%9A%E5%A4%84%E7%90%86%E5%99%A8)
+  - [3.1 value:双向绑定](#31-value%E5%8F%8C%E5%90%91%E7%BB%91%E5%AE%9A)
+    - [3.1.1 input[type='checkbox']、input[type='radio']说sourceBindings的作用](#311-inputtypecheckboxinputtyperadio%E8%AF%B4sourcebindings%E7%9A%84%E4%BD%9C%E7%94%A8)
+  - [3.2 template](#32-template)
+  - [3.3 foreach](#33-foreach)
+  - [3.4 component](#34-component)
+    - [3.4.1 父子组件通信](#341-%E7%88%B6%E5%AD%90%E7%BB%84%E4%BB%B6%E9%80%9A%E4%BF%A1)
+- [4 工具类介绍](#4-%E5%B7%A5%E5%85%B7%E7%B1%BB%E4%BB%8B%E7%BB%8D)
+  - [4.1 ko.virtualElements](#41-kovirtualelements)
+    - [4.1.1 hasBindingValue](#411-hasbindingvalue)
+    - [4.1.2 normaliseVirtualElementDomStructure](#412-normalisevirtualelementdomstructure)
+  - [4.2 ko.bindingProvider['instance']](#42-kobindingproviderinstance)
+    - [4.2.1 nodeHasBindings](#421-nodehasbindings)
+    - [4.2.3 getBindingAccessors](#423-getbindingaccessors)
+      - [4.2.3.1 getBindingsString 获取绑定字符串两种情况](#4231-getbindingsstring-%E8%8E%B7%E5%8F%96%E7%BB%91%E5%AE%9A%E5%AD%97%E7%AC%A6%E4%B8%B2%E4%B8%A4%E7%A7%8D%E6%83%85%E5%86%B5)
+      - [4.2.3.2 parseBindingsString](#4232-parsebindingsstring)
+  - [4.3 ko.expressionRewriting](#43-koexpressionrewriting)
+    - [4.3.1 parseObjectLiteral：解析绑定字符串](#431-parseobjectliteral%E8%A7%A3%E6%9E%90%E7%BB%91%E5%AE%9A%E5%AD%97%E7%AC%A6%E4%B8%B2)
     - [3.3.2 preProcessBindings](#332-preprocessbindings)
-- [4 补充](#4-%E8%A1%A5%E5%85%85)
+- [5 补充](#5-%E8%A1%A5%E5%85%85)
+  - [5.1 案例代码](#51-%E6%A1%88%E4%BE%8B%E4%BB%A3%E7%A0%81)
+    - [5.1.1](#511)
   - [ko.computed options:pure/deferEvaluation](#kocomputed-optionspuredeferevaluation)
     - [options.pure:true](#optionspuretrue)
     - [options.deferEvaluation:true](#optionsdeferevaluationtrue)
-  - [父子组件通信](#%E7%88%B6%E5%AD%90%E7%BB%84%E4%BB%B6%E9%80%9A%E4%BF%A1)
-  - [工具类介绍](#%E5%B7%A5%E5%85%B7%E7%B1%BB%E4%BB%8B%E7%BB%8D)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -585,6 +596,16 @@ function () {
 
 ## 2.2 API:ko.applyBindings 
 > 该api的作用：将参数中的viewModel绑定到指定的dom节点中
+
+**提示：**本届所有截图均基于以下案例代码，如有不同会备注
+```
+//html
+<div data-bind="text: displayName,style: { color: currentProfit() < 0 ? 'red' : 'black' },css: { active: currentProfit() < 0 }"></div>
+//js
+ var currentProfit = ko.observable();
+```
+
+- ko.applyBindings
 ``` 
 ko.applyBindings = function (viewModelOrBindingContext, rootNode) {
     //...
@@ -639,7 +660,10 @@ ko.bindingContext = function(dataItemOrAccessor, parentContext, dataItemAlias, e
     }
 }
 ```
-参数dataItemOrAccessor可以分为两种情况：observable对象、普通对象
+- 参数介绍
+    - [parentContext, dataItemAlias, extendCallback] 这三个参数的作用：构建父子绑定上下文，用于父子绑定上下文的通信 
+    - dataItemOrAccessor：就是viewModel；参数dataItemOrAccessor可以分为两种情况：observable对象、普通对象
+
 #### 2.2.1.1 dataItemOrAccessor是普通对象的情况
 此时对于的有效代码只有下面部分有效，即保存当前的vm
 ``` 
@@ -652,7 +676,7 @@ self['$data'] = dataItem;
 ```
 
 #### 2.2.1.2 dataItemOrAccessor是observable对象的情况
-情况略复杂些，当dataItemOrAccessor是observable对象时，subscribable会向dataItemOrAccessor添加订阅，subscribable.isActive()为true
+情况略复杂些，当dataItemOrAccessor是observable对象时，subscribable会向dataItemOrAccessor添加订阅（即subscribable依赖dataItemOrAccessor），subscribable.isActive()为true
 ``` 
 subscribable = ko.dependentObservable(updateContext, null, { disposeWhen: disposeWhen, disposeWhenNodeIsRemoved: true }); // 返回的subscriable是computedObservalbe对象
 ```    
@@ -666,10 +690,9 @@ subscribable = ko.dependentObservable(updateContext, null, { disposeWhen: dispos
     }
     ```
     - 关于 this[computedState].isStale
-        ko.computed()参数的options中如果pure和deferEvaluation有其一为ture的话，this[computedState].isStale为true，否则为false （即已经完成值的计算，不是脏数据，参考方法computedFn.evaluateImmediate_CallReadThenEndDependencyDetection）
-        1. options.pure = true：这种情况是针对‘纯函数’的情况
-        2. options.deferEvaluation = true，表示computedObservable的值是需要延迟计算的
-        3. 在补充部分介绍这两种情况 
+        - ko.computed()参数的options中如果pure和deferEvaluation有其一为ture的话，this[computedState].isStale为true，
+        - 这里一定为为false （即已经完成值的计算，不是脏数据，参考方法computedFn.evaluateImmediate_CallReadThenEndDependencyDetection），因为调用过程中没有传递这个选项
+         
         ``` 
         ko.computed = ko.dependentObservable = function (evaluatorFunctionOrOptions, evaluatorFunctionTarget, options) {
             //...
@@ -686,30 +709,44 @@ subscribable = ko.dependentObservable(updateContext, null, { disposeWhen: dispos
             } 
         }
         ```
-    - 关于 this[computedState].dependenciesCount    
+    - 关于 this[computedState].dependenciesCount
         - 2.1.3.7 小节中看到Observer向Subject添加订阅后，也会在自身的状态属性上记录下依赖的数量（每添加一个订阅，就多一个依赖）
         - 因此，如果dataItemOrAccessor是observable对象的话，当在updateContext中执行时，便会添加订阅，作为subscribable的依赖，因此这种情况下为 this[computedState].dependenciesCount = 1;
-因此，在这种情况下，subscribable.isActive()为true        
 
-```
-ko.bindingContext = function(dataItemOrAccessor, parentContext, dataItemAlias, extendCallback) {
-    //...
-    if (subscribable.isActive()) {
-        self._subscribable = subscribable; 
-        subscribable['equalityComparer'] = null; 
-        // Add properties to *subscribable* instead of *self* because any properties added to *self* may be overwritten on updates
-        nodes = [];
-        subscribable._addNode = function(node) {  };
+    因此，在这种情况下，subscribable.isActive()为true，在2.2.1.1的基础上添加了以下属性
+    ```
+    ko.bindingContext = function(dataItemOrAccessor, parentContext, dataItemAlias, extendCallback) {
+        //...
+        if (subscribable.isActive()) {
+            self._subscribable = subscribable; 
+            subscribable['equalityComparer'] = null;  
+            nodes = [];
+            subscribable._addNode = function(node) {
+                nodes.push(node);
+                ko.utils.domNodeDisposal.addDisposeCallback(node, function(node) {
+                    ko.utils.arrayRemoveItem(nodes, node);
+                    if (!nodes.length) {
+                        subscribable.dispose();
+                        self._subscribable = subscribable = undefined;
+                    }
+                });
+            };
+        }
     }
-}
-```    
+    ```
+    - subscribable._addNode的作用？
+    >  We need to be able to dispose of this computed observable when it's no longer needed. 
+    This would be easy if we had a single node to watch, but binding contexts can be used by many different nodes, 
+    and  we cannot assume that those nodes have any relation to each other. So instead we track any node that the context is attached to, 
+    and dispose the computed when all of those nodes have been cleaned.<br/>
+    其实注释说的很清楚了：我们需要能够销毁这里创建的subscribable。
     
-     
+    - 为什么要销毁创建的subscribable呢？为了避免内存泄漏，当节点从document移除时，需要清理相关的数据（订阅等）
+    1. 由于当前vm是一个observable对象，每个子节点在执行绑定处理器时都会去执行这个vm去获取数据，并且这个这个执行过程是在 ko.dependentObservable(ko.bindingHandlers.update)下执行的，因此会添加订阅
+    2. 这个过程有点复杂：2.2.3.3.4：当vm是observable对象时，子节点是如何添加订阅的    
 
 ### 2.2.2 applyBindingsToNodeAndDescendantsInternal:dom与vm的绑定入口
 > **绑定关键字**的两种情况在：ko.bindingProvider['instance']['nodeHasBindings']，见3.2.1
-
-
 
 ``` 
 function applyBindingsToNodeAndDescendantsInternal (bindingContext, nodeVerified, bindingContextMayDifferFromDomParentElement) {
@@ -728,10 +765,9 @@ function applyBindingsToNodeAndDescendantsInternal (bindingContext, nodeVerified
 }
 ```
 
-
 - 参数bindingContextMayDifferFromDomParentElement：用来表示当前节点的绑定上下文和父节点的上下文是否一致
 
-- shouldApplyBindings：用来控制是否需要进行绑定，两种情况需要进行绑定（这里属于优化操作）
+- shouldApplyBindings：用来控制是否需要进行绑定，两种情况需要进行绑定（这里属于优化部分）
     - 当前dom的绑定上下文和父节点的绑定上下文不一致
     - 当前的节点具有绑定关键字，即该dom必须进行绑定
     - 反过来看，也就是当前节点没有绑定关键字并且和父节点的绑定上下文一致，从优化的角度考虑，没必要进行绑定
@@ -745,22 +781,242 @@ function applyBindingsToNodeAndDescendantsInternal (bindingContext, nodeVerified
     }
     ```
     - 如果返回 controlsDescendantBindings:true ，那么则不进行孩子节点的绑定，会在后面说到
+ 
+
+### 2.2.3 applyBindingsToNodeInternal（dom与vm绑定的核心方法）
+> 单个dom节点的绑定过程
+
+```
+function applyBindingsToNodeInternal(node, sourceBindings, bindingContext, bindingContextMayDifferFromDomParentElement) {
+将该部分拆分为以下几个部分
+    1. 判断当前节点是否进行过ko绑定
+    2. 获取'绑定字符串对象'（绑定字符串转为对象）
+    3. 获取关联的绑定处理器，执行每个绑定处理器（核心过程）
+}
+```
+- 参数说明
+    - 除了第二个参数sourceBindings其他参数含义很明显，通常dom节点的绑定字符串都写在dom节点的data-bind属性中，但是也可以通过编码的形式指定'绑定字符串',sourceBindings就是这个含义（见3.1.1）
+     
+
+ #### 2.2.3.1 判断当前节点是否进行过ko绑定
+```
+var boundElementDomDataKey = ko.utils.domData.nextKey(); //生成一个唯一标识，用于存储节点绑定与否
+function applyBindingsToNodeInternal(node, sourceBindings, bindingContext, bindingContextMayDifferFromDomParentElement) {
+    var alreadyBound = ko.utils.domData.get(node, boundElementDomDataKey);
+    if (!sourceBindings) {
+        if (alreadyBound) { //如果没有指定sourceBindings，则不能进行多次绑定
+            throw Error("You cannot apply bindings multiple times to the same element.");
+        }
+        ko.utils.domData.set(node, boundElementDomDataKey, true);
+    }
+
+    // 优化操作：如果当前节点的绑定上下文和父节点一致，则可以通过扫描父节点来获取当前节点的上下文（这里的父节点不包含注释节点-虚拟节点）
+    // 如果没有绑定过并且当前节点和父节点的绑定上下文不一致才去存储当前节点的绑定上下文
+    if (!alreadyBound && bindingContextMayDifferFromDomParentElement)
+        ko.storedBindingContextForNode(node, bindingContext);
+ 
+    //... 
+}
+```
+- storedBindingContextForNode：保存绑定上下文
+``` 
+var storedBindingContextDomDataKey = ko.utils.domData.nextKey(); //生成唯一标识，用于存储节点的绑定上下文
+ko.storedBindingContextForNode = function (node, bindingContext) {
+    if (arguments.length == 2) {
+        ko.utils.domData.set(node, storedBindingContextDomDataKey, bindingContext);
+        if (bindingContext._subscribable)  
+            bindingContext._subscribable._addNode(node); // 见 2.2.1.2 
+    } else {
+        return ko.utils.domData.get(node, storedBindingContextDomDataKey);
+    }
+}
+```
+ 
+#### 2.2.3.2 获取'绑定字符串对象'
+> 这部分作用就是来获得bindings 和 bindingsUpdater
+
+ ``` 
+function applyBindingsToNodeInternal(node, sourceBindings, bindingContext, bindingContextMayDifferFromDomParentElement) {
+    //...
+    var bindings;
+    if (sourceBindings && typeof sourceBindings !== 'function') { // 见 3.1.1
+        bindings = sourceBindings;
+    } else {
+        var provider = ko.bindingProvider['instance'],
+            getBindings = provider['getBindingAccessors'] || getBindingsAndMakeAccessors; //见 4.2.3 
+ 
+        var bindingsUpdater = ko.dependentObservable(
+            function() {
+                bindings = sourceBindings ? sourceBindings(bindingContext, node) : getBindings.call(provider, node, bindingContext); 
+                if (bindings && bindingContext._subscribable) // 注册一个依赖，用于支持vm是observable对象的情况，见 2.2.1.2
+                    bindingContext._subscribable(); 
+                return bindings;
+            },
+            null, { disposeWhenNodeIsRemoved: node }
+        );
+
+        if (!bindings || !bindingsUpdater.isActive()) // 如果binding不存在，或者bindingsUpdater没有添加任何依赖
+            bindingsUpdater = null;
+    }
+    //...
+}
+```
+1. sourceBindings是字符串的情况见3.1.1 ，从代码来看这里显然是支持函数形式的，再发散下sourceBindings可能是observable对象，好吧，后面这两种情形（函数、observabled对象）有兴趣的同学可以自己看下，本文就不啰嗦了
+2. 通过ko.bindingProvider['instance'].getBindingAccessors获取bindings，具体过程见 4.2.3 
+3. 当viewModel是observable对象（见2.2.1.2），那么此时会注册一个依赖：即bindingsUpdater依赖bindingContext._subscribable，2.2.1.2小节说到bindingContext._subscribable依赖viewModel（形成了一个依赖链）
+    因此，这种情况下当viewModel变化时会触发bindingContext._subscribable更新，进而触发bindingsUpdater更新
+    
+小节：这里执行完会有三种情况
+    1. bindings、bindingsUpdater均不存在
+    2. bindings存在，bindingsUpdater不存在（viewModel是普通对象：如 ko.applyBindings({xxx},node) ）
+    3. bindings、bindingsUpdater均存在（即viewModel是observable对象：如 ko.applyBindings(ko.observable({xxx}),node) ）
+ 
+ - bindings长什么样呢？
+ ![avatar](images/knockout/bindings.png)
+ 
+#### 2.2.3.3  获取关联的绑定处理器，执行每个绑定处理器（核心过程）
+
+这部分内容较多，分为两部分
+##### 2.2.3.3.1 参数准备
+```
+function applyBindingsToNodeInternal(node, sourceBindings, bindingContext, bindingContextMayDifferFromDomParentElement) {
+    //...
+    var getValueAccessor = bindingsUpdater
+        ? function(bindingKey) {
+            return function() {
+                return evaluateValueAccessor(bindingsUpdater()[bindingKey]);
+            };
+        } : function(bindingKey) {
+            return bindings[bindingKey];
+        };
+
+    function allBindings() {
+        return ko.utils.objectMap(bindingsUpdater ? bindingsUpdater() : bindings, evaluateValueAccessor);
+    }
+    allBindings['get'] = function(key) {
+        return bindings[key] && evaluateValueAccessor(getValueAccessor(key));
+    };
+    allBindings['has'] = function(key) {
+        return key in bindings;
+    };
+    //...
+}
+```
 
 
+##### 2.2.3.3.2 绑定处理器的执行
+```
+function applyBindingsToNodeInternal(node, sourceBindings, bindingContext, bindingContextMayDifferFromDomParentElement) {
+    //...
+    var orderedBindings = topologicalSortBindings(bindings); 
+    ko.utils.arrayForEach(orderedBindings, function(bindingKeyAndHandler) {
+        var handlerInitFn = bindingKeyAndHandler.handler["init"],
+            handlerUpdateFn = bindingKeyAndHandler.handler["update"],
+            bindingKey = bindingKeyAndHandler.key;
 
-### 2.2.3 applyBindingsToNodeInternal（绑定的核心方法）
-先概括地说下该方法的的执行过程
+        if (node.nodeType === 8) {
+            validateThatBindingIsAllowedForVirtualElements(bindingKey);
+        }
+
+        try {
+            if (typeof handlerInitFn == "function") {
+                ko.dependencyDetection.ignore(function() {
+                    var initResult = handlerInitFn(node, getValueAccessor(bindingKey), allBindings, bindingContext['$data'], bindingContext);
+                    if (initResult && initResult['controlsDescendantBindings']) {
+                        if (bindingHandlerThatControlsDescendantBindings !== undefined)
+                            throw new Error("Multiple bindings (" + bindingHandlerThatControlsDescendantBindings + " and " + bindingKey + ") are trying to control descendant bindings of the same element. You cannot use these bindings together on the same element.");
+                        bindingHandlerThatControlsDescendantBindings = bindingKey;
+                    }
+                });
+            }
+            if (typeof handlerUpdateFn == "function") {
+                ko.dependentObservable(
+                    function() {
+                        handlerUpdateFn(node, getValueAccessor(bindingKey), allBindings, bindingContext['$data'], bindingContext);
+                    },
+                    null,
+                    { disposeWhenNodeIsRemoved: node }
+                );
+            }
+        } catch (ex) {
+            ex.message = "Unable to process binding \"" + bindingKey + ": " + bindings[bindingKey] + "\"\nMessage: " + ex.message;
+            throw ex;
+        }
+    });
+    
+    return {
+        'shouldBindDescendants': bindingHandlerThatControlsDescendantBindings === undefined
+    };
+            
+```
+
+- 获取orderedBindings，作用：存储关联的绑定处理器
+ ![avatar](images/knockout/order_bindings.png)
+ 
+- 执行绑定处理器，两个步骤
+    - init
+    - update 
 
 
+##### 2.2.3.3.3 topologicalSortBindings
+
+```
+function topologicalSortBindings(bindings) { //深度优先遍历
+    // Depth-first sort
+    var result = [],                // The list of key/handler pairs that we will return
+        bindingsConsidered = {},    // A temporary record of which bindings are already in 'result'
+        cyclicDependencyStack = []; // Keeps track of a depth-search so that, if there's a cycle, we know which bindings caused it
+    ko.utils.objectForEach(bindings, function pushBinding(bindingKey) {
+        if (!bindingsConsidered[bindingKey]) {
+            var binding = ko['getBindingHandler'](bindingKey);
+            if (binding) {
+                // First add dependencies (if any) of the current binding
+                if (binding['after']) {
+                    cyclicDependencyStack.push(bindingKey);
+                    ko.utils.arrayForEach(binding['after'], function(bindingDependencyKey) {
+                        if (bindings[bindingDependencyKey]) {
+                            if (ko.utils.arrayIndexOf(cyclicDependencyStack, bindingDependencyKey) !== -1) {
+                                throw Error("Cannot combine the following bindings, because they have a cyclic dependency: " + cyclicDependencyStack.join(", "));
+                            } else {
+                                pushBinding(bindingDependencyKey);
+                            }
+                        }
+                    });
+                    cyclicDependencyStack.length--;
+                }
+                // Next add the current binding
+                result.push({ key: bindingKey, handler: binding });
+            }
+            bindingsConsidered[bindingKey] = true;
+        }
+    });
+
+    return result;
+}
+```
+
+
+##### 2.2.3.3.4 当vm是observable对象时，子节点是如何添加订阅的
 
 
 ### 2.2.4 applyBindingsToDescendantsInternal
 hhh
 
 
+# 3 ko.bindingHandlers（绑定处理器）
+## 3.1 value:双向绑定
+### 3.1.1 input[type='checkbox']、input[type='radio']说sourceBindings的作用
 
-# 3 工具类介绍 
-## 3.1 ko.virtualElements
+
+## 3.2 template
+
+## 3.3 foreach
+
+## 3.4 component
+### 3.4.1 父子组件通信
+
+# 4 工具类介绍 
+## 4.1 ko.virtualElements
 - 虚拟元素意义是什么？
 1. The point of all this is to support containerless templates (e.g., <!-- ko foreach:someCollection -->blah<!-- /ko -->)
     
@@ -780,7 +1036,7 @@ ko.virtualElements = {
 };
 ```
 
-### 3.1.1 hasBindingValue
+### 4.1.1 hasBindingValue
 作用：用来判断注释节点是否具有绑定关键字
 ``` 
 var commentNodesHaveTextProperty = document && document.createComment("test").text === "<!--test-->";
@@ -802,7 +1058,7 @@ function isStartComment(node) {
 这里其实没必要使用正向预查
   
   
-### 3.1.2 normaliseVirtualElementDomStructure
+### 4.1.2 normaliseVirtualElementDomStructure
 >IE <= 8 or IE 9 quirks mode parses your HTML weirdly, treating closing </li> tags as if they don't exist <br/>
 作用：在IE <= 8 或者 IE 9 怪异模式下，会忽略 </li>，因此需要做兼容处理即纠正dom树的结构 
 - [案例参考](https://segmentfault.com/q/1010000004277806/a-1020000004279979)  
@@ -823,7 +1079,7 @@ function isStartComment(node) {
 - knockout-issue：https://github.com/knockout/knockout/issues/155
 > IE7 will not allow anything but <li> as children of an <ul> 
 
-## 3.2 ko.bindingProvider['instance']
+## 4.2 ko.bindingProvider['instance']
 // 单例模式
 ```
 (function() {
@@ -841,7 +1097,7 @@ function isStartComment(node) {
     function createBindingsStringEvaluator(bindingsString, options) {}
 })(); 
 ```
-### 3.2.1 nodeHasBindings
+### 4.2.1 nodeHasBindings
 作用：用来判断节点是否具有绑定关键字
 ``` 
 function(node) {
@@ -856,7 +1112,8 @@ function(node) {
 ```
 - dom节点：<div data-bind=''></div>
 - 注释：<!-- ko foreach: xxx -->  
-### 3.2.3 getBindingAccessors
+### 4.2.3 getBindingAccessors
+> 获取绑定访问器
 
 ```
 'getBindingAccessors': function(node, bindingContext) {
@@ -865,26 +1122,26 @@ function(node) {
     return ko.components.addBindingsForCustomElement(parsedBindings, node, bindingContext, /* valueAccessors */ true);
 },
 ```
-#### 3.2.3.1 getBindingsString 获取绑定字符串两种情况
+调用栈：
+getBindingAccessors 
+-> parseBindingsString （4.2.3.2）
+-> createBindingsStringEvaluator （4.2.3.2）
+-> ko.expressionRewriting.preProcessBindings （4.3.2 ）
+-> ko.expressionRewriting.parseObjectLiteral（4.3.1 ）
+
+#### 4.2.3.1 getBindingsString 获取绑定字符串两种情况
     - dom[nodeType=1]
     - dom[nodeType=8]即注释
     
-#### 3.2.3.2 parseBindingsString
+#### 4.2.3.2 parseBindingsString
 ``` 
 'parseBindingsString': function(bindingsString, bindingContext, node, options) {
     var bindingFunction = createBindingsStringEvaluatorViaCache(bindingsString, this.bindingCache, options);
     return bindingFunction(bindingContext, node);
     //...
 }
-```
-- 案例说明createBindingsStringEvaluatorViaCache的过程
-```
-//html
-<div data-bind="text: displayName,style: { color: currentProfit() < 0 ? 'red' : 'black' },css: { active: currentProfit() < 0 }"></div>
-//js
- var currentProfit = ko.observable();
-```
-
+``` 
+ 
 - createBindingsStringEvaluatorViaCache -> createBindingsStringEvaluator -> createBindingsStringEvaluator
 ``` 
 function createBindingsStringEvaluator(bindingsString, options) { 
@@ -892,16 +1149,14 @@ function createBindingsStringEvaluator(bindingsString, options) {
         functionBody = "with($context){with($data||{}){return{" + rewrittenBindings + "}}}";
     var funInst = new Function("$context", "$element", functionBody);
     return funInst
-}
+    }
 ```
 ![avatar](images/knockout/generate_ano-fun.png)
 
 ![avatar](images/knockout/ano_resu.png) 
 
-- bindingFunction
 
-
-## 3.3 ko.expressionRewriting
+## 4.3 ko.expressionRewriting
 ``` 
 ko.expressionRewriting = (function () { 
     return {
@@ -914,7 +1169,7 @@ ko.expressionRewriting = (function () {
     };
 })();
 ```
-### 3.3.1 parseObjectLiteral：解析绑定字符串
+### 4.3.1 parseObjectLiteral：解析绑定字符串
 1. 代码编译的第一个阶段通常是通过词法，语法的分析来判断代码本身是否存在词法或者语法上的问题，parseObjectLiteral的作用有点类似于这个作用；
 2. 方法名也暗示了该方法的作用：合法的装换为对象；这里是需要讲绑定字符串转换为对象
 
@@ -927,12 +1182,14 @@ ko.expressionRewriting = (function () {
 ```
 
 
-# 4 补充
+# 5 补充
+## 5.1 案例代码
+### 5.1.1
+
 ## ko.computed options:pure/deferEvaluation
 ### options.pure:true
 ### options.deferEvaluation:true
 deferUpdates 与 deferEvaluation 的区别
+ 
 
-## 父子组件通信
 
-## 工具类介绍 

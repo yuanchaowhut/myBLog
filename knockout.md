@@ -18,7 +18,7 @@
       - [2.1.3.1 evaluateImmediate_CallReadWithDependencyDetection](#2131-evaluateimmediate_callreadwithdependencydetection)
       - [2.1.3.2 ko.dependencyDetection 管理observable执行环境’](#2132-kodependencydetection-%E7%AE%A1%E7%90%86observable%E6%89%A7%E8%A1%8C%E7%8E%AF%E5%A2%83)
         - [2.1.3.2.1 begin、end](#21321-beginend)
-        - [2.1.3.2.2 ignore](#21322-ignore)
+        - [2.1.3.2.2 ignore：抑制依赖性检测](#21322-ignore%E6%8A%91%E5%88%B6%E4%BE%9D%E8%B5%96%E6%80%A7%E6%A3%80%E6%B5%8B)
       - [2.1.3.3 evaluateImmediate_CallReadThenEndDependencyDetection](#2133-evaluateimmediate_callreadthenenddependencydetection)
       - [2.1.3.4 observable对象的‘读’](#2134-observable%E5%AF%B9%E8%B1%A1%E7%9A%84%E8%AF%BB)
       - [2.1.3.5 ko.dependencyDetection.registerDependency](#2135-kodependencydetectionregisterdependency)
@@ -68,6 +68,7 @@
   - [ko.computed options:pure/deferEvaluation](#kocomputed-optionspuredeferevaluation)
     - [options.pure:true](#optionspuretrue)
     - [options.deferEvaluation:true](#optionsdeferevaluationtrue)
+- [闭包几种形式](#%E9%97%AD%E5%8C%85%E5%87%A0%E7%A7%8D%E5%BD%A2%E5%BC%8F)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -760,9 +761,12 @@ subscribable = ko.dependentObservable(updateContext, null, { disposeWhen: dispos
     and dispose the computed when all of those nodes have been cleaned.<br/>
     其实注释说的很清楚了：我们需要能够销毁这里创建的subscribable。
     
-    - 为什么要销毁创建的subscribable呢？为了避免内存泄漏，当节点从document移除时，需要清理相关的数据（订阅等）
-    1. 由于当前vm是一个observable对象，每个子节点在执行绑定处理器时都会去执行这个vm去获取数据，并且这个这个执行过程是在 ko.dependentObservable(ko.bindingHandlers.update)下执行的，因此会添加订阅
-    2. 这个过程有点复杂：2.2.3.3.5：当vm是observable对象时，子节点是如何添加订阅的    
+    - 为什么要销毁创建的subscribable呢？为了避免内存泄漏，需要销毁subscribable，但是销毁的前提是该节点的子节点都从document中移除了
+    - 那为什么前提是这个呢？
+    1. 2.2.3.2小节说到：bindingsUpdater依赖bindingContext._subscribable， bindingContext._subscribable依赖viewModel
+    2. 2.2.3.3.1小节关于getValueAccessor说到： ko.bindingHandlers[xxx].update 依赖  bindingsUpdater
+    3. 所以由（1 + 2）得出，该节点及其孩子节点都是依赖 viewMoldel（observable对象）的。如果不考虑子节点是否在document中，直接把subscribable销毁会使得依赖链断掉，也就是说当viewModel更新时不会触发节点的更新
+    
 
 ### 2.2.2 applyBindingsToNodeAndDescendantsInternal:dom与vm的绑定入口
 > **绑定关键字**的两种情况在：ko.bindingProvider['instance']['nodeHasBindings']，见3.2.1
@@ -803,7 +807,7 @@ function applyBindingsToNodeAndDescendantsInternal (bindingContext, nodeVerified
  
 
 ### 2.2.3 applyBindingsToNodeInternal（dom与vm绑定的核心方法）
-> 单个dom节点的绑定过程
+> 单个dom节点的绑定过程；单向绑定（从viewModel -> dom的更新）
 
 ```
 function applyBindingsToNodeInternal(node, sourceBindings, bindingContext, bindingContextMayDifferFromDomParentElement) {
@@ -943,7 +947,7 @@ function applyBindingsToNodeInternal(node, sourceBindings, bindingContext, bindi
 
 - allBindings也是 ko.bindingHandlers[xxx].update/init 参数之一
 
-##### 2.2.3.3.2 绑定处理器的执行
+##### 2.2.3.3.2 绑定处理器（ko.bindingHandlers[xxx]）的执行
 ```
 function applyBindingsToNodeInternal(node, sourceBindings, bindingContext, bindingContextMayDifferFromDomParentElement) {
     //...
@@ -1002,7 +1006,7 @@ ko.dependentObservable(
 );
 ```
 
-- 如果在handlerUpdateFn中执行了observable对象的读取操作会发生什么：添加订阅注册依赖
+- 如果在handlerUpdateFn中执行了observable对象的读取操作会发生什么：添加订阅、注册依赖
 - 这里有一个闭包，你看到了吗？ ko.dependentObservable会返回一个computedObservable函数，computedObservable有一个属性state，state.readFunction就是上面传递的函数，即
 ```
 function() {
@@ -1073,10 +1077,7 @@ function validateThatBindingIsAllowedForVirtualElements(bindingName) {
         throw new Error("The binding '" + bindingName + "' cannot be used with virtual elements")
 }
 ```
-
-
-##### 2.2.3.3.5 当vm是observable对象时，子节点是如何添加订阅的
-
+ 
 
 ### 2.2.4 applyBindingsToDescendantsInternal
 hhh

@@ -38,18 +38,23 @@
       - [2.2.3.2 获取'绑定字符串对象'](#2232-%E8%8E%B7%E5%8F%96%E7%BB%91%E5%AE%9A%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%AF%B9%E8%B1%A1)
       - [2.2.3.3  获取关联的绑定处理器，执行每个绑定处理器（核心过程）](#2233--%E8%8E%B7%E5%8F%96%E5%85%B3%E8%81%94%E7%9A%84%E7%BB%91%E5%AE%9A%E5%A4%84%E7%90%86%E5%99%A8%E6%89%A7%E8%A1%8C%E6%AF%8F%E4%B8%AA%E7%BB%91%E5%AE%9A%E5%A4%84%E7%90%86%E5%99%A8%E6%A0%B8%E5%BF%83%E8%BF%87%E7%A8%8B)
         - [2.2.3.3.1 参数准备](#22331-%E5%8F%82%E6%95%B0%E5%87%86%E5%A4%87)
-        - [2.2.3.3.2 绑定处理器的执行](#22332-%E7%BB%91%E5%AE%9A%E5%A4%84%E7%90%86%E5%99%A8%E7%9A%84%E6%89%A7%E8%A1%8C)
+        - [2.2.3.3.2 绑定处理器（ko.bindingHandlers[xxx]）的执行](#22332-%E7%BB%91%E5%AE%9A%E5%A4%84%E7%90%86%E5%99%A8kobindinghandlersxxx%E7%9A%84%E6%89%A7%E8%A1%8C)
         - [2.2.3.3.3 topologicalSortBindings](#22333-topologicalsortbindings)
         - [2.2.3.3.4 validateThatBindingIsAllowedForVirtualElements](#22334-validatethatbindingisallowedforvirtualelements)
-        - [2.2.3.3.5 当vm是observable对象时，子节点是如何添加订阅的](#22335-%E5%BD%93vm%E6%98%AFobservable%E5%AF%B9%E8%B1%A1%E6%97%B6%E5%AD%90%E8%8A%82%E7%82%B9%E6%98%AF%E5%A6%82%E4%BD%95%E6%B7%BB%E5%8A%A0%E8%AE%A2%E9%98%85%E7%9A%84)
     - [2.2.4 applyBindingsToDescendantsInternal](#224-applybindingstodescendantsinternal)
-- [3 ko.bindingHandlers（绑定处理器）](#3-kobindinghandlers%E7%BB%91%E5%AE%9A%E5%A4%84%E7%90%86%E5%99%A8)
+- [3 ko.bindingHandlers（内置的绑定处理器）](#3-kobindinghandlers%E5%86%85%E7%BD%AE%E7%9A%84%E7%BB%91%E5%AE%9A%E5%A4%84%E7%90%86%E5%99%A8)
   - [3.1 value:双向绑定](#31-value%E5%8F%8C%E5%90%91%E7%BB%91%E5%AE%9A)
-    - [3.1.1 input[type='checkbox']、input[type='radio']说sourceBindings的作用](#311-inputtypecheckboxinputtyperadio%E8%AF%B4sourcebindings%E7%9A%84%E4%BD%9C%E7%94%A8)
+    - [3.1.1 input[tyep=checkbox]、input[type=radio]](#311-inputtyepcheckboxinputtyperadio)
+    - [3.1.2 事件名称处理](#312-%E4%BA%8B%E4%BB%B6%E5%90%8D%E7%A7%B0%E5%A4%84%E7%90%86)
+    - [3.1.3 事件订阅](#313-%E4%BA%8B%E4%BB%B6%E8%AE%A2%E9%98%85)
+    - [3.1.4 注册依赖](#314-%E6%B3%A8%E5%86%8C%E4%BE%9D%E8%B5%96)
+    - [3.1.6 input[type='checkbox']、input[type='radio']说sourceBindings的作用](#316-inputtypecheckboxinputtyperadio%E8%AF%B4sourcebindings%E7%9A%84%E4%BD%9C%E7%94%A8)
+  - [3.2 textinput](#32-textinput)
   - [3.2 template](#32-template)
   - [3.3 foreach](#33-foreach)
   - [3.4 component](#34-component)
     - [3.4.1 父子组件通信](#341-%E7%88%B6%E5%AD%90%E7%BB%84%E4%BB%B6%E9%80%9A%E4%BF%A1)
+  - [3.5 event](#35-event)
 - [4 工具类介绍](#4-%E5%B7%A5%E5%85%B7%E7%B1%BB%E4%BB%8B%E7%BB%8D)
   - [4.1 ko.virtualElements](#41-kovirtualelements)
     - [4.1.1 hasBindingValue](#411-hasbindingvalue)
@@ -61,10 +66,10 @@
       - [4.2.3.2 parseBindingsString](#4232-parsebindingsstring)
   - [4.3 ko.expressionRewriting](#43-koexpressionrewriting)
     - [4.3.1 parseObjectLiteral：解析绑定字符串](#431-parseobjectliteral%E8%A7%A3%E6%9E%90%E7%BB%91%E5%AE%9A%E5%AD%97%E7%AC%A6%E4%B8%B2)
-    - [3.3.2 preProcessBindings](#332-preprocessbindings)
+    - [4.3.2 preProcessBindings](#432-preprocessbindings)
+  - [4.4 ko.utils](#44-koutils)
 - [5 补充](#5-%E8%A1%A5%E5%85%85)
-  - [5.1 案例代码](#51-%E6%A1%88%E4%BE%8B%E4%BB%A3%E7%A0%81)
-    - [5.1.1](#511)
+  - [5.1 ko.extenders](#51-koextenders)
   - [ko.computed options:pure/deferEvaluation](#kocomputed-optionspuredeferevaluation)
     - [options.pure:true](#optionspuretrue)
     - [options.deferEvaluation:true](#optionsdeferevaluationtrue)
@@ -1084,13 +1089,203 @@ function validateThatBindingIsAllowedForVirtualElements(bindingName) {
 ### 2.2.4 applyBindingsToDescendantsInternal
 递归 -> applyBindingsToNodeAndDescendantsInternal（2.2.2）
 
-
 # 3 ko.bindingHandlers（内置的绑定处理器）
 ## 3.1 value:双向绑定
+- 结构
+```
+ko.bindingHandlers['value'] = {
+    'after': ['options', 'foreach'],
+    'init': function (element, valueAccessor, allBindings) {
+    },
+    'update': function() {} //空实现
+};
+```
+
+- 双向绑定的两个方向：1. dom -> viewModel 2. viewModel -> dom
+
+- ko.bindingHandlers['value'].init，该方法较长，分为以下几个部分
+    1. input[tyep=checkbox]、input[type=radio]的处理
+    2. 事件名称处理
+    3. 事件订阅 
+    >这部分重要性在于：给input[type=text]/select元素注册change事件；完成双向绑定的一侧即dom -> viewModel
+    4. 注册依赖 
+    >完成双向绑定的另一侧即 viewModel -> dom
+
+### 3.1.1 input[tyep=checkbox]、input[type=radio]
+```
+ko.bindingHandlers['value'] = { 
+    'init': function (element, valueAccessor, allBindings) { 
+        if (element.tagName.toLowerCase() == "input" && (element.type == "checkbox" || element.type == "radio")) {
+            ko.applyBindingAccessorsToNode(element, { 'checkedValue': valueAccessor });
+            return;
+        } 
+        //...
+    }
+}
+```
+- ko.bindingHandlers['value']是针对input[type=text]、select两种情况的
+
+### 3.1.2 事件名称处理
+```
+ko.bindingHandlers['value'] = { 
+    'init': function (element, valueAccessor, allBindings) {  
+        var eventsToCatch = ["change"];
+        var requestedEventsToCatch = allBindings.get("valueUpdate");
+        var propertyChangedFired = false;
+        var elementValueBeforeEvent = null;
+    
+        if (requestedEventsToCatch) {
+            if (typeof requestedEventsToCatch == "string")  
+                requestedEventsToCatch = [requestedEventsToCatch];
+            ko.utils.arrayPushAll(eventsToCatch, requestedEventsToCatch);
+            eventsToCatch = ko.utils.arrayGetDistinctValues(eventsToCatch);
+        }
+    }
+}
+```
+1. 获取事件名称，change事件必须的，因为要通过该事件实现双向绑定的一侧
+2. 保证事件名称的唯一性
 
 
+### 3.1.3 事件订阅 
 
-### 3.1.1 input[type='checkbox']、input[type='radio']说sourceBindings的作用
+```
+ko.bindingHandlers['value'] = { 
+    'init': function (element, valueAccessor, allBindings) {  
+        //...
+         var valueUpdateHandler = function() {
+            elementValueBeforeEvent = null;
+            propertyChangedFired = false;
+            var modelValue = valueAccessor();
+            var elementValue = ko.selectExtensions.readValue(element);
+            ko.expressionRewriting.writeValueToProperty(modelValue, allBindings, 'value', elementValue);
+        }
+ 
+        var ieAutoCompleteHackNeeded = ko.utils.ieVersion && element.tagName.toLowerCase() == "input" && element.type == "text"
+            && element.autocomplete != "off" && (!element.form || element.form.autocomplete != "off");
+        if (ieAutoCompleteHackNeeded && ko.utils.arrayIndexOf(eventsToCatch, "propertychange") == -1) {
+            ko.utils.registerEventHandler(element, "propertychange", function () { propertyChangedFired = true });
+            ko.utils.registerEventHandler(element, "focus", function () { propertyChangedFired = false });
+            ko.utils.registerEventHandler(element, "blur", function() {
+                if (propertyChangedFired) {
+                    valueUpdateHandler();
+                }
+            });
+        }
+
+        ko.utils.arrayForEach(eventsToCatch, function(eventName) { 
+            var handler = valueUpdateHandler;
+            if (ko.utils.stringStartsWith(eventName, "after")) {
+                handler = function() { 
+                    elementValueBeforeEvent = ko.selectExtensions.readValue(element);
+                    ko.utils.setTimeout(valueUpdateHandler, 0);
+                };
+                eventName = eventName.substring("after".length);
+            }
+            ko.utils.registerEventHandler(element, eventName, handler);
+        });
+        //...
+    }
+}
+```
+- valueUpdateHandler 是change事件的回调函数
+- 中间部分是ie下的兼容性处理，注册propertychange、focus、blur事件（propertychange等价于input事件）
+    - [兼容性问题](https://github.com/knockout/knockout/pull/122)
+    >IE doesn't fire "change" events on textboxes if the user selects a value from its autocomplete list
+    - propertyChangedFired:true + blur = change事件
+- 事件注册
+    - 值得一提的是，对于 "after<eventname>" 事件的处理，这里其实是好意，为了引入'afterXxx'事件，但是引入这样的事件会带来一些问题见[issue](https://github.com/knockout/knockout/pull/1334)
+    1.变量elementValueBeforeEvent只有在keyXxx等事件触发 到 valueUpdateHandler函数运行之间很短暂的时间（brief time）是非空值 <br/>
+    2.数据的更新可能是异步的，比如deferUpdate/rateLimit等使用 会异步更新数据（那么可能会造成数据不同步） 
+     对于这种情况，上面的说的（brief time）期间，可能会丢失用户输入的数据，因此我们需要记录用户输入的数据，以免丢失，然后使用用户输入的数据覆盖
+     
+- 小节：
+以input[type=text]为例，
+输入框发生change事件 
+-> valueUpdateHandler 
+->  ko.expressionRewriting.writeValueToProperty
+-> 执行 modelValue（observable）
+-> updateFromModel,但是 valueHasChanged 相等，所以不更新
+      
+### 3.1.4 注册依赖 
+ ```
+ ko.bindingHandlers['value'] = { 
+     'init': function (element, valueAccessor, allBindings) {  
+         //...
+         var updateFromModel = function () { // 这里的触发是由于绑定的model更新了
+             var newValue = ko.utils.unwrapObservable(valueAccessor()); // model的值
+             var elementValue = ko.selectExtensions.readValue(element);  // dom的值
+ 
+             if (elementValueBeforeEvent !== null && newValue === elementValueBeforeEvent) { // "after<eventname>" 事件可能出现情况的处理
+                 ko.utils.setTimeout(updateFromModel, 0);
+                 return;
+             }
+ 
+             var valueHasChanged = (newValue !== elementValue); // 只有当数据发生变化，才更新dom的值
+ 
+             if (valueHasChanged) { //select 
+                 if (ko.utils.tagNameLower(element) === "select") {
+                     var allowUnset = allBindings.get('valueAllowUnset');
+                     var applyValueAction = function () {
+                         ko.selectExtensions.writeValue(element, newValue, allowUnset);
+                     };
+                     applyValueAction();
+ 
+                     if (!allowUnset && newValue !== ko.selectExtensions.readValue(element)) { // 处理选项中没有设置值的情况
+                         ko.dependencyDetection.ignore(ko.utils.triggerEvent, null, [element, "change"]);
+                     } else {  // IE6 bug
+                         ko.utils.setTimeout(applyValueAction, 0);
+                     }
+                 } else {  // input[type=text]
+                     ko.selectExtensions.writeValue(element, newValue);
+                 }
+             }
+         };
+ 
+         ko.computed(updateFromModel, null, { disposeWhenNodeIsRemoved: element }); // 关键：添加订阅，注册依赖
+         //...
+     }
+ }
+ ```
+
+- "after<eventname>" 情况处理
+- select
+    - 处理选项中没有设置值的情况 
+        - 当前select的所有选项中没有设置的值，那么触发change事件 
+    
+    - IE6 关于select控件的bug
+        - 即在IE6下，如果在当前‘线程’中动态添加选项（options）和设置选中选项不能同时进行，因此通过setTimeout在‘第二线程’中设置选中项
+        - [参考](https://www.jb51.net/article/93033.htm)
+- input[type=text] 
+ 
+
+以下面代码为例
+```
+//html
+<input type="text" data-bind="value:valueObservable"  />
+//js
+var valueObservable = ko.observable('--');
+valueObservable("new-value"); 
+``` 
+
+valueObservable("new-value"); 
+-> updateFromModel 
+-> ko.selectExtensions.writeValue(element, newValue);
+  
+### 3.1.6 input[type='checkbox']、input[type='radio']说sourceBindings的作用
+``` 
+//ko.bindingHandlers['value'].init
+ko.applyBindingAccessorsToNode(element, { 'checkedValue': valueAccessor });
+```
+sourceBindings的作用：通过js编码的方式代替了在html中写data-bind的过程
+
+## 3.2 textinput
+- oninput、onchange、propertychange
+1.oninput&onchange：
+oninput和onchange都是事件对象，当输入框的值发生改变时触发该事件。不同的是，oninput是在值改变时立即触发，而onchange是在值改变后失去焦点才触发，并且可以用在非输入框中，如：select等。
+ 
+2.propertychange：
+功能同oninput，用以替代oninput在IE9以下的不兼容性
 
 
 ## 3.2 template
@@ -1099,14 +1294,36 @@ function validateThatBindingIsAllowedForVirtualElements(bindingName) {
 
 ## 3.4 component
 
-
-
 ### 3.4.1 父子组件通信
+
+## 3.5 event
+>用于事件注册，没啥好说的
+
+提下特别处理的地方
+- 框架事件的处理默认会preventDefault，只要事件回调返回的不是ture，则阻止默认动作，比如a标签的click事件，如果没有回调中没有返回true，则不会更改url（页面跳转等工作）
+``` 
+if (handlerReturnValue !== true) { 
+    if (event.preventDefault)
+        event.preventDefault();
+    else
+        event.returnValue = false;
+}
+```
+- 框架事件的处理默认会stopPropagation，除非data-bind='[eventName]Bubble:true'
+``` 
+var bubble = allBindings.get(eventName + 'Bubble') !== false;
+if (!bubble) {
+    event.cancelBubble = true;
+    if (event.stopPropagation)
+        event.stopPropagation();
+}
+```
 
 # 4 工具类介绍 
 ## 4.1 ko.virtualElements
 - 虚拟元素意义是什么？
 1. The point of all this is to support containerless templates (e.g., <!-- ko foreach:someCollection -->blah<!-- /ko -->)
+2. 作用类似于 React.Fragment
     
 ``` 
 ko.virtualElements = {
@@ -1263,16 +1480,16 @@ ko.expressionRewriting = (function () {
 
 ![avatar](images/knockout/parse_object_literal_test.png)
 
-### 3.3.2 preProcessBindings
+### 4.3.2 preProcessBindings
 
 ```
 "'text':function(){return displayName },'style':function(){return { color:currentProfit() < 0 ?'red':'black'} },'css':function(){return { active:currentProfit() < 0} }"
 ```
 
+## 4.4 ko.utils
 
 # 5 补充
-## 5.1 案例代码
-### 5.1.1
+## 5.1 ko.extenders 
 
 ## ko.computed options:pure/deferEvaluation
 ### options.pure:true

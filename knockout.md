@@ -1289,6 +1289,16 @@ oninput和onchange都是事件对象，当输入框的值发生改变时触发�
 
 
 ## 3.2 template
+具体用法参考官网
+
+### 3.2.1 ko.bindingHandlers['template'].init
+核心代码
+- 
+
+### 3.2.2 ko.bindingHandlers['template'].update
+
+
+
 
 ## 3.3 foreach
 
@@ -1300,7 +1310,7 @@ oninput和onchange都是事件对象，当输入框的值发生改变时触发�
 >用于事件注册，没啥好说的
 
 提下特别处理的地方
-- 框架事件的处理默认会preventDefault，只要事件回调返回的不是ture，则阻止默认动作，比如a标签的click事件，如果没有回调中没有返回true，则不会更改url（页面跳转等工作）
+- 默认会preventDefault，只要事件回调返回的不是ture，则阻止默认动作，比如a标签的click事件，如果回调中没有返回true，则不会更改url、页面跳转等工作
 ``` 
 if (handlerReturnValue !== true) { 
     if (event.preventDefault)
@@ -1309,7 +1319,7 @@ if (handlerReturnValue !== true) {
         event.returnValue = false;
 }
 ```
-- 框架事件的处理默认会stopPropagation，除非data-bind='[eventName]Bubble:true'
+- 默认会stopPropagation，除非data-bind='[eventName]Bubble:true'
 ``` 
 var bubble = allBindings.get(eventName + 'Bubble') !== false;
 if (!bubble) {

@@ -92,7 +92,7 @@
 1. durandal中的event.js属于 发布-订阅模式
 2. knokcout中computedObservable对象和observable对象都继承了ko_subscribable_fn模块，从该模块的实现来看属于观察者模式
 
-## 1.2 防抖与节流
+## 1.2 防抖与节流 
 举两个案例吧
  
 # 2 源码分析
@@ -299,7 +299,7 @@ evaluateImmediate_CallReadWithDependencyDetection: function (notifyChange) {
 
 
 
-#### 2.1.3.2 ko.dependencyDetection 管理observable执行环境’
+#### 2.1.3.2 ko.dependencyDetection 管理observable执行环境’ 
 > ko.dependencyDetection 是依赖检测双方的连接点
 
 - ko.dependencyDetection结构，通过outerFrames（栈）用来管理‘observable执行环境’

@@ -91,9 +91,16 @@
 - 小结
 1. durandal中的event.js属于 发布-订阅模式
 2. knokcout中computedObservable对象和observable对象都继承了ko_subscribable_fn模块，从该模块的实现来看属于观察者模式
+3. require中属于观察者模式，因为Observre需要Subject必须存在，并且是二者直接接交互，并无事件总线作为'中间人'
 
 ## 1.2 防抖与节流 
 举两个案例吧
+
+## 1.3 策略模式
+模板引擎
+
+## 1.4 单例模式
+到处都是
  
 # 2 源码分析
 >关于兼容性问题尤其是ie低版本的问题，直接略过
@@ -1143,7 +1150,7 @@ ko.bindingHandlers['value'] = {
     }
 }
 ```
-1. 获取事件名称，change事件必须的，因为要通过该事件实现双向绑定的一侧
+1. 获取事件名称，change事件必须的，因为要通过该事件实现dom的更新 -> viewModel的更新
 2. 保证事件名称的唯一性
 
 
@@ -1287,19 +1294,173 @@ oninput和onchange都是事件对象，当输入框的值发生改变时触发�
 2.propertychange：
 功能同oninput，用以替代oninput在IE9以下的不兼容性
 
-
+ 
 ## 3.2 template
 具体用法参考官网
 
+
+
 ### 3.2.1 ko.bindingHandlers['template'].init
-核心代码
-- 
+```
+ko.bindingHandlers['template'] = {
+    'init': function(element, valueAccessor) {
+        //...
+        var templateNodes = ko.virtualElements.childNodes(element),
+            container = ko.utils.moveCleanedNodesToContainerElement(templateNodes);
+        new ko.templateSources.anonymousTemplate(element)['nodes'](container);  
+        //...
+        return { 'controlsDescendantBindings': true };
+    }
+}
+```
+- 注意返回值，意味着不使用当前的bindingContext绑定孩子节点
 
 ### 3.2.2 ko.bindingHandlers['template'].update
 
+```
+ko.bindingHandlers['template'] = {
+    'update': function (element, valueAccessor, allBindings, viewModel, bindingContext) {
+        var value = valueAccessor(),
+            dataValue,
+            options = ko.utils.unwrapObservable(value),
+            shouldDisplay = true,
+            templateComputed = null,
+            templateName;
+    
+        if (typeof options == "string") {
+            templateName = value;
+            options = {};
+        } else {
+            templateName = options['name'];
+     
+            if ('if' in options)
+                shouldDisplay = ko.utils.unwrapObservable(options['if']);
+            if (shouldDisplay && 'ifnot' in options)
+                shouldDisplay = !ko.utils.unwrapObservable(options['ifnot']);
+    
+            dataValue = ko.utils.unwrapObservable(options['data']);
+        }
+    
+        if ('foreach' in options) { 
+            var dataArray = (shouldDisplay && options['foreach']) || [];
+            templateComputed = ko.renderTemplateForEach(templateName || element, dataArray, options, element, bindingContext);
+        } else if (!shouldDisplay) {
+            ko.virtualElements.emptyNode(element);
+        } else { 
+            var innerBindingContext = ('data' in options) ?
+                bindingContext['createChildContext'](dataValue, options['as']) :
+                bindingContext;                                         
+            templateComputed = ko.renderTemplate(templateName || element, innerBindingContext, options, element);
+        }
+    
+       
+        disposeOldComputedAndStoreNewOne(element, templateComputed);
+    }
+}
+```
+- 这段代码的重点分为两种情况
+    - foreach模式 => ko.renderTemplateForEach
+    - 普通模板模式 => ko.renderTemplate
+- disposeOldComputedAndStoreNewOne 的作用 
+    
+#### 3.2.2.1 普通模板模式
+```
+ var innerBindingContext = ('data' in options) ?
+    bindingContext['createChildContext'](dataValue, options['as']) :
+    bindingContext;                                         
+templateComputed = ko.renderTemplate(templateName || element, innerBindingContext, options, element);
+```    
+##### 3.2.2.1.1 子bindingContext的创建
+```
+ko.bindingContext.prototype['createChildContext'] = function (dataItemOrAccessor, dataItemAlias, extendCallback) {
+    return new ko.bindingContext(dataItemOrAccessor, this, dataItemAlias, function(self, parentContext) {
+        // Extend the context hierarchy by setting the appropriate pointers
+        self['$parentContext'] = parentContext;
+        self['$parent'] = parentContext['$data'];
+        self['$parents'] = (parentContext['$parents'] || []).slice(0);
+        self['$parents'].unshift(self['$parent']);
+        if (extendCallback)
+            extendCallback(self);
+    });
+};
+```
+
+##### 3.2.2.1.2 ko.renderTemplate 
+```
+ko.renderTemplate = function (template, dataOrBindingContext, options, targetNodeOrNodeArray, renderMode) {
+
+}
+```
+- 参数说明 
+    - template：模板（可能是模板名称，可能是nodes）
+    - dataOrBindingContext：viewModel或其生成的bindingContext
+    - options：选项
+    - targetNodeOrNodeArray：挂载节点
+    - renderMode：渲染模式；默认-replaceChildren
+    
+- 步骤
+    - 获取渲染模式    
+    - targetNodeOrNodeArray区分：如果 targetNodeOrNodeArray 不存在，则将各参数进行保存    
+###### 3.2.2.1.2.1 
+
+```
+ko.renderTemplate = function (template, dataOrBindingContext, options, targetNodeOrNodeArray, renderMode) { 
+    if (targetNodeOrNodeArray) {
+        var firstTargetNode = getFirstNodeFromPossibleArray(targetNodeOrNodeArray);
+
+        var whenToDispose = function () { return (!firstTargetNode) || !ko.utils.domNodeIsAttachedToDocument(firstTargetNode); }; 
+        var activelyDisposeWhenNodeIsRemoved = (firstTargetNode && renderMode == "replaceNode") ? firstTargetNode.parentNode : firstTargetNode;
+
+        return ko.dependentObservable(  
+            function () {
+                var bindingContext = (dataOrBindingContext && (dataOrBindingContext instanceof ko.bindingContext))
+                    ? dataOrBindingContext
+                    : new ko.bindingContext(ko.utils.unwrapObservable(dataOrBindingContext));
+
+                var templateName = resolveTemplateName(template, bindingContext['$data'], bindingContext),
+                    renderedNodesArray = executeTemplate(targetNodeOrNodeArray, renderMode, templateName, bindingContext, options);
+
+                if (renderMode == "replaceNode") {
+                    targetNodeOrNodeArray = renderedNodesArray;
+                    firstTargetNode = getFirstNodeFromPossibleArray(targetNodeOrNodeArray);
+                }
+            },
+            null,
+            { disposeWhen: whenToDispose, disposeWhenNodeIsRemoved: activelyDisposeWhenNodeIsRemoved }
+        );
+    } else {
+        //...
+    }
+};
+```
+
+- 步骤
+    - 获取挂载节点
+    - whenToDispose、disposeWhenNodeIsRemoved（见补充部分关于这两个选项的作用）
+    - 注册依赖，这样，节点就可以随着依赖的变化而自动更新
+        - 参数准备：bindingContext、templateName；这两个获取的过程都有可能注册依赖
+        - executeTemplate 执行模板渲染，见3.2.3           
+        
+###### 3.2.2.1.2.2     
 
 
+#### 3.2.2.2 foreach模式
 
+### 3.2.3 executeTemplate
+```
+function executeTemplate(targetNodeOrNodeArray, renderMode, template, bindingContext, options) {
+    //...
+    var templateEngineToUse = ...// 通常是默认模板引擎 见4.5
+    
+    // 见 4.5.1 
+    var renderedNodesArray = templateEngineToUse['renderTemplate'](template, bindingContext, options, templateDocument);
+}
+```
+
+  
+  
+  
+  
 ## 3.3 foreach
 
 ## 3.4 component
@@ -1498,12 +1659,76 @@ ko.expressionRewriting = (function () {
 
 ## 4.4 ko.utils
 
+## 4.5 模板引擎
+jqueryTmplTemplateEngine.js ， nativeTemplateEngine.js 这两个模板引擎都是继承于 templateEngine.js
+
+- ko.nativeTemplateEngine
+```
+ko.nativeTemplateEngine.prototype = new ko.templateEngine();
+ko.nativeTemplateEngine.prototype.constructor = ko.nativeTemplateEngine;
+```
+- ko.jqueryTmplTemplateEngine
+```
+ko.jqueryTmplTemplateEngine.prototype = new ko.templateEngine();
+ko.jqueryTmplTemplateEngine.prototype.constructor = ko.jqueryTmplTemplateEngine;
+
+```
+
+- 设置默认的模板引擎
+```
+ko.nativeTemplateEngine.instance = new ko.nativeTemplateEngine();
+ko.setTemplateEngine(ko.nativeTemplateEngine.instance);
+
+// 如果引用了jquery.tmpl
+if (jqueryTmplTemplateEngineInstance.jQueryTmplVersion > 0)
+    ko.setTemplateEngine(jqueryTmplTemplateEngineInstance);
+```
+
+### 4.5.1 ko.nativeTemplateEngine 
+- ko.nativeTemplateEngine 继承了 ko.templateEngine
+
+#### 4.5.1.1 renderTemplate 
+```
+ko.templateEngine.prototype['renderTemplate'] = function (template, bindingContext, options, templateDocument) {
+    var templateSource = this['makeTemplateSource'](template, templateDocument);
+    return this['renderTemplateSource'](templateSource, bindingContext, options, templateDocument);
+};
+```
+#### 4.5.1.2 makeTemplateSource
+```
+ko.templateEngine.prototype['makeTemplateSource'] = function(template, templateDocument) {
+    // Named template
+    if (typeof template == "string") {
+        templateDocument = templateDocument || document;
+        var elem = templateDocument.getElementById(template);
+        if (!elem)
+            throw new Error("Cannot find template with ID " + template);
+        return new ko.templateSources.domElement(elem);
+    } else if ((template.nodeType == 1) || (template.nodeType == 8)) {
+        // Anonymous template
+        return new ko.templateSources.anonymousTemplate(template);
+    } else
+        throw new Error("Unknown template type: " + template);
+};
+```
+看到templateDocument的作用了吗？用于查找模板
+
+
+## 4.6 ko.templateRewriting
+### 4.6.1 ensureTemplateIsRewritten
+
+
+## 4.7 ko.templateSources
+
+
 # 5 补充
 ## 5.1 ko.extenders 
 
-## ko.computed options:pure/deferEvaluation
+## ko.computed options中部分选项的用途
 ### options.pure:true
 ### options.deferEvaluation:true
+
+### disposeWhen、disposeWhenNodeIsRemoved
 deferUpdates 与 deferEvaluation 的区别
 
 

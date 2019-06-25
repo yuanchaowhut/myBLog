@@ -5,6 +5,8 @@
 - [1 相关知识准备](#1-%E7%9B%B8%E5%85%B3%E7%9F%A5%E8%AF%86%E5%87%86%E5%A4%87)
   - [1.1 观察者模式与发布订阅](#11-%E8%A7%82%E5%AF%9F%E8%80%85%E6%A8%A1%E5%BC%8F%E4%B8%8E%E5%8F%91%E5%B8%83%E8%AE%A2%E9%98%85)
   - [1.2 防抖与节流](#12-%E9%98%B2%E6%8A%96%E4%B8%8E%E8%8A%82%E6%B5%81)
+  - [1.3 策略模式](#13-%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F)
+  - [1.4 单例模式](#14-%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F)
 - [2 源码分析](#2-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90)
   - [2.1 ko的发布-订阅（系统）](#21-ko%E7%9A%84%E5%8F%91%E5%B8%83-%E8%AE%A2%E9%98%85%E7%B3%BB%E7%BB%9F)
     - [2.1.1 observable对象](#211-observable%E5%AF%B9%E8%B1%A1)
@@ -51,14 +53,16 @@
     - [3.1.6 input[type='checkbox']、input[type='radio']说sourceBindings的作用](#316-inputtypecheckboxinputtyperadio%E8%AF%B4sourcebindings%E7%9A%84%E4%BD%9C%E7%94%A8)
   - [3.2 textinput](#32-textinput)
   - [3.2 template](#32-template)
-  - [3.3 foreach](#33-foreach)
-  - [3.4 component](#34-component)
-    - [3.4.1 父子组件通信](#341-%E7%88%B6%E5%AD%90%E7%BB%84%E4%BB%B6%E9%80%9A%E4%BF%A1)
-  - [3.5 event](#35-event)
-- [4 工具类介绍](#4-%E5%B7%A5%E5%85%B7%E7%B1%BB%E4%BB%8B%E7%BB%8D)
-  - [4.1 ko.virtualElements](#41-kovirtualelements)
-    - [4.1.1 hasBindingValue](#411-hasbindingvalue)
-    - [4.1.2 normaliseVirtualElementDomStructure](#412-normalisevirtualelementdomstructure)
+    - [3.2.1 ko.bindingHandlers['template'].init](#321-kobindinghandlerstemplateinit)
+    - [3.2.2 ko.bindingHandlers['template'].update](#322-kobindinghandlerstemplateupdate)
+      - [3.2.2.1 普通模式](#3221-%E6%99%AE%E9%80%9A%E6%A8%A1%E5%BC%8F)
+        - [3.2.2.1.1 创建子bindingContext](#32211-%E5%88%9B%E5%BB%BA%E5%AD%90bindingcontext)
+        - [3.2.2.1.2 ko.renderTemplate](#32212-korendertemplate)
+          - [3.2.2.1.2.1 模板渲染入口](#322121-%E6%A8%A1%E6%9D%BF%E6%B8%B2%E6%9F%93%E5%85%A5%E5%8F%A3)
+          - [3.2.2.1.2.2 记忆当前模板参数信息](#322122-%E8%AE%B0%E5%BF%86%E5%BD%93%E5%89%8D%E6%A8%A1%E6%9D%BF%E5%8F%82%E6%95%B0%E4%BF%A1%E6%81%AF)
+      - [3.2.2.2 foreach模式](#3222-foreach%E6%A8%A1%E5%BC%8F)
+    - [3.2.3 executeTemplate](#323-executetemplate)
+      - [3.2.3.1 activateBindingsOnContinuousNodeArray](#3231-activatebindingsoncontinuousnodearray)
   - [4.2 ko.bindingProvider['instance']](#42-kobindingproviderinstance)
     - [4.2.1 nodeHasBindings](#421-nodehasbindings)
     - [4.2.3 getBindingAccessors](#423-getbindingaccessors)
@@ -68,11 +72,30 @@
     - [4.3.1 parseObjectLiteral：解析绑定字符串](#431-parseobjectliteral%E8%A7%A3%E6%9E%90%E7%BB%91%E5%AE%9A%E5%AD%97%E7%AC%A6%E4%B8%B2)
     - [4.3.2 preProcessBindings](#432-preprocessbindings)
   - [4.4 ko.utils](#44-koutils)
+    - [4.4.1 fixUpContinuousNodeArray](#441-fixupcontinuousnodearray)
+    - [4.4.2 setDomNodeChildrenFromArrayMapping](#442-setdomnodechildrenfromarraymapping)
+    - [4.4.3 compareArrays](#443-comparearrays)
+  - [4.5 模板引擎](#45-%E6%A8%A1%E6%9D%BF%E5%BC%95%E6%93%8E)
+  - [4.5.1 ko.templateEngine](#451-kotemplateengine)
+      - [4.5.1.1 renderTemplate](#4511-rendertemplate)
+      - [4.5.1.2 makeTemplateSource](#4512-maketemplatesource)
+    - [4.5.2 ko.nativeTemplateEngine](#452-konativetemplateengine)
+      - [4.5.2.1 renderTemplateSource](#4521-rendertemplatesource)
+  - [4.6 ko.templateRewriting](#46-kotemplaterewriting)
+    - [4.6.1 ensureTemplateIsRewritten](#461-ensuretemplateisrewritten)
+  - [4.7 ko.templateSources](#47-kotemplatesources)
+  - [4.8 ko.memoization](#48-komemoization)
+    - [4.8.1 memoize](#481-memoize)
+    - [4.8.2 unmemoize](#482-unmemoize)
+    - [4.8.3 unmemoizeDomNodeAndDescendants](#483-unmemoizedomnodeanddescendants)
 - [5 补充](#5-%E8%A1%A5%E5%85%85)
   - [5.1 ko.extenders](#51-koextenders)
-  - [ko.computed options:pure/deferEvaluation](#kocomputed-optionspuredeferevaluation)
+  - [5.2 documentation](#52-documentation)
+  - [5.3 observableArray](#53-observablearray)
+  - [ko.computed options中部分选项的用途](#kocomputed-options%E4%B8%AD%E9%83%A8%E5%88%86%E9%80%89%E9%A1%B9%E7%9A%84%E7%94%A8%E9%80%94)
     - [options.pure:true](#optionspuretrue)
     - [options.deferEvaluation:true](#optionsdeferevaluationtrue)
+    - [disposeWhen、disposeWhenNodeIsRemoved](#disposewhendisposewhennodeisremoved)
 - [闭包几种形式](#%E9%97%AD%E5%8C%85%E5%87%A0%E7%A7%8D%E5%BD%A2%E5%BC%8F)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -1096,6 +1119,8 @@ function validateThatBindingIsAllowedForVirtualElements(bindingName) {
 ### 2.2.4 applyBindingsToDescendantsInternal
 递归 -> applyBindingsToNodeAndDescendantsInternal（2.2.2）
 
+注意 ko.bindingProvider.instance.preprocessNode 的执行
+
 # 3 ko.bindingHandlers（内置的绑定处理器）
 ## 3.1 value:双向绑定
 - 结构
@@ -1322,11 +1347,12 @@ ko.bindingHandlers['template'] = {
     'update': function (element, valueAccessor, allBindings, viewModel, bindingContext) {
         var value = valueAccessor(),
             dataValue,
-            options = ko.utils.unwrapObservable(value),
+            options = ko.utils.unwrapObservable(value), 
             shouldDisplay = true,
             templateComputed = null,
             templateName;
     
+        // 第一部分：参数准备:templateName、shouldDisplay、dataValue
         if (typeof options == "string") {
             templateName = value;
             options = {};
@@ -1341,6 +1367,7 @@ ko.bindingHandlers['template'] = {
             dataValue = ko.utils.unwrapObservable(options['data']);
         }
     
+        // 第二部分：模板渲染
         if ('foreach' in options) { 
             var dataArray = (shouldDisplay && options['foreach']) || [];
             templateComputed = ko.renderTemplateForEach(templateName || element, dataArray, options, element, bindingContext);
@@ -1349,32 +1376,52 @@ ko.bindingHandlers['template'] = {
         } else { 
             var innerBindingContext = ('data' in options) ?
                 bindingContext['createChildContext'](dataValue, options['as']) :
-                bindingContext;                                         
+                bindingContext;
             templateComputed = ko.renderTemplate(templateName || element, innerBindingContext, options, element);
         }
-    
-       
+        
+        // 第三部分：更新绑定上下文   
         disposeOldComputedAndStoreNewOne(element, templateComputed);
     }
 }
 ```
-- 这段代码的重点分为两种情况
-    - foreach模式 => ko.renderTemplateForEach
-    - 普通模板模式 => ko.renderTemplate
-- disposeOldComputedAndStoreNewOne 的作用 
-    
-#### 3.2.2.1 普通模板模式
+
+关键在于第二部分：模板渲染分为两种情况
+1. foreach模式 => ko.renderTemplateForEach （3.2.2.2）
+2. 普通模式    => ko.renderTemplate （3.2.2.1）
+
+disposeOldComputedAndStoreNewOne 的作用：将绑定元素与其绑定上下文关联起来
 ```
- var innerBindingContext = ('data' in options) ?
-    bindingContext['createChildContext'](dataValue, options['as']) :
-    bindingContext;                                         
-templateComputed = ko.renderTemplate(templateName || element, innerBindingContext, options, element);
+function disposeOldComputedAndStoreNewOne(element, newComputed) {
+    var oldComputed = ko.utils.domData.get(element, templateComputedDomDataKey);
+    if (oldComputed && (typeof(oldComputed.dispose) == 'function'))
+        oldComputed.dispose();
+    ko.utils.domData.set(element, templateComputedDomDataKey, (newComputed && newComputed.isActive()) ? newComputed : undefined);
+}
+```
+
+    
+#### 3.2.2.1 普通模式
+```
+ko.bindingHandlers['template'] = {
+    'update': function (element, valueAccessor, allBindings, viewModel, bindingContext) {
+        //...
+         var innerBindingContext = ('data' in options) ?
+            bindingContext['createChildContext'](dataValue, options['as']) :
+            bindingContext;                                         
+        templateComputed = ko.renderTemplate(templateName || element, innerBindingContext, options, element);
+        //...
+    }
+}
 ```    
-##### 3.2.2.1.1 子bindingContext的创建
+两点
+1. 创建子 绑定上下文（见3.2.2.1.1）
+2. 模板渲染（见3.2.2.1.2）
+
+##### 3.2.2.1.1 创建子bindingContext
 ```
 ko.bindingContext.prototype['createChildContext'] = function (dataItemOrAccessor, dataItemAlias, extendCallback) {
-    return new ko.bindingContext(dataItemOrAccessor, this, dataItemAlias, function(self, parentContext) {
-        // Extend the context hierarchy by setting the appropriate pointers
+    return new ko.bindingContext(dataItemOrAccessor, this, dataItemAlias, function(self, parentContext) { 
         self['$parentContext'] = parentContext;
         self['$parent'] = parentContext['$data'];
         self['$parents'] = (parentContext['$parents'] || []).slice(0);
@@ -1384,25 +1431,34 @@ ko.bindingContext.prototype['createChildContext'] = function (dataItemOrAccessor
     });
 };
 ```
+- 关键在于传递的扩展回调：使得父子bindingContext关联起来
 
 ##### 3.2.2.1.2 ko.renderTemplate 
 ```
 ko.renderTemplate = function (template, dataOrBindingContext, options, targetNodeOrNodeArray, renderMode) {
+    renderMode = renderMode || "replaceChildren";
 
+    if (targetNodeOrNodeArray) {
+        //...
+    }else{
+        //...
+    }
 }
 ```
 - 参数说明 
     - template：模板（可能是模板名称，可能是nodes）
     - dataOrBindingContext：viewModel或其生成的bindingContext
-    - options：选项
-    - targetNodeOrNodeArray：挂载节点
-    - renderMode：渲染模式；默认-replaceChildren
+    - options，来源于 ko.bindingHandlers['template].update -> ko.utils.unwrapObservable(valueAccessor())：即dom[data-bind]属性（注意是解析后的，解析的过程见：2.2.3.2小节关于bindings的获取）
+    - targetNodeOrNodeArray：被挂载的节点（模板总得挂载在某个节点后面吧，即作为某个节点的孩子节点）
+    - renderMode：渲染模式；默认-"replaceChildren"
     
 - 步骤
-    - 获取渲染模式    
-    - targetNodeOrNodeArray区分：如果 targetNodeOrNodeArray 不存在，则将各参数进行保存    
-###### 3.2.2.1.2.1 
-
+    - 获取渲染模式：renderMode
+    - 根据 targetNodeOrNodeArray 是否存在
+        - 存在：直接渲染（见3.2.2.1.2.1）
+        - 不存在：‘记忆’（见3.2.2.1.2.2）
+        
+###### 3.2.2.1.2.1 模板渲染入口
 ```
 ko.renderTemplate = function (template, dataOrBindingContext, options, targetNodeOrNodeArray, renderMode) { 
     if (targetNodeOrNodeArray) {
@@ -1411,7 +1467,7 @@ ko.renderTemplate = function (template, dataOrBindingContext, options, targetNod
         var whenToDispose = function () { return (!firstTargetNode) || !ko.utils.domNodeIsAttachedToDocument(firstTargetNode); }; 
         var activelyDisposeWhenNodeIsRemoved = (firstTargetNode && renderMode == "replaceNode") ? firstTargetNode.parentNode : firstTargetNode;
 
-        return ko.dependentObservable(  
+        return ko.dependentObservable(
             function () {
                 var bindingContext = (dataOrBindingContext && (dataOrBindingContext instanceof ko.bindingContext))
                     ? dataOrBindingContext
@@ -1422,7 +1478,7 @@ ko.renderTemplate = function (template, dataOrBindingContext, options, targetNod
 
                 if (renderMode == "replaceNode") {
                     targetNodeOrNodeArray = renderedNodesArray;
-                    firstTargetNode = getFirstNodeFromPossibleArray(targetNodeOrNodeArray);
+                    firstTargetNode = getFirstNodeFromPossibleArray(targetNodeOrNodeArray);  //  更新firstTargetNode，看似没用，其实是被whenToDispose引用
                 }
             },
             null,
@@ -1436,33 +1492,112 @@ ko.renderTemplate = function (template, dataOrBindingContext, options, targetNod
 
 - 步骤
     - 获取挂载节点
-    - whenToDispose、disposeWhenNodeIsRemoved（见补充部分关于这两个选项的作用）
-    - 注册依赖，这样，节点就可以随着依赖的变化而自动更新
-        - 参数准备：bindingContext、templateName；这两个获取的过程都有可能注册依赖
-        - executeTemplate 执行模板渲染，见3.2.3           
+    ``` 
+    function getFirstNodeFromPossibleArray(nodeOrNodeArray) {
+        return nodeOrNodeArray.nodeType ? nodeOrNodeArray
+                                        : nodeOrNodeArray.length > 0 ? nodeOrNodeArray[0]
+                                        : null;
+    }
+    ```
+    - disposeWhen、disposeWhenNodeIsRemoved（见补充部分关于这两个选项的作用） 
+    - 模板渲染的过程放在了ko.dependentObservable()中，目的：这样做使得模板可以随着依赖的变化而自动更新
+        - 参数准备：bindingContext、templateName（这两个获取的过程都有可能注册依赖）
+        - executeTemplate 执行模板渲染（见3.2.3）
+        - 注意最后firstTargetNode的更新(whenToDispose:闭包，始终引用着它)    
         
-###### 3.2.2.1.2.2     
+###### 3.2.2.1.2.2 记忆当前模板参数信息
+```
+ko.renderTemplate = function (template, dataOrBindingContext, options, targetNodeOrNodeArray, renderMode) {
+    if (targetNodeOrNodeArray) {
+        //...
+     } else {
+        return ko.memoization.memoize(function (domNode) { 
+            ko.renderTemplate(template, dataOrBindingContext, options, domNode, "replaceNode");
+        });
+    }
+}
+```
+
+- ko.memoization.memoize（见4.8.1）
 
 
 #### 3.2.2.2 foreach模式
+- renderTemplateForEach
+    - 核心代码：ko.utils.setDomNodeChildrenFromArrayMapping（见4.4.2）
+
 
 ### 3.2.3 executeTemplate
 ```
 function executeTemplate(targetNodeOrNodeArray, renderMode, template, bindingContext, options) {
     //...
-    var templateEngineToUse = ...// 通常是默认模板引擎 见4.5
-    
-    // 见 4.5.1 
-    var renderedNodesArray = templateEngineToUse['renderTemplate'](template, bindingContext, options, templateDocument);
+    var templateEngineToUse = ...// 通常是默认模板引擎 见4.5   
+    var renderedNodesArray = templateEngineToUse['renderTemplate'](template, bindingContext, options, templateDocument);//见 4.5.1      
+    //... 根据renderMode替换节点     
+    activateBindingsOnContinuousNodeArray(renderedNodesArray, bindingContext); // 最主要的作用：ko绑定
 }
 ```
 
-  
-  
-  
-  
-## 3.3 foreach
+#### 3.2.3.1 activateBindingsOnContinuousNodeArray 
 
+作用1：执行 ko.bindingProvider['instance']['preprocessNode'] 函数（该函数由用户扩展） 
+作用2：执行ko绑定：ko.applyBindings （关键）
+作用3：保证经过 作用1，作用2 的处理过后 的节点是连续的：ko.utils.fixUpContinuousNodeArray 见 4.4.1 
+
+- 有意思的处理
+```
+function activateBindingsOnContinuousNodeArray(continuousNodeArray, bindingContext) { 
+    //...
+    continuousNodeArray.length = 0;
+    //...
+    continuousNodeArray.push(firstNode);
+    //,,,
+}
+```
+
+- invokeForEachNodeInContinuousRange
+作用：浅遍历节点（只遍历最外层的兄弟节点）并对每一个节点执行回调
+ ``` 
+function invokeForEachNodeInContinuousRange(firstNode, lastNode, action) {
+    var node, nextInQueue = firstNode, firstOutOfRangeNode = ko.virtualElements.nextSibling(lastNode);
+    while (nextInQueue && ((node = nextInQueue) !== firstOutOfRangeNode)) {
+        nextInQueue = ko.virtualElements.nextSibling(node);
+        action(node, nextInQueue);
+    }
+}
+```
+ 
+## 3.3 foreach 
+```
+ko.bindingHandlers['foreach'] = {
+    makeTemplateValueAccessor: function(valueAccessor) {
+        return function() {
+            //...
+            return {
+                'foreach': unwrappedValue['data'], // 关键
+                'as': unwrappedValue['as'],
+                'includeDestroyed': unwrappedValue['includeDestroyed'],
+                'afterAdd': unwrappedValue['afterAdd'],
+                'beforeRemove': unwrappedValue['beforeRemove'],
+                'afterRender': unwrappedValue['afterRender'],
+                'beforeMove': unwrappedValue['beforeMove'],
+                'afterMove': unwrappedValue['afterMove'],
+                'templateEngine': ko.nativeTemplateEngine.instance
+            };
+        };
+    },
+    'init': function(element, valueAccessor, allBindings, viewModel, bindingContext) {
+        return ko.bindingHandlers['template']['init'](element, ko.bindingHandlers['foreach'].makeTemplateValueAccessor(valueAccessor));
+    },
+    'update': function(element, valueAccessor, allBindings, viewModel, bindingContext) {
+        return ko.bindingHandlers['template']['update'](element, ko.bindingHandlers['foreach'].makeTemplateValueAccessor(valueAccessor), allBindings, viewModel, bindingContext);
+    }
+};
+```
+
+看到最终调用的是 ko.bindingHandlers['template']
+>"foreach: someExpression" is equivalent to "template: { foreach: someExpression }"
+ "foreach: { data: someExpression, afterAdd: myfn }" is equivalent to "template: { foreach: someExpression, afterAdd: myfn }"
+ 
 ## 3.4 component
 
 ### 3.4.1 父子组件通信
@@ -1659,6 +1794,12 @@ ko.expressionRewriting = (function () {
 
 ## 4.4 ko.utils
 
+### 4.4.1 fixUpContinuousNodeArray
+
+### 4.4.2 setDomNodeChildrenFromArrayMapping
+
+### 4.4.3 compareArrays
+
 ## 4.5 模板引擎
 jqueryTmplTemplateEngine.js ， nativeTemplateEngine.js 这两个模板引擎都是继承于 templateEngine.js
 
@@ -1684,8 +1825,17 @@ if (jqueryTmplTemplateEngineInstance.jQueryTmplVersion > 0)
     ko.setTemplateEngine(jqueryTmplTemplateEngineInstance);
 ```
 
-### 4.5.1 ko.nativeTemplateEngine 
-- ko.nativeTemplateEngine 继承了 ko.templateEngine
+## 4.5.1 ko.templateEngine
+- 这是一个基类，看到所有的方法都在原型对象上，作用很明了
+```
+ko.templateEngine = function () {throw new Error("Override renderTemplateSource");}; // 如果你没重写，呵呵，直接给你报错
+ko.templateEngine.prototype['renderTemplateSource'] = function (templateSource, bindingContext, options, templateDocument) {};
+ko.templateEngine.prototype['createJavaScriptEvaluatorBlock'] = function (script) {};
+ko.templateEngine.prototype['makeTemplateSource'] = function (template, templateDocument) {};
+ko.templateEngine.prototype['renderTemplate'] = function (template, bindingContext, options, templateDocument) {};
+ko.templateEngine.prototype['isTemplateRewritten'] = function (template, templateDocument) {};
+ko.templateEngine.prototype['rewriteTemplate'] = function (template, rewriterCallback, templateDocument) {};
+```
 
 #### 4.5.1.1 renderTemplate 
 ```
@@ -1694,6 +1844,7 @@ ko.templateEngine.prototype['renderTemplate'] = function (template, bindingConte
     return this['renderTemplateSource'](templateSource, bindingContext, options, templateDocument);
 };
 ```
+
 #### 4.5.1.2 makeTemplateSource
 ```
 ko.templateEngine.prototype['makeTemplateSource'] = function(template, templateDocument) {
@@ -1713,6 +1864,23 @@ ko.templateEngine.prototype['makeTemplateSource'] = function(template, templateD
 ```
 看到templateDocument的作用了吗？用于查找模板
 
+### 4.5.2 ko.nativeTemplateEngine  
+- ko.nativeTemplateEngine 继承了 ko.templateEngine 
+
+#### 4.5.2.1 renderTemplateSource
+ko.nativeTemplateEngine.prototype['renderTemplateSource'] = function (templateSource, bindingContext, options, templateDocument) {
+    var useNodesIfAvailable = !(ko.utils.ieVersion < 9), // IE<9 cloneNode doesn't work properly
+        templateNodesFunc = useNodesIfAvailable ? templateSource['nodes'] : null,
+        templateNodes = templateNodesFunc ? templateSource['nodes']() : null;
+
+    if (templateNodes) {
+        return ko.utils.makeArray(templateNodes.cloneNode(true).childNodes);
+    } else {
+        var templateText = templateSource['text']();
+        return ko.utils.parseHtmlFragment(templateText, templateDocument);
+    }
+};
+
 
 ## 4.6 ko.templateRewriting
 ### 4.6.1 ensureTemplateIsRewritten
@@ -1720,9 +1888,44 @@ ko.templateEngine.prototype['makeTemplateSource'] = function(template, templateD
 
 ## 4.7 ko.templateSources
 
+## 4.8 ko.memoization
+``` 
+ko.memoization = (function () { 
+    return {
+        memoize: function (callback) {},
+        unmemoize: function (memoId, callbackParams) {},
+        unmemoizeDomNodeAndDescendants: function (domNode, extraCallbackParamsArray) {},
+        parseMemoText: function (memoText) {}
+    };
+})();
+```
+### 4.8.1 memoize
+``` 
+memoize: function (callback) {
+    if (typeof callback != "function")
+        throw new Error("You can only pass a function to ko.memoization.memoize()");
+    var memoId = generateRandomId();
+    memos[memoId] = callback;
+    return "<!--[ko_memo:" + memoId + "]-->";
+}
+```
+作用：通过生成一个注释元素，记录函数（显然该函数作为一个闭包存在）
+
+### 4.8.2 unmemoize
+
+### 4.8.3 unmemoizeDomNodeAndDescendants
+
 
 # 5 补充
 ## 5.1 ko.extenders 
+
+## 5.2 documentation
+- https://knockoutjs.com/documentation/binding-preprocessing.html
+    - ko.bindingHandlers.yourBindingHandler.preprocess 见 4.3.2
+    - ko.bindingProvider.instance.preprocessNode 见2.2.4 ，3.2.3.1
+
+## 5.3 observableArray
+编辑距离算法
 
 ## ko.computed options中部分选项的用途
 ### options.pure:true

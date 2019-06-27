@@ -115,7 +115,6 @@
     - [options.pure:true](#optionspuretrue)
     - [options.deferEvaluation:true](#optionsdeferevaluationtrue)
     - [disposeWhen、disposeWhenNodeIsRemoved](#disposewhendisposewhennodeisremoved)
-- [闭包几种形式](#%E9%97%AD%E5%8C%85%E5%87%A0%E7%A7%8D%E5%BD%A2%E5%BC%8F)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -2397,8 +2396,6 @@ memoize: function (callback) {
 ### disposeWhen、disposeWhenNodeIsRemoved
 deferUpdates 与 deferEvaluation 的区别
 
-
-# 闭包几种形式
- 
+  
 
 

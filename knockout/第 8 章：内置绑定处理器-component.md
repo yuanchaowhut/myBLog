@@ -1,3 +1,22 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [3.4 component](#34-component)
+  - [3.4.1 template/viewModel获取入口：ko.components.get](#341-templateviewmodel%E8%8E%B7%E5%8F%96%E5%85%A5%E5%8F%A3kocomponentsget)
+  - [3.4.2 loadComponentAndNotify](#342-loadcomponentandnotify)
+  - [3.4.3 beginLoadingComponent](#343-beginloadingcomponent)
+  - [3.4.4 ko.components](#344-kocomponents)
+    - [3.4.4.1 组件注册等相关方法](#3441-%E7%BB%84%E4%BB%B6%E6%B3%A8%E5%86%8C%E7%AD%89%E7%9B%B8%E5%85%B3%E6%96%B9%E6%B3%95)
+    - [3.4.4.2 ko.components.defaultLoader](#3442-kocomponentsdefaultloader)
+      - [3.4.4.2.1 loadComponent](#34421-loadcomponent)
+      - [3.4.4.2.2 loadTemplate](#34422-loadtemplate)
+      - [3.4.4.2.3 loadViewModel](#34423-loadviewmodel)
+  - [3.4.5 getFirstResultFromLoaders](#345-getfirstresultfromloaders)
+  - [3.4.6 possiblyGetConfigFromAmd](#346-possiblygetconfigfromamd)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## 3.4 component
 
 ```

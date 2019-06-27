@@ -1,3 +1,16 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [3.1 value:双向绑定](#31-value%E5%8F%8C%E5%90%91%E7%BB%91%E5%AE%9A)
+  - [3.1.1 input[tyep=checkbox]、input[type=radio]](#311-inputtyepcheckboxinputtyperadio)
+  - [3.1.2 事件名称处理](#312-%E4%BA%8B%E4%BB%B6%E5%90%8D%E7%A7%B0%E5%A4%84%E7%90%86)
+  - [3.1.3 事件订阅](#313-%E4%BA%8B%E4%BB%B6%E8%AE%A2%E9%98%85)
+  - [3.1.4 注册依赖](#314-%E6%B3%A8%E5%86%8C%E4%BE%9D%E8%B5%96)
+  - [3.1.6 input[type='checkbox']、input[type='radio']说sourceBindings的作用](#316-inputtypecheckboxinputtyperadio%E8%AF%B4sourcebindings%E7%9A%84%E4%BD%9C%E7%94%A8)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## 3.1 value:双向绑定
 - 结构
 

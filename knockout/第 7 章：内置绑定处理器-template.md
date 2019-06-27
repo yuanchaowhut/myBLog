@@ -1,3 +1,23 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [3.2 template](#32-template)
+  - [3.2.1 ko.bindingHandlers['template'].init](#321-kobindinghandlerstemplateinit)
+  - [3.2.2 ko.bindingHandlers['template'].update](#322-kobindinghandlerstemplateupdate)
+    - [3.2.2.1 普通模式](#3221-%E6%99%AE%E9%80%9A%E6%A8%A1%E5%BC%8F)
+      - [3.2.2.1.1 创建子bindingContext](#32211-%E5%88%9B%E5%BB%BA%E5%AD%90bindingcontext)
+      - [3.2.2.1.2 ko.renderTemplate](#32212-korendertemplate)
+        - [3.2.2.1.2.1 模板渲染入口](#322121-%E6%A8%A1%E6%9D%BF%E6%B8%B2%E6%9F%93%E5%85%A5%E5%8F%A3)
+        - [3.2.2.1.2.2 记忆当前模板参数信息](#322122-%E8%AE%B0%E5%BF%86%E5%BD%93%E5%89%8D%E6%A8%A1%E6%9D%BF%E5%8F%82%E6%95%B0%E4%BF%A1%E6%81%AF)
+    - [3.2.2.2 foreach模式](#3222-foreach%E6%A8%A1%E5%BC%8F)
+      - [3.2.2.2.1 executeTemplateForArrayItem](#32221-executetemplateforarrayitem)
+      - [3.2.2.2.2 activateBindingsCallback](#32222-activatebindingscallback)
+  - [3.2.3 executeTemplate](#323-executetemplate)
+    - [3.2.3.1 activateBindingsOnContinuousNodeArray](#3231-activatebindingsoncontinuousnodearray)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## 3.2 template
 具体用法参考官网
 

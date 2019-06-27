@@ -1,3 +1,24 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [2.2 API:ko.applyBindings](#22-apikoapplybindings)
+  - [2.2.1 ko.bindingContext:生成绑定上下文](#221-kobindingcontext%E7%94%9F%E6%88%90%E7%BB%91%E5%AE%9A%E4%B8%8A%E4%B8%8B%E6%96%87)
+    - [2.2.1.1 dataItemOrAccessor是普通对象的情况](#2211-dataitemoraccessor%E6%98%AF%E6%99%AE%E9%80%9A%E5%AF%B9%E8%B1%A1%E7%9A%84%E6%83%85%E5%86%B5)
+    - [2.2.1.2 dataItemOrAccessor是observable对象的情况](#2212-dataitemoraccessor%E6%98%AFobservable%E5%AF%B9%E8%B1%A1%E7%9A%84%E6%83%85%E5%86%B5)
+  - [2.2.2 applyBindingsToNodeAndDescendantsInternal:dom与vm的绑定入口](#222-applybindingstonodeanddescendantsinternaldom%E4%B8%8Evm%E7%9A%84%E7%BB%91%E5%AE%9A%E5%85%A5%E5%8F%A3)
+  - [2.2.3 applyBindingsToNodeInternal（dom与vm绑定的核心方法）](#223-applybindingstonodeinternaldom%E4%B8%8Evm%E7%BB%91%E5%AE%9A%E7%9A%84%E6%A0%B8%E5%BF%83%E6%96%B9%E6%B3%95)
+    - [2.2.3.1 判断当前节点是否进行过ko绑定](#2231-%E5%88%A4%E6%96%AD%E5%BD%93%E5%89%8D%E8%8A%82%E7%82%B9%E6%98%AF%E5%90%A6%E8%BF%9B%E8%A1%8C%E8%BF%87ko%E7%BB%91%E5%AE%9A)
+    - [2.2.3.2 获取'绑定字符串对象'](#2232-%E8%8E%B7%E5%8F%96%E7%BB%91%E5%AE%9A%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%AF%B9%E8%B1%A1)
+    - [2.2.3.3  获取关联的绑定处理器，执行每个绑定处理器（核心过程）](#2233--%E8%8E%B7%E5%8F%96%E5%85%B3%E8%81%94%E7%9A%84%E7%BB%91%E5%AE%9A%E5%A4%84%E7%90%86%E5%99%A8%E6%89%A7%E8%A1%8C%E6%AF%8F%E4%B8%AA%E7%BB%91%E5%AE%9A%E5%A4%84%E7%90%86%E5%99%A8%E6%A0%B8%E5%BF%83%E8%BF%87%E7%A8%8B)
+      - [2.2.3.3.1 参数准备](#22331-%E5%8F%82%E6%95%B0%E5%87%86%E5%A4%87)
+      - [2.2.3.3.2 绑定处理器（ko.bindingHandlers[xxx]）的执行](#22332-%E7%BB%91%E5%AE%9A%E5%A4%84%E7%90%86%E5%99%A8kobindinghandlersxxx%E7%9A%84%E6%89%A7%E8%A1%8C)
+      - [2.2.3.3.3 topologicalSortBindings](#22333-topologicalsortbindings)
+      - [2.2.3.3.4 validateThatBindingIsAllowedForVirtualElements](#22334-validatethatbindingisallowedforvirtualelements)
+  - [2.2.4 applyBindingsToDescendantsInternal](#224-applybindingstodescendantsinternal)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## 2.2 API:ko.applyBindings 
 > 该api的作用：将参数中的viewModel绑定到指定的dom节点中
 

@@ -30,17 +30,15 @@ var canSayHello = ko.computed(function () {
 1. canSayHello（computedObservable对象）会向 name（observable对象）添加订阅
 2. canSayHello会记录其所有的依赖，_state.dependencyTracking
 3. name会保持所有添加的订阅，观察者模式中Subject会记录所有的Subscriber
-4. ko的依赖检测基于ko.computed(fn)/ko.dependentObservalbe(fn)，
-当fn中存在observable对象、computedObservable对象的读取操作时，便会存在
+4. ko的依赖检测基于ko.computed(fn)/ko.dependentObservalbe(fn)，当fn中存在observable对象、computedObservable对象的读取操作时，便会发生依赖检测
 
-# 2. ko依赖检测机制的实现
-
-
-ko.computed() 
+# 2. ko依赖检测机制的实现 
+ko.computed(fn)：fn称为readFunction 
 -> evaluateImmediate 
 -> evaluateImmediate_CallReadWithDependencyDetection 
 -> evaluateImmediate_CallReadThenEndDependencyDetection
-# 2.1 evaluateImmediate_CallReadWithDependencyDetection
+
+## 2.1 依赖检测环境准备
 
 ``` 
 evaluateImmediate_CallReadWithDependencyDetection: function (notifyChange) {
@@ -51,7 +49,7 @@ evaluateImmediate_CallReadWithDependencyDetection: function (notifyChange) {
             disposalCount: state.dependenciesCount
         };
 
-    ko.dependencyDetection.begin({
+    ko.dependencyDetection.begin({ // 关键：依赖检测环境准备
         callbackTarget: dependencyDetectionContext,
         callback: computedBeginDependencyDetectionCallback, //该函数被优化到外层作用域了（作为共享函数，以避免创建不必要的函数实例）
         computed: computedObservable,
@@ -61,19 +59,14 @@ evaluateImmediate_CallReadWithDependencyDetection: function (notifyChange) {
     //...
 }
 ```
+ 
+## 2.2 依赖检测环境的管理 
 
+ko.dependencyDetection结构，通过outerFrames（栈）用来管理依赖检测的执行环境
+1. 注意：ko.dependencyDetection.begin\end总是成对出现
+2. 称 currentFrame 为当前依赖检测的执行环境
 
-
-#### 2.1.3.2 ko.dependencyDetection 管理observable执行环境’ 
-> ko.dependencyDetection 是依赖检测双方的连接点
-
-- ko.dependencyDetection结构，通过outerFrames（栈）用来管理‘observable执行环境’
-    - 注意：ko.dependencyDetection.begin\end总是成对出现
-    - 称 currentFrame 为‘当前observable执行环境’
-
-- ko.dependencyDetection
-
-
+ko.dependencyDetection的结构
 ```
 ko.computedContext = ko.dependencyDetection = (function () {
     var outerFrames = [],
@@ -102,10 +95,10 @@ ko.computedContext = ko.dependencyDetection = (function () {
 })();
 ```
 
-##### 2.1.3.2.1 begin、end
+### 2.2.1 begin、end
 
 
-##### 2.1.3.2.2 ignore：抑制依赖性检测
+### 2.2.2 ignore：抑制依赖性检测
 ``` 
 ignore: function (callback, callbackTarget, callbackArgs) {
     try {
@@ -116,9 +109,8 @@ ignore: function (callback, callbackTarget, callbackArgs) {
     }
 },
 ```    
-    
-    
-#### 2.1.3.3 evaluateImmediate_CallReadThenEndDependencyDetection
+       
+## 2.3 执行 state.readFunction
 
 ```
 evaluateImmediate_CallReadThenEndDependencyDetection: function (state, dependencyDetectionContext) {
@@ -132,15 +124,14 @@ evaluateImmediate_CallReadThenEndDependencyDetection: function (state, dependenc
 }
 ```
 
-- 上面的readFunction（ko.computed的参数）
-
+执行readFunction，即下面函数
 ``` 
 function () { 
     return name() ? true : false;
 }
 ```
 
-#### 2.1.3.4 observable对象的‘读’
+## 2.4 observable对象的读
 
 ``` 
 function observable() {
@@ -155,7 +146,7 @@ function observable() {
 }
 ```
 
-#### 2.1.3.5 ko.dependencyDetection.registerDependency
+## 2.5 ko.dependencyDetection.registerDependency
 
 ```
 registerDependency: function (subscribable) { // 参数：observable对象，即案例中的 name
@@ -166,10 +157,9 @@ registerDependency: function (subscribable) { // 参数：observable对象，即
     }
 },
 ```
-- 这里的 currentFrame还记得吗？就是 2.1.3.1 中 ko.dependencyDetection.begin 的参数
 
-computedBeginDependencyDetectionCallback.call(currentFrame.callbackTarget,xxxx,xxx)
-
+1. 这里的 currentFrame还记得吗？就是 2.1 中 ko.dependencyDetection.begin 的参数
+2. currentFrame.callback即computedBeginDependencyDetectionCallback 
 ``` 
 function computedBeginDependencyDetectionCallback(subscribable, id) { // subscribable:name ；computedObservable:canSayHello
     var computedObservable = this.computedObservable, // this指向 evaluateImmediate_CallReadWithDependencyDetection 中的 dependencyDetectionContext

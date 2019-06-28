@@ -19,24 +19,28 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-### 2.1.3 发布-订阅实现的机制（依赖检测系统）
-
-
+# 1. 示例代码
 ```
 var name = ko.observable();
 var canSayHello = ko.computed(function () { 
     return name() ? true : false;
 });
 ```
+结论
+1. canSayHello（computedObservable对象）会向 name（observable对象）添加订阅
+2. canSayHello会记录其所有的依赖，_state.dependencyTracking
+3. name会保持所有添加的订阅，观察者模式中Subject会记录所有的Subscriber
+4. ko的依赖检测基于ko.computed(fn)/ko.dependentObservalbe(fn)，
+当fn中存在observable对象、computedObservable对象的读取操作时，便会存在
+
+# 2. ko依赖检测机制的实现
 
 
-上例：canSayHello（computedObservable对象）会向 name（observable对象）添加订阅 
-
-ko.computed() -> evaluateImmediate -> evaluateImmediate_CallReadWithDependencyDetection -> evaluateImmediate_CallReadThenEndDependencyDetection
-
-#### 2.1.3.1 evaluateImmediate_CallReadWithDependencyDetection
-
-
+ko.computed() 
+-> evaluateImmediate 
+-> evaluateImmediate_CallReadWithDependencyDetection 
+-> evaluateImmediate_CallReadThenEndDependencyDetection
+# 2.1 evaluateImmediate_CallReadWithDependencyDetection
 
 ``` 
 evaluateImmediate_CallReadWithDependencyDetection: function (notifyChange) {

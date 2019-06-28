@@ -174,10 +174,11 @@ function computedBeginDependencyDetectionCallback(subscribable, id) { // subscri
 }
 ```
 
-state.isSleeping通常为false，特殊情况下true，这种特殊留在后面部分说。因此这里会去执行  computedObservable.subscribeToDependency(subscribable)
+1. state.isSleeping只有在pureComputed情况下才可能为true；
+2. 因此，走computedObservable.subscribeToDependency(subscribable)
 
 
-#### 2.1.3.6 订阅：computedObservable 向 observable对象添加订阅
+#### 2.6 订阅：computedObservable 向 observable对象添加订阅
 > computedObservable对象向observable对象添加订阅
 
 
@@ -405,4 +406,7 @@ function () {
 
 - disposeCallback的作用？
 2.1.3.6中说到 computedObservable 向 observable 对象添加订阅，那么当computedObservable销毁的时候，是不是应该将这个订阅移除呢？这里就是这个作用
+
+# 3. 补充
+# 3.1 pureComputed
 

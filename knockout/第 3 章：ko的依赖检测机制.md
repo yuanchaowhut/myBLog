@@ -22,6 +22,9 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
+1. 第二章通过observable对象和computedObservable对象的继承结构说到二者分别具有的能力
+2. 本章来解答上一章遗留的问题：什么时候会发生**订阅**呢？什么时候有触发**通知**呢？也就是ko的依赖检测机制
+
 # 1. 示例代码
 ```
 // 定义一个observable对象

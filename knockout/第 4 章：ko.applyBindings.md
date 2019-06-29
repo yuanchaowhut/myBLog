@@ -19,12 +19,10 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-## 2.2 API:ko.applyBindings 
-> 该api的作用：将参数中的viewModel绑定到指定的dom节点中
+# 1 API:ko.applyBindings 
+> 将参数中的viewModel绑定到指定的dom节点中
 
-**提示：**本届所有截图均基于以下案例代码，如有不同会备注
-
-
+**提示**：本节所有截图均基于以下案例代码
 ```
 //html
 <div data-bind="text: displayName,style: { color: currentProfit() < 0 ? 'red' : 'black' },css: { active: currentProfit() < 0 }"></div>
@@ -32,11 +30,7 @@
  var currentProfit = ko.observable();
 ```
 
-
-
-- ko.applyBindings
-
-
+**ko.applyBindings**
 ``` 
 ko.applyBindings = function (viewModelOrBindingContext, rootNode) {
     //...
@@ -45,13 +39,8 @@ ko.applyBindings = function (viewModelOrBindingContext, rootNode) {
 };
 ```
 
-### 2.2.1 ko.bindingContext:生成绑定上下文
-
-
-
+# 2 ko.bindingContext:生成绑定上下文
 getBindingContext -> ko.bindingContext 
-
-
 ```
 ko.bindingContext = function(dataItemOrAccessor, parentContext, dataItemAlias, extendCallback) {
     function updateContext() {
@@ -96,9 +85,11 @@ ko.bindingContext = function(dataItemOrAccessor, parentContext, dataItemAlias, e
     }
 }
 ```
-- 参数介绍
-    - [parentContext, dataItemAlias, extendCallback] 这三个参数的作用：构建父子绑定上下文，用于父子绑定上下文的通信 
-    - dataItemOrAccessor：就是viewModel；参数dataItemOrAccessor可以分为两种情况：observable对象、普通对象
+**参数介绍**
+1. dataItemOrAccessor：viewModel（两种情况：observable对象、普通对象）
+2. parentContext：父绑定上下文
+3. dataItemAlias
+2. extendCallback 
 
 #### 2.2.1.1 dataItemOrAccessor是普通对象的情况
 

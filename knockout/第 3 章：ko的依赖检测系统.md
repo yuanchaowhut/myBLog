@@ -137,7 +137,7 @@ evaluateImmediate_CallReadThenEndDependencyDetection: function (state, dependenc
 }
 ```
 
-**执行readFunction，即下面函数**
+**执行readFunction，即案例中下面函数**
 ``` 
 function () { 
     return 'hello! ' + name(); // observable对象的读
@@ -237,8 +237,8 @@ var ko_subscribable_fn = {
 }
 ```
 
-**上面代码注释中的disposeCallback的作用？**
-当Observer销毁（见3.5）时，那么该Observer应该从其依赖（Subject）中把添加的订阅移除
+**上面代码注释中的disposeCallback的作用？** 
+1. 当Observer销毁（见3.5）时，那么该Observer应该从其依赖（Subject）中把添加的订阅移除
 
 **ko.subscription** 
 ``` 
@@ -257,8 +257,8 @@ ko.subscription.prototype.dispose = function () {
 ```
 
 ### 3.3.3 添加依赖
-Observer向Subject添加订阅说明Observer是依赖Subject的，对于Observer需要记录下所有的依赖
-
+1. Observer向Subject添加订阅说明Observer是依赖Subject的，Observer需要记录下所有的依赖
+2. Observer跟踪所有的依赖的作用？当Observer销毁时，需要通知依赖把订阅移除（见3.5）
 ``` 
 var computedFn = {
     addDependencyTracking: function (id, target, trackingObj) {
@@ -322,7 +322,7 @@ var canSayHello = ko.computed(function () {
 });
 ```
 
-## 3.5 Observer的销毁;
+## 3.5 Observer的销毁
 在3.3.3小节中说到computedObservable将所有的依赖订阅添加到state.dependencyTracking中
 ``` 
 var computedFn = {

@@ -39,11 +39,8 @@ var observer = ko.computed(function () {
 name('john')
 ```
 
-**结论**
-1. observer（computedObservable对象）会向 name（observable对象）添加订阅
-2. observer会记录其所有的依赖，_state.dependencyTracking
-3. name会保持所有添加的订阅，观察者模式中Subject会记录所有的Subscriber
-4. ko的依赖检测基于ko.computed(fn)/ko.dependentObservalbe(fn)，当fn中存在observable对象、computedObservable对象的读取操作时，便会发生依赖检测
+**结论** 
+ko.computed(fn)/ko.dependentObservalbe(fn)，当fn中存在Subject（observable对象、computedObservable对象）的读取操作时，会发生依赖检测，会被observer添加订阅，并且Subject会被作为observer的依赖
 
 # 2. 依赖检测环境的管理 
 **ko.dependencyDetection通过outerFrames（栈）用来管理依赖检测的执行环境**
@@ -410,5 +407,6 @@ var b = ko.computed(function () {
 # 4.1 pureComputed
 
 # 5 总结
-依赖检测的实现、观察者模式
-![avatar](../images/knockout/ko_dependent_test.png)   
+![avatar](../images/knockout/ko_dependent_test.png)
+
+1. 发生依赖检测的关键在于ko.computed会去设置currentFrame

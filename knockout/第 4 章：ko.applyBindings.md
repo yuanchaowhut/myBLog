@@ -2,20 +2,20 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [2.2 API:ko.applyBindings](#22-apikoapplybindings)
-  - [2.2.1 ko.bindingContext:生成绑定上下文](#221-kobindingcontext%E7%94%9F%E6%88%90%E7%BB%91%E5%AE%9A%E4%B8%8A%E4%B8%8B%E6%96%87)
-    - [2.2.1.1 dataItemOrAccessor是普通对象的情况](#2211-dataitemoraccessor%E6%98%AF%E6%99%AE%E9%80%9A%E5%AF%B9%E8%B1%A1%E7%9A%84%E6%83%85%E5%86%B5)
-    - [2.2.1.2 dataItemOrAccessor是observable对象的情况](#2212-dataitemoraccessor%E6%98%AFobservable%E5%AF%B9%E8%B1%A1%E7%9A%84%E6%83%85%E5%86%B5)
-  - [2.2.2 applyBindingsToNodeAndDescendantsInternal:dom与vm的绑定入口](#222-applybindingstonodeanddescendantsinternaldom%E4%B8%8Evm%E7%9A%84%E7%BB%91%E5%AE%9A%E5%85%A5%E5%8F%A3)
-  - [2.2.3 applyBindingsToNodeInternal（dom与vm绑定的核心方法）](#223-applybindingstonodeinternaldom%E4%B8%8Evm%E7%BB%91%E5%AE%9A%E7%9A%84%E6%A0%B8%E5%BF%83%E6%96%B9%E6%B3%95)
-    - [2.2.3.1 判断当前节点是否进行过ko绑定](#2231-%E5%88%A4%E6%96%AD%E5%BD%93%E5%89%8D%E8%8A%82%E7%82%B9%E6%98%AF%E5%90%A6%E8%BF%9B%E8%A1%8C%E8%BF%87ko%E7%BB%91%E5%AE%9A)
-    - [2.2.3.2 获取'绑定字符串对象'](#2232-%E8%8E%B7%E5%8F%96%E7%BB%91%E5%AE%9A%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%AF%B9%E8%B1%A1)
-    - [2.2.3.3  获取关联的绑定处理器，执行每个绑定处理器（核心过程）](#2233--%E8%8E%B7%E5%8F%96%E5%85%B3%E8%81%94%E7%9A%84%E7%BB%91%E5%AE%9A%E5%A4%84%E7%90%86%E5%99%A8%E6%89%A7%E8%A1%8C%E6%AF%8F%E4%B8%AA%E7%BB%91%E5%AE%9A%E5%A4%84%E7%90%86%E5%99%A8%E6%A0%B8%E5%BF%83%E8%BF%87%E7%A8%8B)
-      - [2.2.3.3.1 参数准备](#22331-%E5%8F%82%E6%95%B0%E5%87%86%E5%A4%87)
-      - [2.2.3.3.2 绑定处理器（ko.bindingHandlers[xxx]）的执行](#22332-%E7%BB%91%E5%AE%9A%E5%A4%84%E7%90%86%E5%99%A8kobindinghandlersxxx%E7%9A%84%E6%89%A7%E8%A1%8C)
-      - [2.2.3.3.3 topologicalSortBindings](#22333-topologicalsortbindings)
-      - [2.2.3.3.4 validateThatBindingIsAllowedForVirtualElements](#22334-validatethatbindingisallowedforvirtualelements)
-  - [2.2.4 applyBindingsToDescendantsInternal](#224-applybindingstodescendantsinternal)
+- [1 API:ko.applyBindings](#1-apikoapplybindings)
+- [2 ko.bindingContext:生成绑定上下文](#2-kobindingcontext%E7%94%9F%E6%88%90%E7%BB%91%E5%AE%9A%E4%B8%8A%E4%B8%8B%E6%96%87)
+  - [2.1 dataItemOrAccessor是普通对象的情况](#21-dataitemoraccessor%E6%98%AF%E6%99%AE%E9%80%9A%E5%AF%B9%E8%B1%A1%E7%9A%84%E6%83%85%E5%86%B5)
+  - [2.2 dataItemOrAccessor是observable对象的情况](#22-dataitemoraccessor%E6%98%AFobservable%E5%AF%B9%E8%B1%A1%E7%9A%84%E6%83%85%E5%86%B5)
+- [3 applyBindingsToNodeAndDescendantsInternal:dom与vm的绑定入口](#3-applybindingstonodeanddescendantsinternaldom%E4%B8%8Evm%E7%9A%84%E7%BB%91%E5%AE%9A%E5%85%A5%E5%8F%A3)
+- [4 applyBindingsToNodeInternal（dom与vm绑定的核心方法）](#4-applybindingstonodeinternaldom%E4%B8%8Evm%E7%BB%91%E5%AE%9A%E7%9A%84%E6%A0%B8%E5%BF%83%E6%96%B9%E6%B3%95)
+  - [4.1 判断当前节点是否进行过ko绑定](#41-%E5%88%A4%E6%96%AD%E5%BD%93%E5%89%8D%E8%8A%82%E7%82%B9%E6%98%AF%E5%90%A6%E8%BF%9B%E8%A1%8C%E8%BF%87ko%E7%BB%91%E5%AE%9A)
+  - [4.2 获取'绑定字符串对象'](#42-%E8%8E%B7%E5%8F%96%E7%BB%91%E5%AE%9A%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%AF%B9%E8%B1%A1)
+  - [4.5 获取关联的绑定处理器，执行每个绑定处理器（核心过程）](#45-%E8%8E%B7%E5%8F%96%E5%85%B3%E8%81%94%E7%9A%84%E7%BB%91%E5%AE%9A%E5%A4%84%E7%90%86%E5%99%A8%E6%89%A7%E8%A1%8C%E6%AF%8F%E4%B8%AA%E7%BB%91%E5%AE%9A%E5%A4%84%E7%90%86%E5%99%A8%E6%A0%B8%E5%BF%83%E8%BF%87%E7%A8%8B)
+    - [4.5.1 参数准备](#451-%E5%8F%82%E6%95%B0%E5%87%86%E5%A4%87)
+    - [4.5.2 绑定处理器（ko.bindingHandlers[xxx]）的执行](#452-%E7%BB%91%E5%AE%9A%E5%A4%84%E7%90%86%E5%99%A8kobindinghandlersxxx%E7%9A%84%E6%89%A7%E8%A1%8C)
+    - [4.5.3 topologicalSortBindings](#453-topologicalsortbindings)
+    - [4.5.4 validateThatBindingIsAllowedForVirtualElements](#454-validatethatbindingisallowedforvirtualelements)
+- [5 applyBindingsToDescendantsInternal](#5-applybindingstodescendantsinternal)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -91,7 +91,7 @@ ko.bindingContext = function(dataItemOrAccessor, parentContext, dataItemAlias, e
 3. dataItemAlias
 2. extendCallback 
 
-#### 2.2.1.1 dataItemOrAccessor是普通对象的情况
+## 2.1 dataItemOrAccessor是普通对象的情况
 
 此时对于的有效代码只有下面部分有效，即保存当前的vm
 
@@ -104,7 +104,7 @@ self['$rawData'] = dataItemOrObservable;
 self['$data'] = dataItem;
 ```
 
-#### 2.2.1.2 dataItemOrAccessor是observable对象的情况
+## 2.2 dataItemOrAccessor是observable对象的情况
 情况略复杂些，当dataItemOrAccessor是observable对象时，subscribable会向dataItemOrAccessor添加订阅（即subscribable依赖dataItemOrAccessor），subscribable.isActive()为true
 
 ``` 
@@ -179,7 +179,7 @@ subscribable = ko.dependentObservable(updateContext, null, { disposeWhen: dispos
     3. 所以由（1 + 2）得出，该节点及其孩子节点都是依赖 viewMoldel（observable对象）的。如果不考虑子节点是否在document中，直接把subscribable销毁会使得依赖链断掉，也就是说当viewModel更新时不会触发节点的更新
     
 
-### 2.2.2 applyBindingsToNodeAndDescendantsInternal:dom与vm的绑定入口
+# 3 applyBindingsToNodeAndDescendantsInternal:dom与vm的绑定入口
 > **绑定关键字**的两种情况在：ko.bindingProvider['instance']['nodeHasBindings']，见3.2.1
 
 
@@ -220,7 +220,7 @@ function applyBindingsToNodeAndDescendantsInternal (bindingContext, nodeVerified
     - 如果返回 controlsDescendantBindings:true ，那么则不进行孩子节点的绑定，会在后面说到
  
 
-### 2.2.3 applyBindingsToNodeInternal（dom与vm绑定的核心方法）
+# 4 applyBindingsToNodeInternal（dom与vm绑定的核心方法）
 > 单个dom节点的绑定过程；单向绑定（从viewModel -> dom的更新）
 
 
@@ -239,7 +239,7 @@ function applyBindingsToNodeInternal(node, sourceBindings, bindingContext, bindi
     - 除了第二个参数sourceBindings其他参数含义很明显，通常dom节点的绑定字符串都写在dom节点的data-bind属性中，但是也可以通过编码的形式指定'绑定字符串',sourceBindings就是这个含义（见3.1.1）
      
 
- #### 2.2.3.1 判断当前节点是否进行过ko绑定
+## 4.1 判断当前节点是否进行过ko绑定
  
  
 ```
@@ -279,7 +279,7 @@ ko.storedBindingContextForNode = function (node, bindingContext) {
 }
 ```
  
-#### 2.2.3.2 获取'绑定字符串对象'
+## 4.2 获取'绑定字符串对象'
 > 这部分作用就是来获得bindings 和 bindingsUpdater
 
 
@@ -336,11 +336,11 @@ function applyBindingsToNodeInternal(node, sourceBindings, bindingContext, bindi
     3. bindings、bindingsUpdater均存在（即viewModel是observable对象：如 ko.applyBindings(ko.observable({xxx}),node) ）
 
  
-#### 2.2.3.3  获取关联的绑定处理器，执行每个绑定处理器（核心过程）
+## 4.5 获取关联的绑定处理器，执行每个绑定处理器（核心过程）
 分为两部分
 
 
-##### 2.2.3.3.1 参数准备
+### 4.5.1 参数准备
 
 
 ```
@@ -379,7 +379,7 @@ function applyBindingsToNodeInternal(node, sourceBindings, bindingContext, bindi
 
 - allBindings也是 ko.bindingHandlers[xxx].update/init 参数之一
 
-##### 2.2.3.3.2 绑定处理器（ko.bindingHandlers[xxx]）的执行
+### 4.5.2 绑定处理器（ko.bindingHandlers[xxx]）的执行
 
 
 ```
@@ -474,7 +474,7 @@ setTimeout(function () {
 ![avatar](../images/knockout/handler_update_closure.png)
         
 
-##### 2.2.3.3.3 topologicalSortBindings
+### 4.5.3 topologicalSortBindings
 
 
 ```
@@ -513,7 +513,7 @@ function topologicalSortBindings(bindings) { //深度优先遍历
 ```
 
 
-##### 2.2.3.3.4 validateThatBindingIsAllowedForVirtualElements
+### 4.5.4 validateThatBindingIsAllowedForVirtualElements
 
 
 ```
@@ -525,7 +525,7 @@ function validateThatBindingIsAllowedForVirtualElements(bindingName) {
 ```
  
 
-### 2.2.4 applyBindingsToDescendantsInternal
+# 5 applyBindingsToDescendantsInternal
 递归 -> applyBindingsToNodeAndDescendantsInternal（2.2.2）
 
 注意 ko.bindingProvider.instance.preprocessNode 的执行

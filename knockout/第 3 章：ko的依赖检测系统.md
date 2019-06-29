@@ -407,4 +407,5 @@ var b = ko.computed(function () {
 # 4.1 pureComputed
 
 # 5 总结
-
+依赖检测的实现、观察者模式
+![avatar](../images/knockout/ko_dependent_test.png)   

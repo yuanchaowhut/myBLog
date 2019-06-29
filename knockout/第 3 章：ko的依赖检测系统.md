@@ -28,7 +28,7 @@
 var name = ko.observable();
 
 // 定义一个computedObservable对象，作为观察者模式中的Observer
-var canSayHello = ko.computed(function () { 
+var observer = ko.computed(function () { 
     return 'hello! ' + name(); // observable对象的读，作为观察者模式中的Subject
 });
 
@@ -37,8 +37,8 @@ name('john')
 ```
 
 **结论**
-1. canSayHello（computedObservable对象）会向 name（observable对象）添加订阅
-2. canSayHello会记录其所有的依赖，_state.dependencyTracking
+1. observer（computedObservable对象）会向 name（observable对象）添加订阅
+2. observer会记录其所有的依赖，_state.dependencyTracking
 3. name会保持所有添加的订阅，观察者模式中Subject会记录所有的Subscriber
 4. ko的依赖检测基于ko.computed(fn)/ko.dependentObservalbe(fn)，当fn中存在observable对象、computedObservable对象的读取操作时，便会发生依赖检测
 
@@ -177,7 +177,7 @@ registerDependency: function (subscribable) { // 参数：observable对象，即
 1. 这里的 currentFrame还记得吗？3.1节中，设置了currentFrame
 2. currentFrame.callback即computedBeginDependencyDetectionCallback 
 ``` 
-function computedBeginDependencyDetectionCallback(subscribable, id) { // subscribable:name，computedObservable:canSayHello
+function computedBeginDependencyDetectionCallback(subscribable, id) { // subscribable:name，computedObservable:observer
     var computedObservable = this.computedObservable, // this指向 evaluateImmediate_CallReadWithDependencyDetection 中的 dependencyDetectionContext
         state = computedObservable[computedState]; 
     if (!state.isDisposed) {
@@ -323,7 +323,7 @@ observable的写并不会添加依赖和订阅，即下例是不会构成依赖�
 
 ```
 var name = ko.observable();
-var canSayHello = ko.computed(function () {
+var observer = ko.computed(function () {
     name('john') ;// 因为是写操作，抑制依赖性检测
     return 1;
 });

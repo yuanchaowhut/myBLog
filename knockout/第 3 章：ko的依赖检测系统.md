@@ -14,10 +14,11 @@
     - [3.3.3 添加依赖](#333-%E6%B7%BB%E5%8A%A0%E4%BE%9D%E8%B5%96)
   - [3.4 observable对象的写](#34-observable%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%86%99)
     - [3.4.1 发布通知](#341-%E5%8F%91%E5%B8%83%E9%80%9A%E7%9F%A5)
-  - [3.5 Observer的销毁;](#35-observer%E7%9A%84%E9%94%80%E6%AF%81)
+  - [3.5 Observer的销毁](#35-observer%E7%9A%84%E9%94%80%E6%AF%81)
   - [3.6 小结](#36-%E5%B0%8F%E7%BB%93)
 - [4 补充](#4-%E8%A1%A5%E5%85%85)
 - [4.1 pureComputed](#41-purecomputed)
+- [5 总结](#5-%E6%80%BB%E7%BB%93)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -286,6 +287,12 @@ function observable() {
     }
 }
 ```
+
+如案例代码中
+```
+name('john')
+```
+
 ### 3.4.1 发布通知
 **ko_subscribable_fn.notifySubscribers**
 1. 第二章说到observable对象继承了observableFn，并且observableFn 继承了 ko.subscribable['fn']（即ko_subscribable_fn）
@@ -384,7 +391,7 @@ var b = ko.computed(function () {
 ![avatar](../images/knockout/computedobservalbe_as_subject.png)   
     
 **为什么观察者只能是computedObservable？**
-因为只有ko.computed/ko.dependentObservable才会创建新的ko.dependencyDetection中的currentFrame
+1. 因为只有ko.computed/ko.dependentObservable才会创建新的ko.dependencyDetection中的currentFrame
  
 **关于代码的优化**
 1. evaluateImmediate_CallReadThenEndDependencyDetection、evaluateImmediate_CallReadWithDependencyDetection
@@ -395,9 +402,9 @@ var b = ko.computed(function () {
 2. computedBeginDependencyDetectionCallback
 > This function gets called each time a dependency is detected while evaluating a computed. 
   It's factored out as a shared function to avoid creating unnecessary function instances during evaluation.
-       
- 
-
+        
 # 4 补充
 # 4.1 pureComputed
+
+# 5 总结
 

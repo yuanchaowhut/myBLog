@@ -92,10 +92,12 @@ name('john')
   ```    
 
 # 3 ko依赖检测机制的实现 
+```
 ko.computed(fn)：fn为readFunction 
 -> evaluateImmediate 
 -> evaluateImmediate_CallReadWithDependencyDetection 
 -> evaluateImmediate_CallReadThenEndDependencyDetection
+```
 
 ## 3.1 依赖检测环境准备
 

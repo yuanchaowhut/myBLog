@@ -7,7 +7,7 @@
   - [2.1 input[tyep=checkbox]、input[type=radio]](#21-inputtyepcheckboxinputtyperadio)
   - [2.2 事件名称处理](#22-%E4%BA%8B%E4%BB%B6%E5%90%8D%E7%A7%B0%E5%A4%84%E7%90%86)
   - [2.3 change事件订阅：dom -> viewModel](#23-change%E4%BA%8B%E4%BB%B6%E8%AE%A2%E9%98%85dom---viewmodel)
-  - [2.4 注册依赖：viewModel -> dom](#24-%E6%B3%A8%E5%86%8C%E4%BE%9D%E8%B5%96viewmodel---dom)
+  - [2.4 依赖跟踪：viewModel -> dom](#24-%E4%BE%9D%E8%B5%96%E8%B7%9F%E8%B8%AAviewmodel---dom)
 - [2.5 input[type='checkbox']、input[type='radio']说sourceBindings的作用](#25-inputtypecheckboxinputtyperadio%E8%AF%B4sourcebindings%E7%9A%84%E4%BD%9C%E7%94%A8)
 - [3 总结](#3-%E6%80%BB%E7%BB%93)
 

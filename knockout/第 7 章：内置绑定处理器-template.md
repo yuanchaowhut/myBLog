@@ -2,28 +2,23 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [3.2 template](#32-template)
-  - [3.2.1 ko.bindingHandlers['template'].init](#321-kobindinghandlerstemplateinit)
-  - [3.2.2 ko.bindingHandlers['template'].update](#322-kobindinghandlerstemplateupdate)
-    - [3.2.2.1 普通模式](#3221-%E6%99%AE%E9%80%9A%E6%A8%A1%E5%BC%8F)
-      - [3.2.2.1.1 创建子bindingContext](#32211-%E5%88%9B%E5%BB%BA%E5%AD%90bindingcontext)
-      - [3.2.2.1.2 ko.renderTemplate](#32212-korendertemplate)
-        - [3.2.2.1.2.1 模板渲染入口](#322121-%E6%A8%A1%E6%9D%BF%E6%B8%B2%E6%9F%93%E5%85%A5%E5%8F%A3)
-        - [3.2.2.1.2.2 记忆当前模板参数信息](#322122-%E8%AE%B0%E5%BF%86%E5%BD%93%E5%89%8D%E6%A8%A1%E6%9D%BF%E5%8F%82%E6%95%B0%E4%BF%A1%E6%81%AF)
-    - [3.2.2.2 foreach模式](#3222-foreach%E6%A8%A1%E5%BC%8F)
-      - [3.2.2.2.1 executeTemplateForArrayItem](#32221-executetemplateforarrayitem)
-      - [3.2.2.2.2 activateBindingsCallback](#32222-activatebindingscallback)
-  - [3.2.3 executeTemplate](#323-executetemplate)
-    - [3.2.3.1 activateBindingsOnContinuousNodeArray](#3231-activatebindingsoncontinuousnodearray)
+- [1 ko.bindingHandlers['template'].init](#1-kobindinghandlerstemplateinit)
+- [2 ko.bindingHandlers['template'].update](#2-kobindinghandlerstemplateupdate)
+- [3 普通模式](#3-%E6%99%AE%E9%80%9A%E6%A8%A1%E5%BC%8F)
+  - [3.1 创建子bindingContext](#31-%E5%88%9B%E5%BB%BA%E5%AD%90bindingcontext)
+  - [3.2 ko.renderTemplate](#32-korendertemplate)
+    - [3.2.1 模板渲染入口](#321-%E6%A8%A1%E6%9D%BF%E6%B8%B2%E6%9F%93%E5%85%A5%E5%8F%A3)
+    - [3.2.2 记忆当前模板参数信息](#322-%E8%AE%B0%E5%BF%86%E5%BD%93%E5%89%8D%E6%A8%A1%E6%9D%BF%E5%8F%82%E6%95%B0%E4%BF%A1%E6%81%AF)
+- [4 foreach模式](#4-foreach%E6%A8%A1%E5%BC%8F)
+  - [4.1 executeTemplateForArrayItem](#41-executetemplateforarrayitem)
+  - [4.2 activateBindingsCallback](#42-activatebindingscallback)
+  - [4.3 executeTemplate](#43-executetemplate)
+  - [4.4 activateBindingsOnContinuousNodeArray](#44-activatebindingsoncontinuousnodearray)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-## 3.2 template
-具体用法参考官网
-
-
-
-### 3.2.1 ko.bindingHandlers['template'].init
+ 
+# 1 ko.bindingHandlers['template'].init
 ```
 ko.bindingHandlers['template'] = {
     'init': function(element, valueAccessor) {
@@ -36,9 +31,9 @@ ko.bindingHandlers['template'] = {
     }
 }
 ```
-- 注意返回值，意味着不使用当前的bindingContext绑定孩子节点
+注意返回值，意味着不使用当前的bindingContext绑定孩子节点
 
-### 3.2.2 ko.bindingHandlers['template'].update
+# 2 ko.bindingHandlers['template'].update
 
 ```
 ko.bindingHandlers['template'] = {
@@ -88,7 +83,7 @@ ko.bindingHandlers['template'] = {
 1. foreach模式 => ko.renderTemplateForEach （3.2.2.2）
 2. 普通模式    => ko.renderTemplate （3.2.2.1）
 
-disposeOldComputedAndStoreNewOne 的作用：将绑定元素与其绑定上下文关联起来
+disposeOldComputedAndStoreNewOne的作用：将绑定元素与其绑定上下文关联起来
 ```
 function disposeOldComputedAndStoreNewOne(element, newComputed) {
     var oldComputed = ko.utils.domData.get(element, templateComputedDomDataKey);
@@ -99,7 +94,7 @@ function disposeOldComputedAndStoreNewOne(element, newComputed) {
 ```
 
     
-#### 3.2.2.1 普通模式
+# 3 普通模式
 ```
 ko.bindingHandlers['template'] = {
     'update': function (element, valueAccessor, allBindings, viewModel, bindingContext) {
@@ -116,7 +111,7 @@ ko.bindingHandlers['template'] = {
 1. 创建子 绑定上下文（见3.2.2.1.1）
 2. 模板渲染（见3.2.2.1.2）
 
-##### 3.2.2.1.1 创建子bindingContext
+## 3.1 创建子bindingContext
 ```
 ko.bindingContext.prototype['createChildContext'] = function (dataItemOrAccessor, dataItemAlias, extendCallback) {
     return new ko.bindingContext(dataItemOrAccessor, this, dataItemAlias, function(self, parentContext) { 
@@ -131,7 +126,7 @@ ko.bindingContext.prototype['createChildContext'] = function (dataItemOrAccessor
 ```
 - 关键在于传递的扩展回调：使得父子bindingContext关联起来
 
-##### 3.2.2.1.2 ko.renderTemplate 
+## 3.2 ko.renderTemplate 
 ```
 ko.renderTemplate = function (template, dataOrBindingContext, options, targetNodeOrNodeArray, renderMode) {
     renderMode = renderMode || "replaceChildren";
@@ -153,10 +148,10 @@ ko.renderTemplate = function (template, dataOrBindingContext, options, targetNod
 - 步骤
     - 获取渲染模式：renderMode
     - 根据 targetNodeOrNodeArray 是否存在
-        - 存在：直接渲染（见3.2.2.1.2.1）
-        - 不存在：‘记忆’（见3.2.2.1.2.2）
+        - 存在：直接渲染（见3.2.1）
+        - 不存在：‘记忆’（见3.2.2）
         
-###### 3.2.2.1.2.1 模板渲染入口
+### 3.2.1 模板渲染入口
 ```
 ko.renderTemplate = function (template, dataOrBindingContext, options, targetNodeOrNodeArray, renderMode) { 
     if (targetNodeOrNodeArray) {
@@ -205,9 +200,7 @@ function getFirstNodeFromPossibleArray(nodeOrNodeArray) {
     - executeTemplate 执行模板渲染（见3.2.3）
     - 注意最后firstTargetNode的更新(whenToDispose:闭包，始终引用着它)    
         
-###### 3.2.2.1.2.2 记忆当前模板参数信息
-
-
+### 3.2.2 记忆当前模板参数信息
 
 ```
 ko.renderTemplate = function (template, dataOrBindingContext, options, targetNodeOrNodeArray, renderMode) {
@@ -224,11 +217,11 @@ ko.renderTemplate = function (template, dataOrBindingContext, options, targetNod
 - ko.memoization.memoize（见4.8.1）
 
 
-#### 3.2.2.2 foreach模式
+# 4 foreach模式
 - renderTemplateForEach
     - 核心代码：ko.utils.setDomNodeChildrenFromArrayMapping（见4.4.2）
 
-##### 3.2.2.2.1 executeTemplateForArrayItem
+## 4.1 executeTemplateForArrayItem
 
 
 ```
@@ -244,7 +237,7 @@ var executeTemplateForArrayItem = function (arrayValue, index) {
 注意：父bindingContext创建子bindingContext，扩展的 $index
 
 
-##### 3.2.2.2.2 activateBindingsCallback
+## 4.2 activateBindingsCallback
 
 ```
 var activateBindingsCallback = function(arrayValue, addedNodesArray, index) {
@@ -257,7 +250,7 @@ var activateBindingsCallback = function(arrayValue, addedNodesArray, index) {
 ```
 - ko绑定
 
-### 3.2.3 executeTemplate
+## 4.3 executeTemplate
 
 ```
 function executeTemplate(targetNodeOrNodeArray, renderMode, template, bindingContext, options) {
@@ -269,7 +262,7 @@ function executeTemplate(targetNodeOrNodeArray, renderMode, template, bindingCon
 }
 ```
 
-#### 3.2.3.1 activateBindingsOnContinuousNodeArray 
+## 4.4 activateBindingsOnContinuousNodeArray 
 
 作用1：执行 ko.bindingProvider['instance']['preprocessNode'] 函数（该函数由用户扩展） 
 作用2：执行ko绑定：ko.applyBindings （关键）

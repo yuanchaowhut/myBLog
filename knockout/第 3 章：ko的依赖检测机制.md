@@ -18,6 +18,7 @@
   - [3.6 小结](#36-%E5%B0%8F%E7%BB%93)
 - [4 补充](#4-%E8%A1%A5%E5%85%85)
 - [4.1 pureComputed](#41-purecomputed)
+- [4.2 computedFn.evaluatePossiblyAsync](#42-computedfnevaluatepossiblyasync)
 - [5 总结](#5-%E6%80%BB%E7%BB%93)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -406,7 +407,29 @@ var b = ko.computed(function () {
 # 4 补充
 # 4.1 pureComputed
 
+# 4.2 computedFn.evaluatePossiblyAsync
+注意3.3.2中添加订阅的回调函数并是不readFunction，而是computedFn.evaluatePossiblyAsync
+```
+var computedFn = {
+    evaluatePossiblyAsync: function () {
+        var computedObservable = this,
+            throttleEvaluationTimeout = computedObservable['throttleEvaluation'];
+        if (throttleEvaluationTimeout && throttleEvaluationTimeout >= 0) {
+            clearTimeout(this[computedState].evaluationTimeoutInstance);
+            this[computedState].evaluationTimeoutInstance = ko.utils.setTimeout(function () {
+                computedObservable.evaluateImmediate(true /*notifyChange*/);
+            }, throttleEvaluationTimeout);
+        } else if (computedObservable._evalDelayed) {
+            computedObservable._evalDelayed();
+        } else {
+            computedObservable.evaluateImmediate(true /*notifyChange*/);
+        }
+    },
+}
+```
+
+
 # 5 总结
 ![avatar](../images/knockout/ko_dependent_test.png)
 
-1. 发生依赖检测的关键在于ko.computed会去设置currentFrame
+1. 发生依赖检测的关键在于ko.computed会去设置currentFrame 

@@ -6,7 +6,9 @@
 - [2 ko.bindingContext:生成绑定上下文](#2-kobindingcontext%E7%94%9F%E6%88%90%E7%BB%91%E5%AE%9A%E4%B8%8A%E4%B8%8B%E6%96%87)
   - [2.1 dataItemOrAccessor是普通对象的情况](#21-dataitemoraccessor%E6%98%AF%E6%99%AE%E9%80%9A%E5%AF%B9%E8%B1%A1%E7%9A%84%E6%83%85%E5%86%B5)
   - [2.2 dataItemOrAccessor是observable对象的情况](#22-dataitemoraccessor%E6%98%AFobservable%E5%AF%B9%E8%B1%A1%E7%9A%84%E6%83%85%E5%86%B5)
-- [3 applyBindingsToNodeAndDescendantsInternal:dom与vm的绑定入口](#3-applybindingstonodeanddescendantsinternaldom%E4%B8%8Evm%E7%9A%84%E7%BB%91%E5%AE%9A%E5%85%A5%E5%8F%A3)
+    - [2.2.1 subscribable.isActive()的计算](#221-subscribableisactive%E7%9A%84%E8%AE%A1%E7%AE%97)
+    - [2.2.2 subscribable._addNode的作用？](#222-subscribable_addnode%E7%9A%84%E4%BD%9C%E7%94%A8)
+- [3 applyBindingsToNodeAndDescendantsInternal：dom与vm的绑定入口](#3-applybindingstonodeanddescendantsinternaldom%E4%B8%8Evm%E7%9A%84%E7%BB%91%E5%AE%9A%E5%85%A5%E5%8F%A3)
 - [4 applyBindingsToNodeInternal（dom与vm绑定的核心方法）](#4-applybindingstonodeinternaldom%E4%B8%8Evm%E7%BB%91%E5%AE%9A%E7%9A%84%E6%A0%B8%E5%BF%83%E6%96%B9%E6%B3%95)
   - [4.1 判断当前节点是否进行过ko绑定](#41-%E5%88%A4%E6%96%AD%E5%BD%93%E5%89%8D%E8%8A%82%E7%82%B9%E6%98%AF%E5%90%A6%E8%BF%9B%E8%A1%8C%E8%BF%87ko%E7%BB%91%E5%AE%9A)
   - [4.2 获取'绑定字符串对象'](#42-%E8%8E%B7%E5%8F%96%E7%BB%91%E5%AE%9A%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%AF%B9%E8%B1%A1)
@@ -16,6 +18,7 @@
     - [4.5.3 topologicalSortBindings](#453-topologicalsortbindings)
     - [4.5.4 validateThatBindingIsAllowedForVirtualElements](#454-validatethatbindingisallowedforvirtualelements)
 - [5 applyBindingsToDescendantsInternal](#5-applybindingstodescendantsinternal)
+- [6 总结](#6-%E6%80%BB%E7%BB%93)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -379,7 +382,7 @@ function applyBindingsToNodeInternal(node, sourceBindings, bindingContext, bindi
             bindingKey = bindingKeyAndHandler.key;
 
         if (node.nodeType === 8) { // 如果是注释元素，则需要验证注释元素的绑定处理器是否允许执行
-            validateThatBindingIsAllowedForVirtualElements(bindingKey);
+            validateThatBindingIsAllowedForVirtualElements(bindingKey); // 见 4.5.4
         }
 
         try {
@@ -404,7 +407,7 @@ function applyBindingsToNodeInternal(node, sourceBindings, bindingContext, bindi
 存储关联的绑定处理器（一个dom节点可能会绑定多个绑定处理器
  ![avatar](../images/knockout/order_bindings.png)
   
-**ko.bindingHandlers[xxx].init()**
+**ko.bindingHandlers[xxx].init()**<br/>
 单纯的初始化，ko.dependencyDetection.ignore抑制依赖性检测，单纯的执行的 ko.bindingHandlers[xxx].init()，不订阅不依赖，单纯的初始化
 ```
 ko.dependencyDetection.ignore(function() {
@@ -434,26 +437,33 @@ function() {
     handlerUpdateFn(node, getValueAccessor(bindingKey), allBindings, bindingContext['$data'], bindingContext);
 }
 ``` 
-1. 这个函数是一个**闭包**：handlerUpdateFn(node, getValueAccessor(bindingKey), allBindings, bindingContext['$data'], bindingContext);这里面的参数全部被记录下来了；
-2. 为什么要在这里强调下闭包呢？好，我问个问题哈：当由于依赖更新导致handlerUpdateFn被执行，那么这些参数都指向谁？如果这里不是闭包，会有什么样的后果呢？
-3. 这里得出：dom节点是如何与绑定的observable对象进行绑定的，observable对象的更新又是如何更新dom节点的 
-4. 因为这里比较重要，下面案例验证下闭包
+1. 闭包使得 handlerUpdateFn(node, getValueAccessor(bindingKey), allBindings, bindingContext['$data'], bindingContext); 这里面的参数全部被记录下来了； 
+2. observable对象的更新又是如何更新dom节点的 ？通常在handlerUpdateFn中做的第一件事情如下，如果是observable对象，则会执行该observable，那么便会添加依赖订阅和依赖。
+```
+var bindingValue = ko.utils.unwrapObservable(valueAccessor());
+
+ko.utils = (function () {
+    unwrapObservable: function (value) {
+        return ko.isObservable(value) ? value() : value;
+    },
+})();
+```
+3. 因为这里比较重要，下面案例验证下闭包
 ```
 //html
-<div data-bind="text: displayName"></div>
+<div data-bind="text: name"></div>
 //js
 var name = ko.observable('init-value');
 setTimeout(function () {
-    name('update-john')
-
-     }, 1000)
+    // 发布通知 -> computedFn.evaluatePossiblyAsync（添加订阅时的回调函数） 
+    //          -> computedObservable.evaluateImmediate -> state.readFunction()
+    name('update-john'); 
+}, 1000)
 ``` 
 ![avatar](../images/knockout/handler_update_closure.png)
         
 
-### 4.5.3 topologicalSortBindings
-
-
+### 4.5.3 topologicalSortBindings 
 ```
 function topologicalSortBindings(bindings) { //深度优先遍历
     // Depth-first sort
@@ -489,10 +499,8 @@ function topologicalSortBindings(bindings) { //深度优先遍历
 }
 ```
 
-
 ### 4.5.4 validateThatBindingIsAllowedForVirtualElements
-
-
+[用法参考](https://knockoutjs.com/documentation/custom-bindings-for-virtual-elements.html)
 ```
 function validateThatBindingIsAllowedForVirtualElements(bindingName) {
     var validator = ko.virtualElements.allowedBindings[bindingName];
@@ -503,6 +511,8 @@ function validateThatBindingIsAllowedForVirtualElements(bindingName) {
  
 
 # 5 applyBindingsToDescendantsInternal
-递归 -> applyBindingsToNodeAndDescendantsInternal（2.2.2）
-
+递归 -> applyBindingsToNodeAndDescendantsInternal
 注意 ko.bindingProvider.instance.preprocessNode 的执行
+
+# 6 总结
+![avatar](../images/knockout/ko_applybindings-prosess.png)

@@ -297,40 +297,41 @@ function invokeForEachNodeInContinuousRange(firstNode, lastNode, action) {
 1. ko.bindingHandlers.options
 2. renderTemplateForEach （ko.bindingHandlers['template'].update）
  
- 该方法的过程还是很清晰的
-     - 通过ko.utils.compareArrays方法对新老数组进行比对，从而得到新老数组中所有元素的状态（deleted，retained，added）
-     - 遍历返回结果，将这些状态分类（新增的，移动的，删除的，保留的）
-         - itemsForMoveCallbacks：存放被移动的数据   -> options['beforeMove']  
-         - nodesToDelete：存放删除的节点             -> options['beforeRemove']
-         - itemsToProcess：存放被保留下来的数据      -> 关键（只处理新增的数据）-> 4.4.2.1 
-         - itemsForBeforeRemoveCallbacks             -> options['beforeRemove']
-         - itemsForMoveCallbacks：存放被移动的数据   -> options['afterMove']
-         - itemsForAfterAddCallbacks：存放添加的数据 -> options['afterAdd'] 
+该方法的过程还是很清晰的
+1. 通过ko.utils.compareArrays方法对新老数组进行比对，从而得到新老数组中所有元素的状态（deleted，retained，added）
+2. 遍历返回结果，将这些状态分类（新增的，移动的，删除的，保留的）
+    - itemsForMoveCallbacks：存放被移动的数据   -> options['beforeMove']  
+    - nodesToDelete：存放删除的节点             -> options['beforeRemove']
+    - itemsToProcess：存放被保留下来的数据      -> 关键（只处理新增的数据）-> 4.4.2.1 
+    - itemsForBeforeRemoveCallbacks             -> options['beforeRemove']
+    - itemsForMoveCallbacks：存放被移动的数据   -> options['afterMove']
+    - itemsForAfterAddCallbacks：存放添加的数据 -> options['afterAdd'] 
  
- **注意**
- - 如果你提供了 beforeRemove 选项
-     - itemsToProcess会包含被删除的节点
-     - 则该节点并不会被删除，只会清理该节点相关的缓存，框架把删除的逻辑交给了使用者，也就是说如果你不删除，则该节点不会被删除 
-     ```
-     ko.utils.setDomNodeChildrenFromArrayMapping = function (domNode, array, mapping, options, callbackAfterAddingNodes) {
-         for (var i = 0, editScriptItem, movedIndex; editScriptItem = editScript[i]; i++) {
-             movedIndex = editScriptItem['moved'];
-             switch (editScriptItem['status']) {
-                 case "deleted":
-                     //...
-                     if (options['beforeRemove']) { // 注意
-                         itemsToProcess.push(mapData);  
-                     }
-                     //...
-                     break;  
-                     //...
-             }
-         }          
-         //...
-         ko.utils.arrayForEach(nodesToDelete, options['beforeRemove'] ? ko.cleanNode : ko.removeNode);
-         //...
-     }
-    ```            
+**注意**
+1. 如果你提供了 beforeRemove 选项
+- itemsToProcess会包含被删除的节点
+- 则该节点并不会被删除，只会清理该节点相关的缓存，框架把删除的逻辑交给了使用者，也就是说如果你不删除，则该节点不会被删除 
+ ```
+ ko.utils.setDomNodeChildrenFromArrayMapping = function (domNode, array, mapping, options, callbackAfterAddingNodes) {
+     //...
+     for (var i = 0, editScriptItem, movedIndex; editScriptItem = editScript[i]; i++) {
+         movedIndex = editScriptItem['moved'];
+         switch (editScriptItem['status']) {
+             case "deleted":
+                 //...
+                 if (options['beforeRemove']) { // 注意
+                     itemsToProcess.push(mapData);  
+                 }
+                 //...
+                 break;  
+                 //...
+         }
+     }          
+     //...
+     ko.utils.arrayForEach(nodesToDelete, options['beforeRemove'] ? ko.cleanNode : ko.removeNode);
+     //...
+ }
+```            
  
 ## 6.1 mapNodeAndRefreshWhenChanged
  ```
@@ -355,5 +356,9 @@ function invokeForEachNodeInContinuousRange(firstNode, lastNode, action) {
  注意mappedNodes的更新，被disposeWhen引用着
  
  参数解释
-     - mapping（函数）：将数据映射为dom节点
-     - callbackAfterAddingNodes（函数）：新增节点的处理，比如：ko绑定
+ 1. mapping（函数）：将数据映射为dom节点
+ 2. callbackAfterAddingNodes（函数）：新增节点的处理，比如：ko绑定
+ 
+ 
+ 
+ 

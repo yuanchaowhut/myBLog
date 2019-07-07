@@ -489,4 +489,5 @@ mapNodeAndRefreshWhenChanged
  };
  
 
- 
+ # 8 总结
+ ![avatar](../images/knockout/template_udpate.jpg)

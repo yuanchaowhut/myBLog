@@ -220,4 +220,4 @@ ko.applyBindingAccessorsToNode(element, { 'checkedValue': valueAccessor });
 1. viewModel -> dom ：dom的change事件
 2. dom -> viewModel ：ko的依赖跟踪
 
-![avatar](../images/knockout/double_bind_direction.png)   
+![avatar](../images/knockout/double_bind_direction.jpg)   

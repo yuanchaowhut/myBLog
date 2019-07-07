@@ -430,6 +430,6 @@ var computedFn = {
 
 
 # 5 总结
-![avatar](../images/knockout/ko_dependent_test.png)
+![avatar](../images/knockout/ko_dependent_test.jpg)
 
 1. 发生依赖检测的关键在于ko.computed会去设置currentFrame 

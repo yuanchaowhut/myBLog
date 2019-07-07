@@ -16,6 +16,12 @@
   - [5.1 activateBindingsOnContinuousNodeArray](#51-activatebindingsoncontinuousnodearray)
 - [6 setDomNodeChildrenFromArrayMapping](#6-setdomnodechildrenfromarraymapping)
   - [6.1 mapNodeAndRefreshWhenChanged](#61-mapnodeandrefreshwhenchanged)
+- [7 模板引擎](#7-%E6%A8%A1%E6%9D%BF%E5%BC%95%E6%93%8E)
+  - [7.1 ko.templateEngine](#71-kotemplateengine)
+    - [7.1.1 renderTemplate](#711-rendertemplate)
+    - [7.1.2 makeTemplateSource](#712-maketemplatesource)
+  - [7.2 ko.nativeTemplateEngine](#72-konativetemplateengine)
+    - [7.2.1 renderTemplateSource](#721-rendertemplatesource)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -222,6 +228,19 @@ ko.memoization.memoize（见工具类章节）
 
 
 # 4 foreach模式
+```
+ko.renderTemplateForEach = function (template, arrayOrObservableArray, options, targetNode, parentBindingContext) { 
+   var executeTemplateForArrayItem = function (arrayValue, index) {//...}
+
+   var activateBindingsCallback = function(arrayValue, addedNodesArray, index) {//...};
+
+   return ko.dependentObservable(function () {
+       //...
+       ko.dependencyDetection.ignore(ko.utils.setDomNodeChildrenFromArrayMapping, null, [targetNode, filteredArray, executeTemplateForArrayItem, options, activateBindingsCallback]);
+
+   }, null, { disposeWhenNodeIsRemoved: targetNode });
+};
+```
 renderTemplateForEach：ko.utils.setDomNodeChildrenFromArrayMapping（见6）
 
 ## 4.1 executeTemplateForArrayItem
@@ -311,7 +330,7 @@ function invokeForEachNodeInContinuousRange(firstNode, lastNode, action) {
 1. 如果你提供了 beforeRemove 选项
 - itemsToProcess会包含被删除的节点
 - 则该节点并不会被删除，只会清理该节点相关的缓存，框架把删除的逻辑交给了使用者，也就是说如果你不删除，则该节点不会被删除 
- ```
+```
  ko.utils.setDomNodeChildrenFromArrayMapping = function (domNode, array, mapping, options, callbackAfterAddingNodes) {
      //...
      for (var i = 0, editScriptItem, movedIndex; editScriptItem = editScript[i]; i++) {
@@ -333,32 +352,141 @@ function invokeForEachNodeInContinuousRange(firstNode, lastNode, action) {
  }
 ```            
  
+ 
 ## 6.1 mapNodeAndRefreshWhenChanged
+setDomNodeChildrenFromArrayMapping的核心代码
+```
+ko.utils.setDomNodeChildrenFromArrayMapping = function (domNode, array, mapping, options, callbackAfterAddingNodes) {
+    //优化逻辑，根据数组最小编辑路径来优化模板渲染的过程
+    
+    // 该方法的核心代码，模板渲染（mapNodeAndRefreshWhenChanged），ko绑定（callbackAfterAddingNodes）
+    for (var i = 0, nextNode = ko.virtualElements.firstChild(domNode), lastNode, node; mapData = itemsToProcess[i]; i++) {
+        // Get nodes for newly added items
+        if (!mapData.mappedNodes)
+            ko.utils.extend(mapData, mapNodeAndRefreshWhenChanged(domNode, mapping, mapData.arrayEntry, callbackAfterAddingNodes, mapData.indexObservable));
+    
+        // Put nodes in the right place if they aren't there already
+        for (var j = 0; node = mapData.mappedNodes[j]; nextNode = node.nextSibling, lastNode = node, j++) {
+            if (node !== nextNode)
+                ko.virtualElements.insertAfter(domNode, node, lastNode);
+        }
+    
+        // Run the callbacks for newly added nodes (for example, to apply bindings, etc.)
+        if (!mapData.initialized && callbackAfterAddingNodes) {
+            callbackAfterAddingNodes(mapData.arrayEntry, mapData.mappedNodes, mapData.indexObservable);
+            mapData.initialized = true;
+        }
+    }
+}
+```
+
+mapNodeAndRefreshWhenChanged
  ```
  function mapNodeAndRefreshWhenChanged(containerNode, mapping, valueToMap, callbackAfterAddingNodes, index) { 
-         var mappedNodes = [];
-         var dependentObservable = ko.dependentObservable(function() {
-             var newMappedNodes = mapping(valueToMap, index, ko.utils.fixUpContinuousNodeArray(mappedNodes, containerNode)) || [];
-  
-             if (mappedNodes.length > 0) {
-                 ko.utils.replaceDomNodes(mappedNodes, newMappedNodes);
-                 if (callbackAfterAddingNodes)
-                     ko.dependencyDetection.ignore(callbackAfterAddingNodes, null, [valueToMap, newMappedNodes, index]);
-             }
-  
-             mappedNodes.length = 0;
-             ko.utils.arrayPushAll(mappedNodes, newMappedNodes);
-         }, null, { disposeWhenNodeIsRemoved: containerNode, disposeWhen: function() { return !ko.utils.anyDomNodeIsAttachedToDocument(mappedNodes); } });
-         return { mappedNodes : mappedNodes, dependentObservable : (dependentObservable.isActive() ? dependentObservable : undefined) };
-     }
+     var mappedNodes = [];
+     var dependentObservable = ko.dependentObservable(function() {
+         var newMappedNodes = mapping(valueToMap, index, ko.utils.fixUpContinuousNodeArray(mappedNodes, containerNode)) || [];
+
+         if (mappedNodes.length > 0) {
+             ko.utils.replaceDomNodes(mappedNodes, newMappedNodes);
+             if (callbackAfterAddingNodes)
+                 ko.dependencyDetection.ignore(callbackAfterAddingNodes, null, [valueToMap, newMappedNodes, index]);
+         }
+
+         mappedNodes.length = 0;
+         ko.utils.arrayPushAll(mappedNodes, newMappedNodes);
+     }, null, { disposeWhenNodeIsRemoved: containerNode, disposeWhen: function() { return !ko.utils.anyDomNodeIsAttachedToDocument(mappedNodes); } });
+     return { mappedNodes : mappedNodes, dependentObservable : (dependentObservable.isActive() ? dependentObservable : undefined) };
+ }
  ```
  
  注意mappedNodes的更新，被disposeWhen引用着
  
  参数解释
- 1. mapping（函数）：将数据映射为dom节点
- 2. callbackAfterAddingNodes（函数）：新增节点的处理，比如：ko绑定
+ 1. mapping（函数）：将数据映射为dom节点：模板渲染（见4.1 -> executeTemplate）
+ 2. callbackAfterAddingNodes（函数）：新增节点的处理，比如：ko绑定（见4.2）
  
  
+# 7 模板引擎
+ jqueryTmplTemplateEngine.js ， nativeTemplateEngine.js 这两个模板引擎都是继承于 templateEngine.js
  
+ - ko.nativeTemplateEngine
+ ```
+ ko.nativeTemplateEngine.prototype = new ko.templateEngine();
+ ko.nativeTemplateEngine.prototype.constructor = ko.nativeTemplateEngine;
+ ```
+ - ko.jqueryTmplTemplateEngine
+ ```
+ ko.jqueryTmplTemplateEngine.prototype = new ko.templateEngine();
+ ko.jqueryTmplTemplateEngine.prototype.constructor = ko.jqueryTmplTemplateEngine;
+ 
+ ```
+ 
+ - 设置默认的模板引擎
+ ```
+ ko.nativeTemplateEngine.instance = new ko.nativeTemplateEngine();
+ ko.setTemplateEngine(ko.nativeTemplateEngine.instance);
+ 
+ // 如果引用了jquery.tmpl
+ if (jqueryTmplTemplateEngineInstance.jQueryTmplVersion > 0)
+     ko.setTemplateEngine(jqueryTmplTemplateEngineInstance);
+ ```
+ 
+## 7.1 ko.templateEngine
+ - 这是一个基类，看到所有的方法都在原型对象上，作用很明了
+ ```
+ ko.templateEngine = function () {throw new Error("Override renderTemplateSource");}; // 如果你没重写，呵呵，直接给你报错
+ ko.templateEngine.prototype['renderTemplateSource'] = function (templateSource, bindingContext, options, templateDocument) {};
+ ko.templateEngine.prototype['createJavaScriptEvaluatorBlock'] = function (script) {};
+ ko.templateEngine.prototype['makeTemplateSource'] = function (template, templateDocument) {};
+ ko.templateEngine.prototype['renderTemplate'] = function (template, bindingContext, options, templateDocument) {};
+ ko.templateEngine.prototype['isTemplateRewritten'] = function (template, templateDocument) {};
+ ko.templateEngine.prototype['rewriteTemplate'] = function (template, rewriterCallback, templateDocument) {};
+ ```
+ 
+### 7.1.1 renderTemplate 
+ ```
+ ko.templateEngine.prototype['renderTemplate'] = function (template, bindingContext, options, templateDocument) {
+     var templateSource = this['makeTemplateSource'](template, templateDocument);
+     return this['renderTemplateSource'](templateSource, bindingContext, options, templateDocument);
+ };
+ ```
+ 
+### 7.1.2 makeTemplateSource
+ ```
+ ko.templateEngine.prototype['makeTemplateSource'] = function(template, templateDocument) {
+     // Named template
+     if (typeof template == "string") {
+         templateDocument = templateDocument || document;
+         var elem = templateDocument.getElementById(template);
+         if (!elem)
+             throw new Error("Cannot find template with ID " + template);
+         return new ko.templateSources.domElement(elem);
+     } else if ((template.nodeType == 1) || (template.nodeType == 8)) {
+         // Anonymous template
+         return new ko.templateSources.anonymousTemplate(template);
+     } else
+         throw new Error("Unknown template type: " + template);
+ };
+ ```
+ 看到templateDocument的作用了吗？用于查找模板
+ 
+## 7.2 ko.nativeTemplateEngine  
+ - ko.nativeTemplateEngine 继承了 ko.templateEngine 
+ 
+### 7.2.1 renderTemplateSource
+ ko.nativeTemplateEngine.prototype['renderTemplateSource'] = function (templateSource, bindingContext, options, templateDocument) {
+     var useNodesIfAvailable = !(ko.utils.ieVersion < 9), // IE<9 cloneNode doesn't work properly
+         templateNodesFunc = useNodesIfAvailable ? templateSource['nodes'] : null,
+         templateNodes = templateNodesFunc ? templateSource['nodes']() : null;
+ 
+     if (templateNodes) {
+         return ko.utils.makeArray(templateNodes.cloneNode(true).childNodes);
+     } else {
+         var templateText = templateSource['text']();
+         return ko.utils.parseHtmlFragment(templateText, templateDocument);
+     }
+ };
+ 
+
  

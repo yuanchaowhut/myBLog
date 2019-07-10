@@ -29,6 +29,12 @@ ko.bindingHandlers['component'] = {
         ko.utils.domNodeDisposal.addDisposeCallback(element, disposeAssociatedComponentViewModel); // 添加dom销毁回调
         ko.computed(function () {
             // 加载组件
+            ko.components.get(componentName, function(componentDefinition) {
+                //...
+                cloneTemplateIntoElement(componentName, componentDefinition, element);
+                //...
+                ko.applyBindingsToDescendants(childBindingContext, element);
+            });
         }, null, { disposeWhenNodeIsRemoved: element });
         
         return { 'controlsDescendantBindings': true };
@@ -36,12 +42,12 @@ ko.bindingHandlers['component'] = {
 }
 ```
 
-变量解释
+**变量解释**
 1. currentViewModel：当前组件的viewModel
 2. currentLoadingOperationId：组件加载过程中的标识，作用是？？
 3. originalChildNodes 保存组件容器原有的孩子节点
 
-disposeAssociatedComponentViewModel作用
+**disposeAssociatedComponentViewModel作用**
 ``` 
 disposeAssociatedComponentViewModel = function () {
     var currentViewModelDispose = currentViewModel && currentViewModel['dispose'];
@@ -54,12 +60,8 @@ disposeAssociatedComponentViewModel = function () {
 ```
 1. 作用1. 更新组件容器关联的viewModel
 2. 作用2. dipose回调，当组件容器dom从document移除后，销毁viewModel，避免内存泄漏
-
-ko.computed(fn,...)包含组件的具体的加载过程 
-条件准备：componentName、componentParams
-具体的加载过程在 ko.components.get()中，见3.4.1
-
-# 2 template/viewModel获取入口：ko.components.get
+ 
+# 2 ko.components.get
 ko.components结构
 ```
 ko.components = {
@@ -107,7 +109,7 @@ ko.bindingHandlers['component'] = {
 
 ko.components.get的作用：准备好viewModel,template
 
-ko.components.get的逻辑比较简单
+**ko.components.get的逻辑**
 ```
 get: function(componentName, callback) {
     var cachedDefinition = getObjectOwnProperty(loadedDefinitionsCache, componentName);
@@ -152,10 +154,10 @@ function loadComponentAndNotify(componentName, callback) {
 </div>
 ```
 
-解析到div[id='compo-dom-1']节点时，走if语句内；
-解析到div[id='compo-dom-2']节点时，走else语句内；
-因此这两个容器加载的是相同的组件，第二次加载同一组件时，合理做法应该是添加监听，当该组件的template/viewModel准备好后通知我，而不是再次去加载；
-注意下监听的回调，该回调是一直从ko.bindingHandlers['component'].update传递过来的
+1. 解析到div[id='compo-dom-1']节点时，走if语句内；
+2. 解析到div[id='compo-dom-2']节点时，走else语句内；
+3. 因此这两个容器加载的是相同的组件，第二次加载同一组件时，合理做法应该是添加监听，当该组件的template/viewModel准备好后通知我，而不是再次去加载；
+4. 注意下监听的回调，该回调是一直从ko.bindingHandlers['component'].update传递过来的
 
 **loadComponentAndNotify 调用 beginLoadingComponent的第二个参数的作用？**
 1. loadedDefinitionsCache：缓存组件的定义（viewModel/template)
@@ -187,7 +189,7 @@ function beginLoadingComponent(componentName, callback) {
 ```
 
 1. 通过 ko.components.defaultLoader.getConfig 获取组件注册时的配置
-2. ko.components.defaultLoader.loadComponent加载组件（见3.4.4.2.1
+2. ko.components.defaultLoader.loadComponent加载组件 
 
 # 5 ko.components
 ## 5.1 组件注册等相关方法
@@ -314,10 +316,9 @@ function resolveConfig(componentName, errorCallback, config, callback) {
 - result['template']
 - result[createViewModelKey] = result['createViewModel']
 
-到这里，是不是有点头晕晕呢？你还知道tryIssueCallback中的callback是谁吗？你觉得当template/viewModel都准备好后，该干啥呢？
-当然是要开始渲染组件啦，这里的callback就是ko.bindingHandlers['component'].update 中 ko.components.get的回调，用于渲染组件
-
-        
+**tryIssueCallback中的callback指向谁？**
+loadComponentAndNotify方法中调用beginLoadingComponent时传递的第二个参数（callback）
+ 
 #### loadTemplate
 ```
 'loadTemplate': function(componentName, templateConfig, callback) {

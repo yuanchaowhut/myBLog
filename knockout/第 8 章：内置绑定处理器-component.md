@@ -357,13 +357,13 @@ function resolveViewModel(errorCallback, viewModelConfig, callback) {
 2. 注意在方法的开头始终生成一份数组副本，因为该方法中存在两处的递归调用，需要保证这两处的candidateLoaders不被对方消耗（仅有自身消耗）
 
 **流程**
-1. 获取currentCandidateLoader
-    1.1 存在，则获取 methodInstance 
-        1.1.1 存在：调用该方法 
-        1.1.2 不存在：递归（责任链中下一个处理者） 
-    1.2 不存在，调用回调 
+1. 获取currentCandidateLoader<br/>
+    1.1 存在，则获取 methodInstance <br/>
+        1.1.1 存在：调用该方法 <br/>
+        1.1.2 不存在：递归（责任链中下一个处理者） <br/>
+    1.2 不存在，调用回调 <br/>
     
-**总结**
+**总结**<br/>
 默认情况下调用 ko.components.defaultLoader 中的相应方法
         
 # 7 possiblyGetConfigFromAmd

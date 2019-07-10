@@ -22,6 +22,7 @@
     - [7.1.2 makeTemplateSource](#712-maketemplatesource)
   - [7.2 ko.nativeTemplateEngine](#72-konativetemplateengine)
     - [7.2.1 renderTemplateSource](#721-rendertemplatesource)
+- [8 总结](#8-%E6%80%BB%E7%BB%93)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 

@@ -152,7 +152,7 @@ ko.renderTemplate = function (template, dataOrBindingContext, options, targetNod
 参数说明 
 1. template：模板（可能是模板名称，可能是nodes）
 2. dataOrBindingContext：viewModel或其生成的bindingContext
-3. options，来源于 ko.bindingHandlers['template].update -> ko.utils.unwrapObservable(valueAccessor())：即dom[data-bind]属性（注意是解析后的，解析的过程见：2.2.3.2小节关于bindings的获取）
+3. options，来源于 ko.bindingHandlers['template].update -> ko.utils.unwrapObservable(valueAccessor())：即dom[data-bind]属性 
 4. targetNodeOrNodeArray：被挂载的节点（模板总得挂载在某个节点后面吧，即作为某个节点的孩子节点）
 5. renderMode：渲染模式；默认-"replaceChildren"
     
@@ -275,8 +275,8 @@ var activateBindingsCallback = function(arrayValue, addedNodesArray, index) {
 ```
 function executeTemplate(targetNodeOrNodeArray, renderMode, template, bindingContext, options) {
     //...
-    var templateEngineToUse = ...// 通常是默认模板引擎 见4.5   
-    var renderedNodesArray = templateEngineToUse['renderTemplate'](template, bindingContext, options, templateDocument);//见 4.5.1      
+    var templateEngineToUse = ...// 通常是默认模板引擎 见7
+    var renderedNodesArray = templateEngineToUse['renderTemplate'](template, bindingContext, options, templateDocument);//见 7.1.1
     //... 根据renderMode替换节点     
     activateBindingsOnContinuousNodeArray(renderedNodesArray, bindingContext); // 最主要的作用：ko绑定
 }

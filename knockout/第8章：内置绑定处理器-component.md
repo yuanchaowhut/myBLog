@@ -3,7 +3,7 @@
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [1 component绑定处理器](#1-component%E7%BB%91%E5%AE%9A%E5%A4%84%E7%90%86%E5%99%A8)
-- [2 template/viewModel获取入口：ko.components.get](#2-templateviewmodel%E8%8E%B7%E5%8F%96%E5%85%A5%E5%8F%A3kocomponentsget)
+- [2 ko.components.get](#2-kocomponentsget)
 - [3 loadComponentAndNotify](#3-loadcomponentandnotify)
 - [4 beginLoadingComponent](#4-beginloadingcomponent)
 - [5 ko.components](#5-kocomponents)
@@ -15,6 +15,7 @@
       - [loadViewModel](#loadviewmodel)
 - [6 getFirstResultFromLoaders](#6-getfirstresultfromloaders)
 - [7 possiblyGetConfigFromAmd](#7-possiblygetconfigfromamd)
+- [8 总结](#8-%E6%80%BB%E7%BB%93)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 

@@ -336,7 +336,7 @@ var SimpleEventPlugin = {
  
  getPooled就是从 event对象池中取出合成事件，这种操作是 React的一大亮点，将所有的事件缓存在对象池中,可以大大降低对象创建和销毁的时间，提升性能
  这个方法是位于 SyntheticEvent这个对象上，流程示意图如下：
-  ![avatar](../images/react/event-constructor-getpoled.webp)
+  ![avatar](../images/react/event-constructor-getpoled.png)
 
 ### runEventsInBatch批处理合成事件
 

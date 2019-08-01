@@ -77,7 +77,7 @@ function setInitialDOMProperties(tag, domElement, rootContainerElement, nextProp
     }
 }
 ```
-变量registrationNameModules的含义，存储量一推事件映射
+变量registrationNameModules的含义，存储量一堆事件映射
 ![avatar](../images/react/registeration-name-map.png)
 
 ### ensureListeningTo

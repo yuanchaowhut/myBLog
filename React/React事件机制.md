@@ -14,6 +14,7 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
+>参考：https://juejin.im/post/5bd32493f265da0ae472cc8e#heading-1
 
 # 特点
 1. React事件使用了【事件委托】的机制

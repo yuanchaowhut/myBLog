@@ -9,12 +9,25 @@
     - [listenTo](#listento)
     - [trapBubbledEvent](#trapbubbledevent)
       - [addEventBubbleListener](#addeventbubblelistener)
+  - [小结](#%E5%B0%8F%E7%BB%93)
 - [事件分发](#%E4%BA%8B%E4%BB%B6%E5%88%86%E5%8F%91)
+  - [dispatchEvent](#dispatchevent)
+    - [getClosestInstanceFromNode](#getclosestinstancefromnode)
+    - [batchedUpdates](#batchedupdates)
+    - [handleTopLevel](#handletoplevel)
 - [事件执行](#%E4%BA%8B%E4%BB%B6%E6%89%A7%E8%A1%8C)
+  - [构造合成事件](#%E6%9E%84%E9%80%A0%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6)
+    - [extractEvents构造合成事件](#extractevents%E6%9E%84%E9%80%A0%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6)
+      - [SimpleEventPlugin.extractEvents](#simpleeventpluginextractevents)
+      - [](#)
+    - [runEventsInBatch批处理合成事件](#runeventsinbatch%E6%89%B9%E5%A4%84%E7%90%86%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6)
+- [补充](#%E8%A1%A5%E5%85%85)
+  - [合成事件](#%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 >参考：https://juejin.im/post/5bd32493f265da0ae472cc8e#heading-1
+react版本：v16.8.6
 
 # 特点
 1. React事件使用了【事件委托】的机制
@@ -130,8 +143,7 @@ function trapBubbledEvent(topLevelType, element) {
   }
 
   var dispatch = isInteractiveTopLevelEventType(topLevelType) ? dispatchInteractiveEvent : dispatchEvent;
-  addEventBubbleListener(element, getRawEventName(topLevelType), // Check if interactive and wrap in interactiveUpdates
-  dispatch.bind(null, topLevelType));
+  addEventBubbleListener(element, getRawEventName(topLevelType), dispatch.bind(null, topLevelType));
 }
 ```
 
@@ -153,6 +165,207 @@ function addEventBubbleListener(element, eventType, listener) {
 ![avatar](../images/react/react-event-reagister-s.png)
 
 # 事件分发
+该案例总trapBubbledEvent方法中会对document添加onClick事件，回调为dispatchInteractiveEvent\dispatchEvent
 
+## dispatchEvent
+```
+function dispatchEvent(topLevelType, nativeEvent) {
+  if (!_enabled) {
+    return;
+  }
 
+  var nativeEventTarget = getEventTarget(nativeEvent); //nativeEvent：原生事件对象
+  var targetInst = getClosestInstanceFromNode(nativeEventTarget);//寻找最近的祖先组件实例
+  if (targetInst !== null && typeof targetInst.tag === 'number' && !isFiberMounted(targetInst)) { 
+    targetInst = null;
+  }
+
+  var bookKeeping = getTopLevelCallbackBookKeeping(topLevelType, nativeEvent, targetInst);
+
+  try { 
+   // 把当前触发的事件放入了批处理队列中，其中，handleTopLevel是事件分发的核心所在
+    batchedUpdates(handleTopLevel, bookKeeping);
+  } finally {
+    releaseTopLevelCallbackBookKeeping(bookKeeping);
+  }
+}
+```
+
+### getClosestInstanceFromNode
+通过node获取最近的祖先react【组件实例】（ReactDOMComponent or ReactDOMTextComponent）
+```
+var randomKey = Math.random().toString(36).slice(2);
+var internalInstanceKey = '__reactInternalInstance$' + randomKey;
+
+function getClosestInstanceFromNode(node) {
+  if (node[internalInstanceKey]) {
+    return node[internalInstanceKey];
+  }
+
+  while (!node[internalInstanceKey]) {
+    if (node.parentNode) {
+      node = node.parentNode;
+    } else { 
+      return null;
+    }
+  }
+
+  var inst = node[internalInstanceKey];
+  if (inst.tag === HostComponent || inst.tag === HostText) {
+    // In Fiber, this will always be the deepest root.
+    return inst;
+  }
+
+  return null;
+}
+```
+
+### batchedUpdates
+把当前触发的事件放入了批处理队列中
+
+### handleTopLevel
+```
+function handleTopLevel(bookKeeping) {
+  var targetInst = bookKeeping.targetInst;
+
+  // Loop through the hierarchy, in case there's any nested components.
+  // It's important that we build the array of ancestors before calling any
+  // event handlers, because event handlers can modify the DOM, leading to
+  // inconsistencies with ReactMount's node cache. See #1105.
+  var ancestor = targetInst;
+  do {
+    if (!ancestor) {
+      bookKeeping.ancestors.push(ancestor);
+      break;
+    }
+    var root = findRootContainerNode(ancestor);
+    if (!root) {
+      break;
+    }
+    bookKeeping.ancestors.push(ancestor);
+    ancestor = getClosestInstanceFromNode(root);
+  } while (ancestor);
+
+  for (var i = 0; i < bookKeeping.ancestors.length; i++) { // 遍历所有组件实例，执行runExtractedEventsInBatch（事件执行的入口）
+    targetInst = bookKeeping.ancestors[i];
+    runExtractedEventsInBatch(bookKeeping.topLevelType, targetInst, bookKeeping.nativeEvent, getEventTarget(bookKeeping.nativeEvent));
+  }
+}
+
+```
+
+1. 首先在事件回调之前，根据当前组件，向上遍历得到其所有的父组件，存储到 ancestors中，由于所有的事件都委托到了 document上，
+2. 所以在事件触发后，无论是冒泡事件还是捕获事件，其在相关元素上的触发肯定是要有一个次序关系的，比如在子元素和父元素上都注册了一个鼠标点击冒泡事件，
+3. 事件触发后，肯定是子元素的事件响应快于父元素，所以在事件队列里，子元素就要排在父元素前面，而在事件回调之前就要进行缓存，
+4. 原因是事件回调可能会改变 DOM结构，所以要先遍历好组件层级关系，缓存起来
+
+ 
 # 事件执行
+```
+function runExtractedEventsInBatch(topLevelType, targetInst, nativeEvent, nativeEventTarget) {
+  var events = extractEvents(topLevelType, targetInst, nativeEvent, nativeEventTarget);
+  runEventsInBatch(events);
+}
+```
+runExtractedEventsInBatch这个方法中又调用了两个方法：
+    - extractEvents用于构造合成事件，
+    - runEventsInBatch用于批处理 extractEvents构造出的合成事件
+    
+## 构造合成事件
+### extractEvents构造合成事件
+```
+function extractEvents(topLevelType, targetInst, nativeEvent, nativeEventTarget) {
+  var events = null;
+  for (var i = 0; i < plugins.length; i++) {
+    // Not every plugin in the ordering may be loaded at runtime.
+    var possiblePlugin = plugins[i];
+    if (possiblePlugin) {
+      var extractedEvents = possiblePlugin.extractEvents(topLevelType, targetInst, nativeEvent, nativeEventTarget);
+      if (extractedEvents) {
+        events = accumulateInto(events, extractedEvents);
+      }
+    }
+  }
+  return events;
+}
+```
+
+extractEvents方法中的plugins来源
+```
+//注释：
+// 可注入`EventPluginHub`的模块，用于指定'EventPlugin`s的确定性排序。
+// 一种简便的方法来推理插件，而无需打包每一个插件。
+// 这比插件按照它们注入的顺序排序要好，因为排序会受到包装顺序的影响。
+// `ResponderEventPlugin`必须在`SimpleEventPlugin`之前发生，以便在`SimpleEventPlugin`处理程序中方便地防止事件的默认。
+var DOMEventPluginOrder = ['ResponderEventPlugin', 'SimpleEventPlugin', 'EnterLeaveEventPlugin', 'ChangeEventPlugin', 'SelectEventPlugin', 'BeforeInputEventPlugin'];
+
+//...
+injection.injectEventPluginOrder(DOMEventPluginOrder);
+
+//...
+function injectEventPluginOrder(injectedEventPluginOrder) {
+  !!eventPluginOrder ? invariant(false, 'EventPluginRegistry: Cannot inject event plugin ordering more than once. You are likely trying to load more than one copy of React.') : void 0;
+  // Clone the ordering so it cannot be dynamically mutated.
+  eventPluginOrder = Array.prototype.slice.call(injectedEventPluginOrder);
+  recomputePluginOrdering(); // 注册到plugins变量中
+}
+```
+
+#### SimpleEventPlugin.extractEvents
+```
+var SimpleEventPlugin = {
+    extractEvents: function (topLevelType, targetInst, nativeEvent, nativeEventTarget) {
+        switch (topLevelType) {
+            //...
+            case TOP_CLICK: // clik事件
+                // Firefox creates a click event on right mouse clicks. This removes the
+                // unwanted click events.
+                if (nativeEvent.button === 2) {
+                  return null;
+                }
+            //...
+            EventConstructor = SyntheticMouseEvent;
+            break;
+        }
+        var event = EventConstructor.getPooled(dispatchConfig, targetInst, nativeEvent, nativeEventTarget);
+        accumulateTwoPhaseDispatches(event);
+        return event;    
+    }
+}
+```
+ 
+ getPooled就是从 event对象池中取出合成事件，这种操作是 React的一大亮点，将所有的事件缓存在对象池中,可以大大降低对象创建和销毁的时间，提升性能
+ 这个方法是位于 SyntheticEvent这个对象上，流程示意图如下：
+  ![avatar](../images/react/event-constructor-getpoled.webp)
+
+### runEventsInBatch批处理合成事件
+
+
+# 补充
+## 合成事件
+```
+function SyntheticEvent(dispatchConfig, targetInst, nativeEvent, nativeEventTarget) {}
+
+_assign(SyntheticEvent.prototype, {
+    preventDefault: function () {},
+    stopPropagation: function () {}, 
+    persist: function () {}, 
+    isPersistent: functionThatReturnsFalse, 
+    destructor: function () {}
+});
+
+SyntheticEvent.Interface = EventInterface;
+ 
+SyntheticEvent.extend = function (Interface) {};
+
+addEventPoolingTo(SyntheticEvent);
+```
+
+addEventPoolingTo
+```
+function addEventPoolingTo(EventConstructor) {
+  EventConstructor.eventPool = [];
+  EventConstructor.getPooled = getPooledEvent;
+  EventConstructor.release = releasePooledEvent;
+}
+```

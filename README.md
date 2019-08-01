@@ -13,5 +13,5 @@
     - [第8章：内置绑定处理器-component](knockout/第8章：内置绑定处理器-component.md)
     - [第9章：工具类](knockout/第9章：工具类.md)
 - React     
-    - [组件的实现和挂载](react/组件的实现和挂载.md)
-    - [React的事件机制](react/React事件机制.md) 
+    - [组件的实现和挂载](React/组件的实现和挂载.md)
+    - [React的事件机制](React/React事件机制.md) 

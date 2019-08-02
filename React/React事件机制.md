@@ -422,12 +422,12 @@ _assign(SyntheticEvent.prototype, {
 流程图<br/>
 ![avatar](../images/react/accumulateTowPhaseDisp.png)
  
- 
+
 ## runEventsInBatch：批处理合成事件
-  runEventsInBatch
-  executeDispatchesAndReleaseTopLevel
-  executeDispatchesAndRelease
-  executeDispatchesInOrder -> if(event.isPropagationStopped())
+  runEventsInBatch<br/>
+  executeDispatchesAndReleaseTopLevel<br/>
+  executeDispatchesAndRelease<br/>
+  executeDispatchesInOrder -> if(event.isPropagationStopped())<br/>
 
 
 # 补充

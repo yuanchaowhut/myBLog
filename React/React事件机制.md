@@ -510,7 +510,7 @@ function executeDispatchesInOrder(event) {
     validateEventDispatches(event);
   }
   if (Array.isArray(dispatchListeners)) {
-    for (var i = 0; i < dispatchListeners.length; i++) {
+    for (var i = 0; i < dispatchListeners.length; i++) { // 一个一个对应的处理：组件实例-事件回调
       if (event.isPropagationStopped()) {
         break;
       }

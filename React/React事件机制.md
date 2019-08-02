@@ -15,15 +15,18 @@
     - [getClosestInstanceFromNode](#getclosestinstancefromnode)
     - [batchedUpdates](#batchedupdates)
     - [handleTopLevel](#handletoplevel)
-- [事件执行](#%E4%BA%8B%E4%BB%B6%E6%89%A7%E8%A1%8C)
+- [runExtractedEventsInBatch：事件执行](#runextractedeventsinbatch%E4%BA%8B%E4%BB%B6%E6%89%A7%E8%A1%8C)
   - [extractEvents 构造合成事件](#extractevents-%E6%9E%84%E9%80%A0%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6)
     - [SimpleEventPlugin.extractEvents：从合成事件对象池中取对象](#simpleeventpluginextractevents%E4%BB%8E%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6%E5%AF%B9%E8%B1%A1%E6%B1%A0%E4%B8%AD%E5%8F%96%E5%AF%B9%E8%B1%A1)
       - [getPooledEvent：获取（构造）合成事件](#getpooledevent%E8%8E%B7%E5%8F%96%E6%9E%84%E9%80%A0%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6)
       - [accumulateTwoPhaseDispatches 进一步加工合成事件](#accumulatetwophasedispatches-%E8%BF%9B%E4%B8%80%E6%AD%A5%E5%8A%A0%E5%B7%A5%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6)
   - [runEventsInBatch：批处理合成事件](#runeventsinbatch%E6%89%B9%E5%A4%84%E7%90%86%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6)
+    - [executeDispatchesInOrder：事件处理的核心](#executedispatchesinorder%E4%BA%8B%E4%BB%B6%E5%A4%84%E7%90%86%E7%9A%84%E6%A0%B8%E5%BF%83)
+  - [事件清理](#%E4%BA%8B%E4%BB%B6%E6%B8%85%E7%90%86)
 - [补充](#%E8%A1%A5%E5%85%85)
   - [SyntheticEvent：合成事件](#syntheticevent%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6)
     - [寄生组合式继承](#%E5%AF%84%E7%94%9F%E7%BB%84%E5%90%88%E5%BC%8F%E7%BB%A7%E6%89%BF)
+- [总结](#%E6%80%BB%E7%BB%93)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 

@@ -642,3 +642,4 @@ SyntheticEvent.extend = function (Interface) {
 ```
  
 # 总结
+![avatar](../images/react/shijianjizhi-chufa-zhixing.png)

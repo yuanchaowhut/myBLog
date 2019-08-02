@@ -16,18 +16,20 @@
     - [batchedUpdates](#batchedupdates)
     - [handleTopLevel](#handletoplevel)
 - [事件执行](#%E4%BA%8B%E4%BB%B6%E6%89%A7%E8%A1%8C)
-  - [构造合成事件](#%E6%9E%84%E9%80%A0%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6)
-    - [extractEvents](#extractevents)
-      - [构造合成事件](#%E6%9E%84%E9%80%A0%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6-1)
-      - [SimpleEventPlugin.extractEvents：从合成事件对象池中取对象](#simpleeventpluginextractevents%E4%BB%8E%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6%E5%AF%B9%E8%B1%A1%E6%B1%A0%E4%B8%AD%E5%8F%96%E5%AF%B9%E8%B1%A1)
-    - [runEventsInBatch批处理合成事件](#runeventsinbatch%E6%89%B9%E5%A4%84%E7%90%86%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6)
+  - [extractEvents 构造合成事件](#extractevents-%E6%9E%84%E9%80%A0%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6)
+    - [SimpleEventPlugin.extractEvents：从合成事件对象池中取对象](#simpleeventpluginextractevents%E4%BB%8E%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6%E5%AF%B9%E8%B1%A1%E6%B1%A0%E4%B8%AD%E5%8F%96%E5%AF%B9%E8%B1%A1)
+      - [getPooledEvent：获取（构造）合成事件](#getpooledevent%E8%8E%B7%E5%8F%96%E6%9E%84%E9%80%A0%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6)
+      - [accumulateTwoPhaseDispatches 进一步加工合成事件](#accumulatetwophasedispatches-%E8%BF%9B%E4%B8%80%E6%AD%A5%E5%8A%A0%E5%B7%A5%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6)
+  - [runEventsInBatch：批处理合成事件](#runeventsinbatch%E6%89%B9%E5%A4%84%E7%90%86%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6)
 - [补充](#%E8%A1%A5%E5%85%85)
-  - [合成事件](#%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6)
+  - [SyntheticEvent：合成事件](#syntheticevent%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6)
+    - [寄生组合式继承](#%E5%AF%84%E7%94%9F%E7%BB%84%E5%90%88%E5%BC%8F%E7%BB%A7%E6%89%BF)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
->参考：https://juejin.im/post/5bd32493f265da0ae472cc8e#heading-1
-react版本：v16.8.6
+>参考：https://juejin.im/post/5bd32493f265da0ae472cc8e#heading-1（上）<br/>
+       https://juejin.im/post/5bd32b5cf265da0af609f79a（下）<br/>
+       react版本：v16.8.6<br/>
 
 # 特点
 1. React事件使用了【事件委托】的机制
@@ -270,10 +272,8 @@ function runExtractedEventsInBatch(topLevelType, targetInst, nativeEvent, native
 runExtractedEventsInBatch这个方法中又调用了两个方法：
     - extractEvents用于构造合成事件，
     - runEventsInBatch用于批处理 extractEvents构造出的合成事件
-    
-## 构造合成事件
-### extractEvents
-#### 构造合成事件
+     
+## extractEvents 构造合成事件 
 ```
 function extractEvents(topLevelType, targetInst, nativeEvent, nativeEventTarget) {
   var events = null;
@@ -312,8 +312,8 @@ function injectEventPluginOrder(injectedEventPluginOrder) {
 }
 ```
 
-#### SimpleEventPlugin.extractEvents：从合成事件对象池中取对象
-SimpleEventPlugin、SyntheticUIEvent、SyntheticEvent三者的关系
+### SimpleEventPlugin.extractEvents：从合成事件对象池中取对象
+SyntheticMouseEvent、SyntheticUIEvent、SyntheticEvent三者的关系
 1. SyntheticUIEvent
 ```
 var SyntheticUIEvent = SyntheticEvent.extend({});
@@ -346,32 +346,94 @@ var SimpleEventPlugin = {
     }
 }
 ```
- 
+
+1. 上面的EventConstructor是SyntheticMouseEvent（对于案例中的click事件）<br/>
+2. 补充部分关于合成事件章节
+    - 说到了使用寄生组合的方式实现的继承功能<br/>
+    - 对SyntheticEvent调用addEventPoolingTo增加事件池相关功能（如getPooled）
+3. 本节开始部分说到了plugin的继承关系<br/>
+    - SyntheticMouseEvent通过SyntheticEvent.extend方法继承了SyntheticUIEvent
+    - SyntheticUIEvent通过SyntheticEvent.extend方法继承了SyntheticEvent 
+综上三点得出，这里EventConstructor.getPooled调用的是SyntheticEvent.getPooled
+
 getPooled就是从 event对象池中取出合成事件，这种操作是 React的一大亮点，将所有的事件缓存在对象池中,可以大大降低对象创建和销毁的时间，提升性能
 这个方法是位于 SyntheticEvent这个对象上，流程示意图如下：
 ![avatar](../images/react/event-constructor-getpoled.png)
 
-getPooledEvent：获取（构造）合成事件
+#### getPooledEvent：获取（构造）合成事件
 ```
 function getPooledEvent(dispatchConfig, targetInst, nativeEvent, nativeInst) {
   var EventConstructor = this;
-  if (EventConstructor.eventPool.length) {
+  if (EventConstructor.eventPool.length) { // 非首次触发走这里
     var instance = EventConstructor.eventPool.pop();
     EventConstructor.call(instance, dispatchConfig, targetInst, nativeEvent, nativeInst);
     return instance;
   }
-  return new EventConstructor(dispatchConfig, targetInst, nativeEvent, nativeInst);
+  return new EventConstructor(dispatchConfig, targetInst, nativeEvent, nativeInst); // 首次触发初始化，EventConstructor指向SyntheticMouseEvent
 }
 ```
 
-上面的EventConstructor是SimpleEventPlugin（对于案例中的click事件）
+上面提到SyntheticMouseEvent、SyntheticUIEvent、SyntheticEvent三者的继承关系
+因此下面代码回去调用父类的构造函数SyntheticUIEvent、SyntheticEvent，而正在的合成过程在SyntheticEvent中，见【SyntheticEvent：合成事件】章节
+```
+new EventConstructor(dispatchConfig, targetInst, nativeEvent, nativeInst); // 首次触发初始化
+```
  
-### runEventsInBatch批处理合成事件
+合成事件挂载属性的特点：
+1. 合成事件中挂载的属性是经过处理的，具备跨浏览器的能力
+2. 但是属性的调用（如stopPropagation）是作用在document上的，因此需要做一些特殊处理来达到原生事件的效果，如何处理的呢？？
+
+下面以 stopPropagation 为例说明实现的逻辑
+```
+function functionThatReturnsTrue() {
+  return true;
+}
+
+_assign(SyntheticEvent.prototype, {
+    stopPropagation: function () {
+        var event = this.nativeEvent;
+        if (!event) {
+          return;
+        }
+    
+        if (event.stopPropagation) {
+          event.stopPropagation();
+        } else if (typeof event.cancelBubble !== 'unknown') { 
+          event.cancelBubble = true;
+        }
+    
+        this.isPropagationStopped = functionThatReturnsTrue; // 用于模拟原生事件阻止冒泡
+    },
+});
+```
+
+#### accumulateTwoPhaseDispatches 进一步加工合成事件
+ ```
+ var SimpleEventPlugin = {
+     extractEvents: function (topLevelType, targetInst, nativeEvent, nativeEventTarget) {
+        //... 
+         var event = EventConstructor.getPooled(dispatchConfig, targetInst, nativeEvent, nativeEventTarget);
+         accumulateTwoPhaseDispatches(event);
+         return event;    
+     }
+ }
+ ```
+ 
+流程图<br/>
+![avatar](../images/react/accumulateTowPhaseDisp.png)
+ 
+ 
+## runEventsInBatch：批处理合成事件
+  runEventsInBatch
+  executeDispatchesAndReleaseTopLevel
+  executeDispatchesAndRelease
+  executeDispatchesInOrder -> if(event.isPropagationStopped())
+
 
 # 补充
-## 合成事件
+## SyntheticEvent：合成事件
 特点：
-    - 事件层面上具有跨浏览器兼容性，符合w3c规范
+    - 事件层面上具有跨浏览器兼容性，符合w3c规范（如preventDefault、stopPropagation）
     - SyntheticEvent.extend采用寄生组合式继承
     
 ```
@@ -389,7 +451,7 @@ SyntheticEvent.Interface = EventInterface;
  
 SyntheticEvent.extend = function (Interface) {};
 
-addEventPoolingTo(SyntheticEvent);
+addEventPoolingTo(SyntheticEvent);//添加事件池先关功能
 ```
 
 addEventPoolingTo
@@ -401,7 +463,7 @@ function addEventPoolingTo(EventConstructor) {
 }
 ```
 
-寄生组合式继承
+### 寄生组合式继承
 ```
 SyntheticEvent.extend = function (Interface) {
   var Super = this;
@@ -428,3 +490,4 @@ SyntheticEvent.extend = function (Interface) {
   return Class;
 };
 ```
+ 

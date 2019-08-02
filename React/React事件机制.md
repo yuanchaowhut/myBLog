@@ -27,8 +27,7 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
->参考：https://juejin.im/post/5bd32493f265da0ae472cc8e#heading-1（上）<br/>
-       https://juejin.im/post/5bd32b5cf265da0af609f79a（下）<br/>
+>参考：[上](https://juejin.im/post/5bd32493f265da0ae472cc8e#heading-1)、[下](https://juejin.im/post/5bd32b5cf265da0af609f79a)<br/>
        react版本：v16.8.6<br/>
 
 # 特点

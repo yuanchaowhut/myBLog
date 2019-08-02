@@ -237,6 +237,7 @@ props.history.listen：props.history来源于父组件HashRouter<br/>
     }
   });
 ```
+注意这里的返回值 _this.unlisten：用于注销注册的事件
 
 #### history.listen 
 ```
@@ -264,3 +265,15 @@ checkDOMListeners：监听hashChange事件
   }
 ```
 
+#### 事件注销
+```
+var Router =
+/*#__PURE__*/
+function (_React$Component) {
+   //...
+  _proto.componentWillUnmount = function componentWillUnmount() {
+    if (this.unlisten) this.unlisten();
+  };
+  //...
+}
+```

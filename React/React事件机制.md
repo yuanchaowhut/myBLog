@@ -418,8 +418,10 @@ _assign(SyntheticEvent.prototype, {
 ```
 
 #### accumulateTwoPhaseDispatches 进一步加工合成事件
->保存当前元素及其父元素上挂在的所有事件回调函数，包括捕获事件(captured)和冒泡事件(bubbled)，保存到事件event的 _dispatchListeners属性上，并且将当前元素及其父元素的react实例（在 v16.x版本中，这里的实例是一个 FiberNode）保存到event的 _dispatchInstances属性上
-拿到了所有与事件相关的元素实例以及事件的回调函数之后，就可以对合成事件进行批量处理了 
+1. 保存当前元素及其父元素上挂在的所有【事件回调函数】，包括捕获事件(captured)和冒泡事件(bubbled)，保存到事件event的 _dispatchListeners属性上，
+2. 并且将当前元素及其父元素的【react实例：FiberNode类型】保存到event的 _dispatchInstances属性上
+3. 拿到了所有与事件相关的元素实例以及事件的回调函数之后，就可以对合成事件进行批量处理了 
+
  ```
  var SimpleEventPlugin = {
      extractEvents: function (topLevelType, targetInst, nativeEvent, nativeEventTarget) {
@@ -434,6 +436,59 @@ _assign(SyntheticEvent.prototype, {
 流程图<br/>
 ![avatar](../images/react/accumulateTowPhaseDisp.png)
  
+ 
+traverseTwoPhase<br/>
+作用：方法名称结合代码暗示，处理两个事件流的阶段（捕获、冒泡）<br/>
+调用栈<br/>
+![avatar](../images/react/getlistener-stack.png)  
+```
+function traverseTwoPhase(inst, fn, arg) { // fn ：accumulateDirectionalDispatches
+  var path = [];
+
+  while (inst) {
+    path.push(inst);
+    inst = getParent(inst);
+  }
+
+  var i = void 0;
+
+  for (i = path.length; i-- > 0;) {
+    fn(path[i], 'captured', arg);
+  }
+
+  for (i = 0; i < path.length; i++) {
+    fn(path[i], 'bubbled', arg);
+  }
+}
+``` 
+
+accumulateDirectionalDispatches<br/>
+作用：_dispatchListeners、_dispatchInstances<br/>
+```
+function accumulateDirectionalDispatches(inst, phase, event) {
+  {
+    !inst ? warningWithoutStack$1(false, 'Dispatching inst must not be null') : void 0;
+  }
+  var listener = listenerAtPhase(inst, event, phase);
+
+  if (listener) {
+    event._dispatchListeners = accumulateInto(event._dispatchListeners, listener);
+    event._dispatchInstances = accumulateInto(event._dispatchInstances, inst);
+  }
+```
+
+listenerAtPhase<br/>
+作用：获取事件的回调函数<br/>
+```
+function listenerAtPhase(inst, event, propagationPhase) {
+  var registrationName = event.dispatchConfig.phasedRegistrationNames[propagationPhase];
+  return getListener(inst, registrationName);
+}
+``` 
+
+ getListener
+![avatar](../images/react/get-event-callback.png) 
+
 
 ## runEventsInBatch：批处理合成事件
   runEventsInBatch<br/>

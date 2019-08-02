@@ -92,7 +92,7 @@ function setInitialDOMProperties(tag, domElement, rootContainerElement, nextProp
     }
 }
 ```
-变量registrationNameModules的含义，存储量一堆事件映射
+变量registrationNameModules的含义，存储一堆事件映射
 ![avatar](../images/react/registeration-name-map.png)
 
 ### ensureListeningTo
@@ -164,10 +164,17 @@ function addEventBubbleListener(element, eventType, listener) {
 
 ## 小结
 流程图如下：<br/>
-![avatar](../images/react/react-event-reagister-s.png)
+![avatar](../images/react/react-event-reagister-self.png)<br/>
+----<br/>
+![avatar](../images/react/react-event-reagister-s.png)<br/>
 
 # 事件分发
-该案例总trapBubbledEvent方法中会对document添加onClick事件，回调为dispatchInteractiveEvent\dispatchEvent
+该案例总trapBubbledEvent方法中会对document添加onClick事件，回调为dispatchInteractiveEvent\dispatchEvent <br/>
+
+点击案例中注册click事件的div后，触发dispatchEvent事件<br/>
+![avatar](../images/react/dispatch-click.png)
+
+
 
 ## dispatchEvent
 ```
@@ -192,6 +199,9 @@ function dispatchEvent(topLevelType, nativeEvent) {
   }
 }
 ```
+
+变量targetInst为FiberNode类型
+![avatar](../images/react/fiber-node-target-inst.png)
 
 ### getClosestInstanceFromNode
 通过node获取最近的祖先react【组件实例】（ReactDOMComponent or ReactDOMTextComponent）
@@ -262,7 +272,7 @@ function handleTopLevel(bookKeeping) {
 4. 原因是事件回调可能会改变 DOM结构，所以要先遍历好组件层级关系，缓存起来
 
  
-# 事件执行
+# runExtractedEventsInBatch：事件执行
 ```
 function runExtractedEventsInBatch(topLevelType, targetInst, nativeEvent, nativeEventTarget) {
   var events = extractEvents(topLevelType, targetInst, nativeEvent, nativeEventTarget);
@@ -374,7 +384,7 @@ function getPooledEvent(dispatchConfig, targetInst, nativeEvent, nativeInst) {
 ```
 
 上面提到SyntheticMouseEvent、SyntheticUIEvent、SyntheticEvent三者的继承关系
-因此下面代码回去调用父类的构造函数SyntheticUIEvent、SyntheticEvent，而正在的合成过程在SyntheticEvent中，见【SyntheticEvent：合成事件】章节
+因此下面代码回去调用父类的构造函数SyntheticUIEvent、SyntheticEvent，而真正的合成过程在SyntheticEvent中，见【SyntheticEvent：合成事件】章节
 ```
 new EventConstructor(dispatchConfig, targetInst, nativeEvent, nativeInst); // 首次触发初始化
 ```
@@ -509,7 +519,7 @@ event.destructor()的作用：析构函数<br/>
 3. destructor这个方法主要就是做这件事情，遍历事件对象上所有属性，并将所有属性的值置为 null
  
 如果当前事件池没有满，则将析构后的event对象存储进去，析构后的event对象以及其属性还是存在的并且通用占用内存，只是其属性均指向null）。<br/>
-由于react中将所有的的事件都委托给了document，必定会
+由于react中将所有的的事件都委托给了document，必定会出现很多的事件对象，而这些事件对象的属性【名】是一致，因此事件对象（可以认为是一堆变量的集合，而这些变量均指向为null）可以复用
 
 # 补充
 ## SyntheticEvent：合成事件
@@ -571,6 +581,5 @@ SyntheticEvent.extend = function (Interface) {
   return Class;
 };
 ```
- 
  
 # 总结

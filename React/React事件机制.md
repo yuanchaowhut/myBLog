@@ -464,6 +464,8 @@ function traverseTwoPhase(inst, fn, arg) { // fn ：accumulateDirectionalDispatc
 
 accumulateDirectionalDispatches<br/>
 作用：_dispatchListeners、_dispatchInstances<br/>
+dispatchListeners：存储(合并)回调函数<br/>
+dispatchInstances：存储(合并)组件实例（FiberNode）<br/>
 ```
 function accumulateDirectionalDispatches(inst, phase, event) {
   {
@@ -486,7 +488,10 @@ function listenerAtPhase(inst, event, propagationPhase) {
 }
 ``` 
 
- getListener
+accumulateInto<br/>
+作用：合并
+
+ 案例中click事件回调<br/>
 ![avatar](../images/react/get-event-callback.png) 
 
 
@@ -522,7 +527,6 @@ function executeDispatchesInOrder(event) {
 
 => executeDispatch<br/> 
 => invokeGuardedCallbackImpl <br/>
-
 
 invokeGuardedCallbackImpl
 ``` 

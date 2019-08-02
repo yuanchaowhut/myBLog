@@ -408,6 +408,8 @@ _assign(SyntheticEvent.prototype, {
 ```
 
 #### accumulateTwoPhaseDispatches 进一步加工合成事件
+>保存当前元素及其父元素上挂在的所有事件回调函数，包括捕获事件(captured)和冒泡事件(bubbled)，保存到事件event的 _dispatchListeners属性上，并且将当前元素及其父元素的react实例（在 v16.x版本中，这里的实例是一个 FiberNode）保存到event的 _dispatchInstances属性上
+拿到了所有与事件相关的元素实例以及事件的回调函数之后，就可以对合成事件进行批量处理了 
  ```
  var SimpleEventPlugin = {
      extractEvents: function (topLevelType, targetInst, nativeEvent, nativeEventTarget) {
@@ -427,8 +429,87 @@ _assign(SyntheticEvent.prototype, {
   runEventsInBatch<br/>
   executeDispatchesAndReleaseTopLevel<br/>
   executeDispatchesAndRelease<br/>
-  executeDispatchesInOrder -> if(event.isPropagationStopped())<br/>
+  【事件处理的核心】executeDispatchesInOrder -> if(event.isPropagationStopped())<br/>
 
+### executeDispatchesInOrder：事件处理的核心
+```
+function executeDispatchesInOrder(event) {
+  var dispatchListeners = event._dispatchListeners;
+  var dispatchInstances = event._dispatchInstances;
+  {
+    validateEventDispatches(event);
+  }
+  if (Array.isArray(dispatchListeners)) {
+    for (var i = 0; i < dispatchListeners.length; i++) {
+      if (event.isPropagationStopped()) {
+        break;
+      }
+      // Listeners and Instances are two parallel arrays that are always in sync.
+      executeDispatch(event, dispatchListeners[i], dispatchInstances[i]);
+    }
+  } else if (dispatchListeners) {
+    executeDispatch(event, dispatchListeners, dispatchInstances);
+  }
+  event._dispatchListeners = null;
+  event._dispatchInstances = null;
+}
+```
+
+=> executeDispatch<br/> 
+=> invokeGuardedCallbackImpl <br/>
+
+
+invokeGuardedCallbackImpl
+``` 
+var invokeGuardedCallbackImpl = function (name, func, context, a, b, c, d, e, f) {
+  var funcArgs = Array.prototype.slice.call(arguments, 3);
+  try {
+    func.apply(context, funcArgs);
+  } catch (error) {
+    this.onError(error);
+  }
+};
+```
+
+1. funcArgs是什么呢？其实就是合成事件对象，包括原生浏览器事件对象的基本上所有属性和方法，除此之外还另外挂载了额外其他一些跟 React合成事件相关的属性和方法，
+2. 而 func则就是传入的事件回调函数，对于本示例来说，就等于clickHandler这个回调方法：
+![avatar](../images/react/invoke-guard-call-impl.png)
+
+## 事件清理
+事件执行完毕之后，接下来就是一些清理工作了，因为 React采用了对象池的方式来管理合成事件，所以当事件执行完毕之后就要清理释放掉，减少内存占用<br/>
+
+executeDispatchesAndRelease<br/>
+该方法在runEventsInBatch的调用栈中<br/>
+```
+var executeDispatchesAndRelease = function (event) {
+  if (event) {
+    executeDispatchesInOrder(event);
+
+    if (!event.isPersistent()) {
+      event.constructor.release(event); // addEventPoolingTo(SyntheticEvent);//添加事件池先关功能
+    }
+  }
+};
+```
+
+releasePooledEvent
+```
+function releasePooledEvent(event) {
+  var EventConstructor = this;
+  !(event instanceof EventConstructor) ? invariant(false, 'Trying to release an event instance into a pool of a different type.') : void 0;
+  event.destructor();
+  if (EventConstructor.eventPool.length < EVENT_POOL_SIZE) {
+    EventConstructor.eventPool.push(event); 
+  }
+}
+```
+event.destructor()的作用：析构函数<br/>
+1. JavaScript引擎有自己的垃圾回收机制，一般来说不需要开发者亲自去回收内存空间，但这并不是说开发者就完全无法影响这个过程了，
+2. 常见的手动释放内存的方法就是将对象置为 null，
+3. destructor这个方法主要就是做这件事情，遍历事件对象上所有属性，并将所有属性的值置为 null
+ 
+如果当前事件池没有满，则将析构后的event对象存储进去，析构后的event对象以及其属性还是存在的并且通用占用内存，只是其属性均指向null）。<br/>
+由于react中将所有的的事件都委托给了document，必定会
 
 # 补充
 ## SyntheticEvent：合成事件
@@ -458,8 +539,8 @@ addEventPoolingTo
 ```
 function addEventPoolingTo(EventConstructor) {
   EventConstructor.eventPool = [];
-  EventConstructor.getPooled = getPooledEvent;
-  EventConstructor.release = releasePooledEvent;
+  EventConstructor.getPooled = getPooledEvent;  // 获取事件池
+  EventConstructor.release = releasePooledEvent; // 用于事件清理
 }
 ```
 
@@ -491,3 +572,5 @@ SyntheticEvent.extend = function (Interface) {
 };
 ```
  
+ 
+# 总结

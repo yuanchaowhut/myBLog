@@ -17,9 +17,9 @@
     - [handleTopLevel](#handletoplevel)
 - [事件执行](#%E4%BA%8B%E4%BB%B6%E6%89%A7%E8%A1%8C)
   - [构造合成事件](#%E6%9E%84%E9%80%A0%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6)
-    - [extractEvents构造合成事件](#extractevents%E6%9E%84%E9%80%A0%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6)
-      - [SimpleEventPlugin.extractEvents](#simpleeventpluginextractevents)
-      - [](#)
+    - [extractEvents](#extractevents)
+      - [构造合成事件](#%E6%9E%84%E9%80%A0%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6-1)
+      - [SimpleEventPlugin.extractEvents：从合成事件对象池中取对象](#simpleeventpluginextractevents%E4%BB%8E%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6%E5%AF%B9%E8%B1%A1%E6%B1%A0%E4%B8%AD%E5%8F%96%E5%AF%B9%E8%B1%A1)
     - [runEventsInBatch批处理合成事件](#runeventsinbatch%E6%89%B9%E5%A4%84%E7%90%86%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6)
 - [补充](#%E8%A1%A5%E5%85%85)
   - [合成事件](#%E5%90%88%E6%88%90%E4%BA%8B%E4%BB%B6)
@@ -272,7 +272,8 @@ runExtractedEventsInBatch这个方法中又调用了两个方法：
     - runEventsInBatch用于批处理 extractEvents构造出的合成事件
     
 ## 构造合成事件
-### extractEvents构造合成事件
+### extractEvents
+#### 构造合成事件
 ```
 function extractEvents(topLevelType, targetInst, nativeEvent, nativeEventTarget) {
   var events = null;
@@ -311,7 +312,19 @@ function injectEventPluginOrder(injectedEventPluginOrder) {
 }
 ```
 
-#### SimpleEventPlugin.extractEvents
+#### SimpleEventPlugin.extractEvents：从合成事件对象池中取对象
+SimpleEventPlugin、SyntheticUIEvent、SyntheticEvent三者的关系
+1. SyntheticUIEvent
+```
+var SyntheticUIEvent = SyntheticEvent.extend({});
+```
+
+2. SimpleEventPlugin
+```
+var SyntheticMouseEvent = SyntheticUIEvent.extend({});
+```
+
+3. SimpleEventPlugin.extractEvents
 ```
 var SimpleEventPlugin = {
     extractEvents: function (topLevelType, targetInst, nativeEvent, nativeEventTarget) {
@@ -334,15 +347,33 @@ var SimpleEventPlugin = {
 }
 ```
  
- getPooled就是从 event对象池中取出合成事件，这种操作是 React的一大亮点，将所有的事件缓存在对象池中,可以大大降低对象创建和销毁的时间，提升性能
- 这个方法是位于 SyntheticEvent这个对象上，流程示意图如下：
-  ![avatar](../images/react/event-constructor-getpoled.png)
+getPooled就是从 event对象池中取出合成事件，这种操作是 React的一大亮点，将所有的事件缓存在对象池中,可以大大降低对象创建和销毁的时间，提升性能
+这个方法是位于 SyntheticEvent这个对象上，流程示意图如下：
+![avatar](../images/react/event-constructor-getpoled.png)
 
+getPooledEvent：获取（构造）合成事件
+```
+function getPooledEvent(dispatchConfig, targetInst, nativeEvent, nativeInst) {
+  var EventConstructor = this;
+  if (EventConstructor.eventPool.length) {
+    var instance = EventConstructor.eventPool.pop();
+    EventConstructor.call(instance, dispatchConfig, targetInst, nativeEvent, nativeInst);
+    return instance;
+  }
+  return new EventConstructor(dispatchConfig, targetInst, nativeEvent, nativeInst);
+}
+```
+
+上面的EventConstructor是SimpleEventPlugin（对于案例中的click事件）
+ 
 ### runEventsInBatch批处理合成事件
-
 
 # 补充
 ## 合成事件
+特点：
+    - 事件层面上具有跨浏览器兼容性，符合w3c规范
+    - SyntheticEvent.extend采用寄生组合式继承
+    
 ```
 function SyntheticEvent(dispatchConfig, targetInst, nativeEvent, nativeEventTarget) {}
 
@@ -368,4 +399,32 @@ function addEventPoolingTo(EventConstructor) {
   EventConstructor.getPooled = getPooledEvent;
   EventConstructor.release = releasePooledEvent;
 }
+```
+
+寄生组合式继承
+```
+SyntheticEvent.extend = function (Interface) {
+  var Super = this;
+
+  // 原型式继承
+  var E = function () {};
+  E.prototype = Super.prototype;
+  var prototype = new E();
+    
+  // 构造函数继承  
+  function Class() {
+    return Super.apply(this, arguments);
+  }
+  
+  _assign(prototype, Class.prototype);
+  // 寄生式继承：用于增强
+  Class.prototype = prototype;
+  Class.prototype.constructor = Class;
+
+  Class.Interface = _assign({}, Super.Interface, Interface);
+  Class.extend = Super.extend;
+  addEventPoolingTo(Class);
+
+  return Class;
+};
 ```

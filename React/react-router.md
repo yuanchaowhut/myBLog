@@ -101,32 +101,7 @@ function constructClassInstance(workInProgress, ctor, props, renderExpirationTim
 
 
 ### 执行HashRouter构造函数
-```
-//node_modules/react-router-dom/esm/react-router-dom.js
-
-var HashRouter = 
-function (_React$Component) { //不是构造函数哦
-  _inheritsLoose(HashRouter, _React$Component);
-
-  function HashRouter() { // 这才是构造函数
-    var _this;
-    //...
-    _this.history = createHashHistory(_this.props); //保存
-    return _this;
-  }
-
-  var _proto = HashRouter.prototype;
-
-  _proto.render = function render() {
-    return React.createElement(Router, {
-      history: this.history,
-      children: this.props.children
-    });
-  };
-
-  return HashRouter;
-}(React.Component); //立即执行函数
-```
+[HashRouter代码](https://github.com/yusongjohn/reactDemo/blob/master/frameSource/react-router-master/packages/react-router-dom/modules/HashRouter.js))
 
 注意这里的render方法可以进行改写
 ```
@@ -177,80 +152,7 @@ function createHashHistory(props) {
 ```
 
 ## Router组件渲染以及hashChange事件
-```
-//node_modules/react-router/esm/react-router.js
-
-var Router =
-/*#__PURE__*/
-function (_React$Component) {
-  _inheritsLoose(Router, _React$Component);
-
-  Router.computeRootMatch = function computeRootMatch(pathname) {
-    return {
-      path: "/",
-      url: "/",
-      params: {},
-      isExact: pathname === "/"
-    };
-  };
-
-  function Router(props) { // 构造函数
-    var _this;
-
-    _this = _React$Component.call(this, props) || this;
-    _this.state = {
-      location: props.history.location
-    }; 
-
-    _this._isMounted = false;
-    _this._pendingLocation = null;
-
-    if (!props.staticContext) {
-      _this.unlisten = props.history.listen(function (location) { 
-        if (_this._isMounted) {
-          _this.setState({ 
-            location: location
-          });
-        } else {
-          _this._pendingLocation = location;
-        }
-      });
-    }
-
-    return _this;
-  }
-
-  var _proto = Router.prototype;
-
-  _proto.componentDidMount = function componentDidMount() {
-    this._isMounted = true;
-
-    if (this._pendingLocation) {
-      this.setState({
-        location: this._pendingLocation
-      });
-    }
-  };
-
-  _proto.componentWillUnmount = function componentWillUnmount() {
-    if (this.unlisten) this.unlisten();
-  };
-
-  _proto.render = function render() {
-    return React.createElement(context.Provider, {
-      children: this.props.children || null,
-      value: {
-        history: this.props.history,
-        location: this.state.location,
-        match: Router.computeRootMatch(this.state.location.pathname),
-        staticContext: this.props.staticContext
-      }
-    });
-  };
-
-  return Router;
-}(React.Component); 
-```
+[Router代码](https://github.com/yusongjohn/reactDemo/blob/master/frameSource/react-router-master/packages/react-router/modules/Router.js)
 
 ### hashChange事件的监听
 props.history.listen：props.history来源于父组件HashRouter<br/>
@@ -320,36 +222,7 @@ Router、Route、Switch、matchPath、withRouter、Link的作用及源码分析[
 2. <Link />的核心就是渲染<a>标签，拦截<a>标签的点击事件，然后通过<Router />共享的router对history进行路由操作，进而通知<Router />重新渲染
   
 ## BrowserRouter的渲染
-```
-var BrowserRouter =
-/*#__PURE__*/
-function (_React$Component) {
-  _inheritsLoose(BrowserRouter, _React$Component);
-
-  function BrowserRouter() {
-    var _this;
-
-    for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
-      args[_key] = arguments[_key];
-    }
-
-    _this = _React$Component.call.apply(_React$Component, [this].concat(args)) || this;
-    _this.history = createBrowserHistory(_this.props);
-    return _this;
-  }
-
-  var _proto = BrowserRouter.prototype;
-
-  _proto.render = function render() {
-    return React.createElement(Router, {
-      history: this.history,
-      children: this.props.children
-    });
-  };
-
-  return BrowserRouter;
-}(React.Component);
-```
+[BrowserRouter代码](https://github.com/yusongjohn/reactDemo/blob/master/frameSource/react-router-master/packages/react-router-dom/modules/BrowserRouter.js)
 关键之出在于：createBrowserHistory
 
 ### history.js createBrowserHistory
@@ -370,7 +243,6 @@ function createBrowserHistory(props) {
     //...
 }
 ```
-
 
 # 总结
 整个react-router其实就是围绕着<Router />的Context来构建的

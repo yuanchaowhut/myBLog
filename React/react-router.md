@@ -12,6 +12,10 @@
   - [Router组件渲染](#router%E7%BB%84%E4%BB%B6%E6%B8%B2%E6%9F%93)
     - [hashChange事件的监听](#hashchange%E4%BA%8B%E4%BB%B6%E7%9A%84%E7%9B%91%E5%90%AC)
       - [history.listen](#historylisten)
+      - [事件注销](#%E4%BA%8B%E4%BB%B6%E6%B3%A8%E9%94%80)
+  - [跨组件数据共享](#%E8%B7%A8%E7%BB%84%E4%BB%B6%E6%95%B0%E6%8D%AE%E5%85%B1%E4%BA%AB)
+    - [Router](#router)
+    - [Route、Switch](#routeswitch)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -39,6 +43,7 @@ Router.prototype.init = function() {
 [简易路由实现](testDemo/simple-router.html)<br/>
 
 # react-router使用
+http://react-guide.github.io/react-router-cn/index.html
 ## withRouter
 
 # react-router分析
@@ -152,6 +157,8 @@ function createHashHistory(props) {
 
 ## Router组件渲染
 ```
+//node_modules/react-router/esm/react-router.js
+
 var Router =
 /*#__PURE__*/
 function (_React$Component) {
@@ -240,6 +247,8 @@ props.history.listen：props.history来源于父组件HashRouter<br/>
 注意这里的返回值 _this.unlisten：用于注销注册的事件
 
 #### history.listen 
+>node_modules/history/esm/history.js
+
 ```
 function listen(listener) {
     var unlisten = transitionManager.appendListener(listener);
@@ -267,6 +276,8 @@ checkDOMListeners：监听hashChange事件
 
 #### 事件注销
 ```
+//node_modules/react-router/esm/react-router.js
+
 var Router =
 /*#__PURE__*/
 function (_React$Component) {
@@ -277,3 +288,45 @@ function (_React$Component) {
   //...
 }
 ```
+
+
+## 跨组件数据共享
+### Router
+
+```
+// //node_modules/react-router/esm/react-router.js
+var context = createNamedContext("Router"); //关键代码：共享router
+
+var Router =
+/*#__PURE__*/
+function (_React$Component) {
+    //...
+     _proto.render = function render() {
+        return React.createElement(context.Provider, {
+          children: this.props.children || null,
+          value: { // 共享的router的值
+            history: this.props.history,
+            location: this.state.location,
+            match: Router.computeRootMatch(this.state.location.pathname),
+            staticContext: this.props.staticContext
+          }
+        });
+      };
+    //...
+}
+```
+
+### Route
+使用context.Consumer
+
+### Switch
+
+### Link
+<Link />的核心就是渲染<a>标签，拦截<a>标签的点击事件，然后通过<Router />共享的router对history进行路由操作，进而通知<Router />重新渲染
+
+### Route
+<Route />有一部分源码与<Router />相似，可以实现路由的嵌套，但其核心是通过Context共享的router，判断是否匹配当前路由的路径，然后渲染组件
+
+
+# 总结
+整个react-router其实就是围绕着<Router />的Context来构建的

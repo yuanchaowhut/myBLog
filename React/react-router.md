@@ -13,17 +13,18 @@
     - [hashChange事件的监听](#hashchange%E4%BA%8B%E4%BB%B6%E7%9A%84%E7%9B%91%E5%90%AC)
       - [history.listen](#historylisten)
       - [事件注销](#%E4%BA%8B%E4%BB%B6%E6%B3%A8%E9%94%80)
-  - [跨组件数据共享](#%E8%B7%A8%E7%BB%84%E4%BB%B6%E6%95%B0%E6%8D%AE%E5%85%B1%E4%BA%AB)
+  - [Router、Route、Switch等组件的作用](#routerrouteswitch%E7%AD%89%E7%BB%84%E4%BB%B6%E7%9A%84%E4%BD%9C%E7%94%A8)
   - [BrowserRouter的渲染](#browserrouter%E7%9A%84%E6%B8%B2%E6%9F%93)
     - [history.js createBrowserHistory](#historyjs-createbrowserhistory)
 - [总结](#%E6%80%BB%E7%BB%93)
+  - [点击一个 Link 跳转的过程。](#%E7%82%B9%E5%87%BB%E4%B8%80%E4%B8%AA-link-%E8%B7%B3%E8%BD%AC%E7%9A%84%E8%BF%87%E7%A8%8B)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 
-**参考**
+**参考**<br/>
 [参考1](https://github.com/joeyguo/blog/issues/2)<br/>
-[参考2](https://juejin.im/post/5995a2506fb9a0249975a1a4)<br/>
+[参考2](https://juejin.im/post/5995a2506fb9a0249975a1a4):尚未细看<br/>
 
 # 简易路由实现
 ``` 
@@ -209,14 +210,20 @@ function (_React$Component) {
 ```
 
 
-## 跨组件数据共享
+## Router、Route、Switch等组件的作用
 Router、Route、Switch、matchPath、withRouter、Link的作用及源码分析[参考](https://juejin.im/post/5b45c878f265da0f783c89a6)<br/>
 [Router、Route、Switch、matchPath、withRouter：相关源码地址](https://github.com/yusongjohn/reactDemo/tree/master/frameSource/react-router-master/packages/react-router/modules)<br/>
 [Link：相关源码地址](https://github.com/yusongjohn/reactDemo/tree/master/frameSource/react-router-master/packages/react-router-dom/modules)<br/>
 
 1. <Route />有一部分源码与<Router />相似，可以实现路由的嵌套，但其核心是通过Context共享的router，判断是否匹配当前路由的路径，然后渲染组件
 2. <Link />的核心就是渲染<a>标签，拦截<a>标签的点击事件，然后通过<Router />共享的router对history进行路由操作，进而通知<Router />重新渲染
-  
+3. withRouter 的作用是让我们在普通的非直接嵌套在 Route 中的组件也能获得路由的信息，这时候我们就要 WithRouter(wrappedComponent) 来创建一个 HOC 传递 props，WithRouter 的其实就是用 Route 包裹了 SomeComponent 的一个 HOC。  
+4. 包容性路由、排他路由;[参考](https://juejin.im/post/5995a2506fb9a0249975a1a4)
+    
+switch的作用？    
+- 如果你只需要在路由列表里匹配一个路由，则使用 <Switch> 来启用排他路由：
+- 如果遇到<Redirect> 组件将会始终执行浏览器重定向，但是当它位于 <Switch> 语句中时，只有在其他路由不匹配的情况下，才会渲染重定向组件
+
 ## BrowserRouter的渲染
 [BrowserRouter代码](https://github.com/yusongjohn/reactDemo/blob/master/frameSource/react-router-master/packages/react-router-dom/modules/BrowserRouter.js)
 关键之出在于：createBrowserHistory
@@ -241,6 +248,18 @@ function createBrowserHistory(props) {
 ```
 
 # 总结
+## 点击一个 Link 跳转的过程。
+有两件事需要完成： 路由的改变、页面的渲染部分的改变
+
+过程如下：
+
+1. 在最一开始 mount Router 的时候，Router 在 componentWillMount 中 listen 了一个回调函数，由 history 库管理，路由每次改变的时候触发这个回调函数。这个回调函数会触发 setState。
+2. 当点击 Link 标签的时候，实际上点击的是页面上渲染出来的 a 标签，然后通过 preventDefault 阻止 a 标签的页面跳转。
+3. Link 中也能拿到 Router -> Route 中通过 context 传递的 history，执行 hitsory.push(to)，这个函数实际上就是包装了一下 window.history.pushState()，是 HTML5 history 的 API，但是 pushState 之后除了地址栏有变化其他没有任何影响，到这一步已经完成了目标1：路由的改变。
+4. 第1步中，路由改变是会触发 Router 的 setState 的，在 Router 那章有写道：每次路由变化 -> 触发顶层 Router 的监听事件 -> Router 触发 setState -> 向下传递新的 nextContext（nextContext 中含有最新的 location）
+5. 下层的 Route 拿到新的 nextContext 通过 matchPath 函数来判断 path 是否与 location 匹配，如果匹配则渲染，不匹配则不渲染，完成目标2：页面的渲染部分的改变。
+    
+
 整个react-router其实就是围绕着<Router />的Context来构建的
 
 ![avatar](../images/react/reat-router-event.png)<br/>

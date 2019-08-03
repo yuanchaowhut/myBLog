@@ -6,21 +6,28 @@
 - [react-router使用](#react-router%E4%BD%BF%E7%94%A8)
   - [withRouter](#withrouter)
 - [react-router分析](#react-router%E5%88%86%E6%9E%90)
-  - [<HashRouter>作为组件被渲染到页面中](#hashrouter%E4%BD%9C%E4%B8%BA%E7%BB%84%E4%BB%B6%E8%A2%AB%E6%B8%B2%E6%9F%93%E5%88%B0%E9%A1%B5%E9%9D%A2%E4%B8%AD)
+  - [HashRouter作为组件被渲染到页面中](#hashrouter%E4%BD%9C%E4%B8%BA%E7%BB%84%E4%BB%B6%E8%A2%AB%E6%B8%B2%E6%9F%93%E5%88%B0%E9%A1%B5%E9%9D%A2%E4%B8%AD)
     - [执行HashRouter构造函数](#%E6%89%A7%E8%A1%8Chashrouter%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0)
-      - [创建histroy对象](#%E5%88%9B%E5%BB%BAhistroy%E5%AF%B9%E8%B1%A1)
-  - [Router组件渲染](#router%E7%BB%84%E4%BB%B6%E6%B8%B2%E6%9F%93)
+      - [history.createHashHistory](#historycreatehashhistory)
+  - [Router组件渲染以及hashChange事件](#router%E7%BB%84%E4%BB%B6%E6%B8%B2%E6%9F%93%E4%BB%A5%E5%8F%8Ahashchange%E4%BA%8B%E4%BB%B6)
     - [hashChange事件的监听](#hashchange%E4%BA%8B%E4%BB%B6%E7%9A%84%E7%9B%91%E5%90%AC)
       - [history.listen](#historylisten)
       - [事件注销](#%E4%BA%8B%E4%BB%B6%E6%B3%A8%E9%94%80)
   - [跨组件数据共享](#%E8%B7%A8%E7%BB%84%E4%BB%B6%E6%95%B0%E6%8D%AE%E5%85%B1%E4%BA%AB)
     - [Router](#router)
-    - [Route、Switch](#routeswitch)
+    - [Route](#route)
+    - [Switch](#switch)
+    - [Link](#link)
+    - [Route](#route-1)
+  - [BrowserRouter的渲染](#browserrouter%E7%9A%84%E6%B8%B2%E6%9F%93)
+    - [history.js createBrowserHistory](#historyjs-createbrowserhistory)
+- [总结](#%E6%80%BB%E7%BB%93)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 
-[参考](https://github.com/joeyguo/blog/issues/2)<br/>
+[参考1](https://github.com/joeyguo/blog/issues/2)<br/>
+[参考2](https://juejin.im/post/5995a2506fb9a0249975a1a4)<br/>
 
 # 简易路由实现
 ``` 
@@ -49,7 +56,21 @@ http://react-guide.github.io/react-router-cn/index.html
 # react-router分析
 react-router的使用：[官方文档](https://github.com/ReactTraining/react-router)<br/>
 
-2019.8.2 先粗略说下整个流程，以后再细看这里的流程<br/>
+各模块结构
+1. react-router-dom
+```
+export { BrowserRouter, HashRouter, Link, NavLink };
+```
+
+2. react-router
+```
+export { MemoryRouter, Prompt, Redirect, Route, Router, StaticRouter, Switch, generatePath, matchPath, withRouter, context as __RouterContext };
+```
+
+3. history.js
+```
+export { createBrowserHistory, createHashHistory, createMemoryHistory, createLocation, locationsAreEqual, parsePath, createPath };
+``` 
 
 以下面代码为例，说下路由渲染和切换的流程
 ```
@@ -66,7 +87,7 @@ var Routers = <HashRouter>
 ReactDOM.render(Routers, document.getElementById('root'));
 ```
 
-## <HashRouter>作为组件被渲染到页面中  
+## HashRouter作为组件被渲染到页面中  
 ```
 //node_modules/react-dom/cjs/react-dom.development.js
 
@@ -124,7 +145,7 @@ render(){
 }
 ```
  
-#### 创建histroy对象
+#### history.createHashHistory
 在执行HashRouter构造函数时会调用createHashHistory：创建histroy对象，并作为属性传递到Router组件中 
 ```
 //node_modules/history/esm/history.js
@@ -155,7 +176,7 @@ function createHashHistory(props) {
 }
 ```
 
-## Router组件渲染
+## Router组件渲染以及hashChange事件
 ```
 //node_modules/react-router/esm/react-router.js
 
@@ -291,42 +312,68 @@ function (_React$Component) {
 
 
 ## 跨组件数据共享
-### Router
+Router、Route、Switch、matchPath、withRouter、Link的作用及源码分析[参考](https://juejin.im/post/5b45c878f265da0f783c89a6)<br/>
+[Router、Route、Switch、matchPath、withRouter：相关源码地址](https://github.com/yusongjohn/reactDemo/tree/master/frameSource/react-router-master/packages/react-router/modules)<br/>
+[Link：相关源码地址](https://github.com/yusongjohn/reactDemo/tree/master/frameSource/react-router-master/packages/react-router-dom/modules)<br/>
 
+1. <Route />有一部分源码与<Router />相似，可以实现路由的嵌套，但其核心是通过Context共享的router，判断是否匹配当前路由的路径，然后渲染组件
+2. <Link />的核心就是渲染<a>标签，拦截<a>标签的点击事件，然后通过<Router />共享的router对history进行路由操作，进而通知<Router />重新渲染
+  
+## BrowserRouter的渲染
 ```
-// //node_modules/react-router/esm/react-router.js
-var context = createNamedContext("Router"); //关键代码：共享router
-
-var Router =
+var BrowserRouter =
 /*#__PURE__*/
 function (_React$Component) {
+  _inheritsLoose(BrowserRouter, _React$Component);
+
+  function BrowserRouter() {
+    var _this;
+
+    for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+      args[_key] = arguments[_key];
+    }
+
+    _this = _React$Component.call.apply(_React$Component, [this].concat(args)) || this;
+    _this.history = createBrowserHistory(_this.props);
+    return _this;
+  }
+
+  var _proto = BrowserRouter.prototype;
+
+  _proto.render = function render() {
+    return React.createElement(Router, {
+      history: this.history,
+      children: this.props.children
+    });
+  };
+
+  return BrowserRouter;
+}(React.Component);
+```
+关键之出在于：createBrowserHistory
+
+### history.js createBrowserHistory
+```
+function createBrowserHistory(props) {
     //...
-     _proto.render = function render() {
-        return React.createElement(context.Provider, {
-          children: this.props.children || null,
-          value: { // 共享的router的值
-            history: this.props.history,
-            location: this.state.location,
-            match: Router.computeRootMatch(this.state.location.pathname),
-            staticContext: this.props.staticContext
-          }
-        });
-      };
+      function checkDOMListeners(delta) {
+        listenerCount += delta;
+    
+        if (listenerCount === 1 && delta === 1) {
+          window.addEventListener(PopStateEvent, handlePopState);
+          if (needsHashChangeListener) window.addEventListener(HashChangeEvent, handleHashChange);
+        } else if (listenerCount === 0) {
+          window.removeEventListener(PopStateEvent, handlePopState);
+          if (needsHashChangeListener) window.removeEventListener(HashChangeEvent, handleHashChange);
+        }
+      }
     //...
 }
 ```
 
-### Route
-使用context.Consumer
-
-### Switch
-
-### Link
-<Link />的核心就是渲染<a>标签，拦截<a>标签的点击事件，然后通过<Router />共享的router对history进行路由操作，进而通知<Router />重新渲染
-
-### Route
-<Route />有一部分源码与<Router />相似，可以实现路由的嵌套，但其核心是通过Context共享的router，判断是否匹配当前路由的路径，然后渲染组件
-
 
 # 总结
 整个react-router其实就是围绕着<Router />的Context来构建的
+
+![avatar](../images/react/reat-router-event.png)<br/>
+

@@ -3,6 +3,8 @@
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [Context](#context)
+  - [用Context作为共享数据的媒介 <br/>](#%E7%94%A8context%E4%BD%9C%E4%B8%BA%E5%85%B1%E4%BA%AB%E6%95%B0%E6%8D%AE%E7%9A%84%E5%AA%92%E4%BB%8B-br)
+  - [使用Context开发组件](#%E4%BD%BF%E7%94%A8context%E5%BC%80%E5%8F%91%E7%BB%84%E4%BB%B6)
 - [无状态组件 与 类组件](#%E6%97%A0%E7%8A%B6%E6%80%81%E7%BB%84%E4%BB%B6-%E4%B8%8E-%E7%B1%BB%E7%BB%84%E4%BB%B6)
   - [写法](#%E5%86%99%E6%B3%95)
   - [状态和生命周期](#%E7%8A%B6%E6%80%81%E5%92%8C%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F)
@@ -11,7 +13,8 @@
   - [浅比较特性](#%E6%B5%85%E6%AF%94%E8%BE%83%E7%89%B9%E6%80%A7)
   - [PureComponent + ImmutableJS](#purecomponent--immutablejs)
   - [PureComponent 与  Context](#purecomponent-%E4%B8%8E--context)
-  - [源码](#%E6%BA%90%E7%A0%81)
+  - [PureComponent相关源码](#purecomponent%E7%9B%B8%E5%85%B3%E6%BA%90%E7%A0%81)
+- [Hooks](#hooks)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -49,7 +52,8 @@ App根节点组件提供的Context对象可以看成是App级的全局作用域�
 2. 组件级的数据共享：如[react-router](./react-router.md)
 如果组件的功能不能单靠组件自身来完成，还需要依赖额外的子组件，那么可以利用Context构建一个由多个子组件组合的组件
 
-## 
+## 使用Context开发组件
+[参考](https://juejin.im/post/5a90e0545188257a63112977)
 
 
 # 无状态组件 与 类组件
@@ -177,3 +181,6 @@ class Sample extends React.PureComponent{
 [Component 与 PureComponent 的区别](https://juejin.im/post/5be83e4d6fb9a049c231f331)
 1. React.PureComponent 和 React.Component 几乎相同，区别在于 React.PureComponent 会 浅比较 props、state是否发生变化从而决定是否更新组件
 2. 使用 React.Component 定义shouldComponentUpdate生命周期函数来模拟 React.PureComponent
+
+
+# Hooks

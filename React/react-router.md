@@ -14,11 +14,6 @@
       - [history.listen](#historylisten)
       - [事件注销](#%E4%BA%8B%E4%BB%B6%E6%B3%A8%E9%94%80)
   - [跨组件数据共享](#%E8%B7%A8%E7%BB%84%E4%BB%B6%E6%95%B0%E6%8D%AE%E5%85%B1%E4%BA%AB)
-    - [Router](#router)
-    - [Route](#route)
-    - [Switch](#switch)
-    - [Link](#link)
-    - [Route](#route-1)
   - [BrowserRouter的渲染](#browserrouter%E7%9A%84%E6%B8%B2%E6%9F%93)
     - [history.js createBrowserHistory](#historyjs-createbrowserhistory)
 - [总结](#%E6%80%BB%E7%BB%93)
@@ -26,6 +21,7 @@
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 
+**参考**
 [参考1](https://github.com/joeyguo/blog/issues/2)<br/>
 [参考2](https://juejin.im/post/5995a2506fb9a0249975a1a4)<br/>
 

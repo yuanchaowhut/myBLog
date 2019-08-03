@@ -14,4 +14,8 @@
     - [第9章：工具类](knockout/第9章：工具类.md)
 - React     
     - [组件的实现和挂载](React/组件的实现和挂载.md)
-    - [React的事件机制](React/React事件机制.md) 
+    - [React的事件机制](React/React事件机制.md)
+    - [React高级用法](React/react高级用法.md)  
+    - [路由系统：react-router](React/react-router.md)  
+    - [路由系统：react-router](React/react-redux.md) 
+    

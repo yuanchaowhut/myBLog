@@ -14,6 +14,7 @@
   - [PureComponent + ImmutableJS](#purecomponent--immutablejs)
   - [PureComponent 与  Context](#purecomponent-%E4%B8%8E--context)
   - [PureComponent相关源码](#purecomponent%E7%9B%B8%E5%85%B3%E6%BA%90%E7%A0%81)
+- [HOC（Higher-Order Components）](#hochigher-order-components)
 - [Hooks](#hooks)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -183,4 +184,5 @@ class Sample extends React.PureComponent{
 2. 使用 React.Component 定义shouldComponentUpdate生命周期函数来模拟 React.PureComponent
 
 
+# HOC（Higher-Order Components）
 # Hooks

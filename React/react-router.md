@@ -4,8 +4,7 @@
 
 - [简易路由实现](#%E7%AE%80%E6%98%93%E8%B7%AF%E7%94%B1%E5%AE%9E%E7%8E%B0)
 - [react-router使用](#react-router%E4%BD%BF%E7%94%A8)
-  - [withRouter](#withrouter)
-- [react-router分析](#react-router%E5%88%86%E6%9E%90)
+- [react-router源码分析](#react-router%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90)
   - [HashRouter作为组件被渲染到页面中](#hashrouter%E4%BD%9C%E4%B8%BA%E7%BB%84%E4%BB%B6%E8%A2%AB%E6%B8%B2%E6%9F%93%E5%88%B0%E9%A1%B5%E9%9D%A2%E4%B8%AD)
     - [执行HashRouter构造函数](#%E6%89%A7%E8%A1%8Chashrouter%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0)
       - [history.createHashHistory](#historycreatehashhistory)
@@ -22,9 +21,12 @@
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 
+# 前言
 **参考**<br/>
 [参考1](https://github.com/joeyguo/blog/issues/2)<br/>
-[参考2](https://juejin.im/post/5995a2506fb9a0249975a1a4):尚未细看<br/>
+[***quick-start***](https://reacttraining.com/react-router/web/guides/quick-start)<br/>
+
+先粗略整理下，后续对着官方文档细看源码分析功能（2019.8.2）
 
 # 简易路由实现
 ``` 
@@ -46,11 +48,136 @@ Router.prototype.init = function() {
 ```
 [简易路由实现](testDemo/simple-router.html)<br/>
 
-# react-router使用
-http://react-guide.github.io/react-router-cn/index.html
-## withRouter
+# react-router实战
+[参考***](https://juejin.im/post/5995a2506fb9a0249975a1a4)<br/> 
 
-# react-router分析
+v3与v4的区别<br/> 
+1. 在 v3 中（集中式路由），路由是我们的应用程序直接呈现给 DOM 的最巨大的东西。 现在，除了 <BrowserRouter> 外，我们首先抛给 DOM 的是我们的应用程序本身
+2. 在 v3 的例子中有而在 v4 中没有的是，使用 {props.children} 来嵌套组件。这是因为在 v4 中，<Route> 组件在任何地方编写，如果路由匹配，子组件将在那里渲染
+ 
+包容性路由<br/> 
+V3 的路由规则是“排他性”的，这意味着只有一条路由将获胜。V4 的路由默认为“包含”的，这意味着多个 <Route> 可以同时进行匹配和渲染。
+
+排他性路由【**Switch组件的作用**】<br/> 
+1. 如果你只需要在路由列表里匹配一个路由，则使用 <Switch> 来启用排他路由：
+2. <Redirect> 组件将会始终执行浏览器重定向，但是当它位于 <Switch> 语句中时，只有在其他路由不匹配的情况下，才会渲染重定向组件
+
+
+## 嵌套布局
+方案1：
+```
+const PrimaryLayout = props => {
+  return (
+    <div className="primary-layout">
+      <PrimaryHeader />
+      <main>
+        <Switch>
+          <Route path="/" exact component={HomePage} />
+          <Route path="/users" exact component={BrowseUsersPage} />
+          <Route path="/users/:userId" component={UserProfilePage} />
+          <Route path="/products" exact component={BrowseProductsPage} />
+          <Route path="/products/:productId" component={ProductProfilePage} />
+          <Redirect to="/" />
+        </Switch>
+      </main>
+    </div>
+  )
+} 
+
+const BrowseUsersPage = () => (
+  <div className="user-sub-layout">
+    <aside>
+      <UserNav />
+    </aside>
+    <div className="primary-content">
+      <BrowseUserTable />
+    </div>
+  </div>
+)
+
+const UserProfilePage = props => (
+  <div className="user-sub-layout">
+    <aside>
+      <UserNav />
+    </aside>
+    <div className="primary-content">
+      <UserProfile userId={props.match.params.userId} />
+    </div>
+  </div>
+) 
+```
+ 
+方案2：
+```
+const PrimaryLayout = props => {
+  return (
+    <div className="primary-layout">
+      <PrimaryHeader />
+      <main>
+        <Switch>
+          <Route path="/" exact component={HomePage} />
+          <Route path="/users" component={UserSubLayout} />
+          <Route path="/products" component={ProductSubLayout} />
+          <Redirect to="/" />
+        </Switch>
+      </main>
+    </div>
+  )
+} 
+
+const UserSubLayout = () => (
+  <div className="user-sub-layout">
+    <aside>
+      <UserNav />
+    </aside>
+    <div className="primary-content">
+      <Switch>
+        <Route path="/users" exact component={BrowseUsersPage} />
+        <Route path="/users/:userId" component={UserProfilePage} />
+      </Switch>
+    </div>
+  </div>
+)
+ 
+```
+
+方案1与方案2的区别：
+方案1：公共部分如UserNav组件会被重复渲染，创建一个新的实例，所有的生命周期方法都将重新开始（会造成渲染成本的浪费、如果有请求则会浪费网格流量）
+方案2：用户页面之间的不重复布局
+
+**props.match.path的使用：完整路径** <br/> 
+即使我们在布局结构中深入嵌套（以方案2为例），路由仍然需要识别它们的完整路径才能匹配。为了节省重复输入（以防你决定将“用户”改为其他内容），请改用 props.match.path
+```
+const UserSubLayout = props => (
+  <div className="user-sub-layout">
+    <aside>
+      <UserNav />
+    </aside>
+    <div className="primary-content">
+      <Switch>
+        <Route path={props.match.path} exact component={BrowseUsersPage} />
+        <Route path={`${props.match.path}/:userId`} component={UserProfilePage} />
+      </Switch>
+    </div>
+  </div>
+) 
+```
+
+## props.match 
+match.path vs match.url <br/> 
+1. match.url 是浏览器 URL 中的实际路径，而 match.path 是为路由编写的路径
+2. 借助上面案例1：UserProfilePage渲染时：match.url 将是 "/users/5" 而 match.path 将是 "/users/:userId"
+3. 如果你要使用其中一个来帮助你构建路由路径，应选择 match.path
+![avatar](../images/react/router-match.png)<br/>
+
+## 其他
+1. <Link> vs <NavLink>
+    - <NavLink> 与 <Link> 一样，但如果 <NavLink> 匹配浏览器的 URL，那么它可以提供一些额外的样式能力
+    - 使用 <NavLink> 可以让我给任何一个激活的链接设置一个 active 样式
+2. url查询字符串
+    没有提供，自己处理：query-string库 
+
+# react-router源码分析
 react-router的使用：[官方文档](https://github.com/ReactTraining/react-router)<br/>
 
 各模块结构
@@ -217,12 +344,9 @@ Router、Route、Switch、matchPath、withRouter、Link的作用及源码分析[
 
 1. <Route />有一部分源码与<Router />相似，可以实现路由的嵌套，但其核心是通过Context共享的router，判断是否匹配当前路由的路径，然后渲染组件
 2. <Link />的核心就是渲染<a>标签，拦截<a>标签的点击事件，然后通过<Router />共享的router对history进行路由操作，进而通知<Router />重新渲染
-3. withRouter 的作用是让我们在普通的非直接嵌套在 Route 中的组件也能获得路由的信息，这时候我们就要 WithRouter(wrappedComponent) 来创建一个 HOC 传递 props，WithRouter 的其实就是用 Route 包裹了 SomeComponent 的一个 HOC。  
+3. **withRouter** 的作用是让我们在普通的非直接嵌套在 Route 中的组件也能获得路由的信息，这时候我们就要 WithRouter(wrappedComponent) 来创建一个 HOC 传递 props，WithRouter 的其实就是用 Route 包裹了 SomeComponent 的一个 HOC。  
 4. 包容性路由、排他路由;[参考](https://juejin.im/post/5995a2506fb9a0249975a1a4)
-    
-switch的作用？    
-- 如果你只需要在路由列表里匹配一个路由，则使用 <Switch> 来启用排他路由：
-- 如果遇到<Redirect> 组件将会始终执行浏览器重定向，但是当它位于 <Switch> 语句中时，只有在其他路由不匹配的情况下，才会渲染重定向组件
+     
 
 ## BrowserRouter的渲染
 [BrowserRouter代码](https://github.com/yusongjohn/reactDemo/blob/master/frameSource/react-router-master/packages/react-router-dom/modules/BrowserRouter.js)
@@ -248,6 +372,8 @@ function createBrowserHistory(props) {
 ```
 
 # 总结
+Context的使用：跨组件的数据共享
+
 ## 点击一个 Link 跳转的过程。
 有两件事需要完成： 路由的改变、页面的渲染部分的改变
 

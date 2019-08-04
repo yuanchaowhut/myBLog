@@ -153,3 +153,5 @@ const boundActionCreators = bindActionCreators({ increment, decrement, reset }, 
 
 # react-redux源码分析
 [参考](https://juejin.im/post/59cb5eba5188257e84671aca)
+
+## createStore 

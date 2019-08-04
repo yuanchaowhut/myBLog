@@ -1,18 +1,50 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [前言](#%E5%89%8D%E8%A8%80)
+- [redux 与 react-redux](#redux-%E4%B8%8E-react-redux)
+  - [redux](#redux)
+- [react-redux](#react-redux)
+  - [Connect](#connect)
+    - [Connect：使用mapStateToProps抽取数据](#connect%E4%BD%BF%E7%94%A8mapstatetoprops%E6%8A%BD%E5%8F%96%E6%95%B0%E6%8D%AE)
+    - [Connect: 使用mapDispatchToProps分发actions](#connect-%E4%BD%BF%E7%94%A8mapdispatchtoprops%E5%88%86%E5%8F%91actions)
+      - [bindActionCreators的作用](#bindactioncreators%E7%9A%84%E4%BD%9C%E7%94%A8)
+  - [connectAdvanced、createProvider](#connectadvancedcreateprovider)
+  - [Provider](#provider)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 
 
 # 前言
 1. 参考
-[redux中文文档](http://cn.redux.js.org/docs/react-redux/api.html)
+[redux中文文档](http://cn.redux.js.org/docs/react-redux/api.html)、[学习资源](http://cn.redux.js.org/docs/introduction/LearningResources.html)
 [参考2](https://segmentfault.com/a/1190000017064759) 
 
-# redux 与 react-redux
+
+# redux 与 react-redux 关系
+## redux
+1. 动机：管理状态（不受控制 => 可预测）
+2. 核心概念：state、action、reducer
+    state：读取数据（只读）
+    action：更改数据，唯一修改state的方式
+    reducer：把 action 和 state 串起来
+3. 三大原则
+    单一数据源<br/>
+    State 是只读的<br/>
+    使用纯函数来执行修改<br/>
+4.  
 
 
-# react-redux 
+
+# react-redux 使用
 
 ## Connect
+返回值：一个高阶React组件类，它能够把state和action creators传递给由所提供的参数生成的组件中去。这一高阶组件由connectAdvanced生成
 ### Connect：使用mapStateToProps抽取数据
 Connect的第一个参数【mapStateToProps】:<br/>
+>mapStateToProps的结果必须是一个纯对象，之后该对象会合并到组件的props
 - 参数形式：
     - 函数：function mapStateToProps(state, ownProps?)
         - state：store.getState()，
@@ -65,5 +97,59 @@ Connect的第二个参数【mapDispatchToProps】<br/>
     - 以props形式接收每个你通过mapDispatchToProps注入的action创建函数，能够在你调用后自动分发actions
 - 参数形式：
     - 函数：function mapDispatchToProps(dispatch, ownProps?)
-    >将mapDispatchToProps定义为一个函数使你更灵活地定义你的组件能够接收到的函数、以及这些函数如何分发actions。你对dispatch和ownProps都具有访问权限。你可以借此机会编写你的连接组件的自定义函数
-    - 对象：
+    >将mapDispatchToProps定义为一个函数使你更灵活地定义你的组件能够接收到的函数、以及这些函数如何分发actions。你对dispatch和ownProps都具有访问权限。你可以借此机会编写你的连接组件的自定义函数<br/>
+    mapDispatchToProps的函数返回值会合并到你的组件props中去。你就能够直接调用它们来分发action。
+    - 对象：由于上面函数形式的这个过程太过通用，因此connect支持了一个“对象简写”形式的mapDispatchToProps参数：如果你传递了一个由action creators构成的对象，而不是函数，connect会在内部自动为你调用bindActionCreators
+    
+    
+#### bindActionCreators的作用
+1. 作为返回值的action需要手动分发
+```
+const increment = () => ({ type: "INCREMENT" });
+const decrement = () => ({ type: "DECREMENT" });
+const reset = () => ({ type: "RESET" });
+
+const mapDispatchToProps = dispatch => {
+  return {
+    // 分发由action creators创建的actions
+    increment: () => dispatch(increment()),
+    decrement: () => dispatch(decrement()),
+    reset: () => dispatch(reset())
+  };
+};
+```
+
+2. 由bindActionCreators生成的包装函数会自动转发它们所有的参数，所以你不需要在手动操作了
+```
+import { bindActionCreators } from "redux";
+
+const increment = () => ({ type: "INCREMENT" });
+const decrement = () => ({ type: "DECREMENT" });
+const reset = () => ({ type: "RESET" });
+
+// 绑定一个action creator
+// 返回 (...args) => dispatch(increment(...args))
+const boundIncrement = bindActionCreators(increment, dispatch);
+
+// 绑定一个action creators构成的object
+const boundActionCreators = bindActionCreators({ increment, decrement, reset }, dispatch);
+// 返回值：
+// {
+//   increment: (...args) => dispatch(increment(...args)),
+//   decrement: (...args) => dispatch(decrement(...args)),
+//   reset: (...args) => dispatch(reset(...args)),
+// }
+```
+
+## connectAdvanced、createProvider
+
+## Provider
+<Provider/>使得每一个被connect()函数包装过的嵌套组件都可以访问到Redux store。
+
+既然任何Redux-React app中的React组件都可以被连接，那么大多数应用都会在最顶层渲染<Provider>，从而包裹住整个组件树。
+
+通常，你如果不把已连接组件嵌套在<Provider>中那么你就不能使用它。
+
+
+# react-redux源码分析
+[参考](https://juejin.im/post/59cb5eba5188257e84671aca)

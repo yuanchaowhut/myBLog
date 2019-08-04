@@ -348,7 +348,10 @@ Router、Route、Switch、matchPath、withRouter、Link的作用及源码分析[
 
 1. <Route />有一部分源码与<Router />相似，可以实现路由的嵌套，但其核心是通过Context共享的router，判断是否匹配当前路由的路径，然后渲染组件
 2. <Link />的核心就是渲染<a>标签，拦截<a>标签的点击事件，然后通过<Router />共享的router对history进行路由操作，进而通知<Router />重新渲染
-3. **withRouter** 的作用是让我们在普通的非直接嵌套在 Route 中的组件也能获得路由的信息，这时候我们就要 WithRouter(wrappedComponent) 来创建一个 HOC 传递 props，WithRouter 的其实就是用 Route 包裹了 SomeComponent 的一个 HOC。  
+3. **withRouter** 的作用是让我们在普通的非直接嵌套在 Route 中的组件也能获得路由的信息
+    - 这时候我们就要 WithRouter(wrappedComponent) 来创建一个 HOC 传递 props，WithRouter 的其实就是用 Route 包裹了 SomeComponent 的一个 HOC。
+    - 和react-redux中的connect很类似，使用connect就可以拿到store中的数据
+    - 原理：context.Consumer
 4. 包容性路由、排他路由;[参考](https://juejin.im/post/5995a2506fb9a0249975a1a4)
      
 

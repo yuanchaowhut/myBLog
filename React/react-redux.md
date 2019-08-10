@@ -3,15 +3,19 @@
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [前言](#%E5%89%8D%E8%A8%80)
-- [redux 与 react-redux](#redux-%E4%B8%8E-react-redux)
+- [redux 与 react-redux 关系](#redux-%E4%B8%8E-react-redux-%E5%85%B3%E7%B3%BB)
   - [redux](#redux)
-- [react-redux](#react-redux)
+- [react-redux 使用](#react-redux-%E4%BD%BF%E7%94%A8)
   - [Connect](#connect)
     - [Connect：使用mapStateToProps抽取数据](#connect%E4%BD%BF%E7%94%A8mapstatetoprops%E6%8A%BD%E5%8F%96%E6%95%B0%E6%8D%AE)
     - [Connect: 使用mapDispatchToProps分发actions](#connect-%E4%BD%BF%E7%94%A8mapdispatchtoprops%E5%88%86%E5%8F%91actions)
       - [bindActionCreators的作用](#bindactioncreators%E7%9A%84%E4%BD%9C%E7%94%A8)
   - [connectAdvanced、createProvider](#connectadvancedcreateprovider)
   - [Provider](#provider)
+- [react-redux源码分析](#react-redux%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90)
+  - [Provider](#provider-1)
+  - [connect、connectAdvanced](#connectconnectadvanced)
+  - [createStore](#createstore)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -153,5 +157,9 @@ const boundActionCreators = bindActionCreators({ increment, decrement, reset }, 
 
 # react-redux源码分析
 [参考](https://juejin.im/post/59cb5eba5188257e84671aca)
+
+## Provider
+
+## connect、connectAdvanced
 
 ## createStore 

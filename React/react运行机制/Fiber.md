@@ -2,5 +2,8 @@ https://zhuanlan.zhihu.com/p/37095662
 https://juejin.im/post/5b7016606fb9a0099406f8de
 https://blog.csdn.net/qiqingjin/article/details/80118669#0-tsina-1-76044-397232819ff9a47a7b7e80a40613cfe1
 https://zhuanlan.zhihu.com/p/26027085
-https://github.com/HuJiaoHJ/blog/issues/7（**）
+https://github.com/HuJiaoHJ/blog/issues/7（很棒的文章）：react的逻辑结构说的很清楚
 https://juejin.im/post/5a2276d5518825619a027f57
+https://juejin.im/post/5d12c907f265da1b6d4033c5（不错）
+
+

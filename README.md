@@ -11,11 +11,5 @@
     - [第6章：内置绑定处理器-value](knockout/第6章：内置绑定处理器-value.md)
     - [第7章：内置绑定处理器-template](knockout/第7章：内置绑定处理器-template.md)
     - [第8章：内置绑定处理器-component](knockout/第8章：内置绑定处理器-component.md)
-    - [第9章：工具类](knockout/第9章：工具类.md)
-- React     
-    - [组件的实现和挂载](React/组件的实现和挂载.md)
-    - [React的事件机制](React/React事件机制.md)
-    - [React高级用法](React/react高级用法.md)  
-    - [react-router](React/react-router.md)  
-    - [react-redux](React/react-redux.md) 
+    - [第9章：工具类](knockout/第9章：工具类.md) 
     

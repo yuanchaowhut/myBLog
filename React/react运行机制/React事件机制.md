@@ -57,7 +57,7 @@ class App extends React.Component {
 ```
 
 调用栈以及事件注册的入口
-![avatar](../images/react/click-event-register.png)
+![avatar](../../images/react/click-event-register.png)
 
 ## setInitialDOMProperties
 >node_modules/react-dom/cjs/react-dom.development.js
@@ -95,7 +95,7 @@ function setInitialDOMProperties(tag, domElement, rootContainerElement, nextProp
 }
 ```
 变量registrationNameModules的含义，存储一堆事件映射
-![avatar](../images/react/registeration-name-map.png)
+![avatar](../../images/react/registeration-name-map.png)
 
 ### ensureListeningTo
 
@@ -106,7 +106,7 @@ function ensureListeningTo(rootContainerElement, registrationName) {
   listenTo(registrationName, doc);
 }
 ```
-![avatar](../images/react/root-containeri-ele.png)
+![avatar](../../images/react/root-containeri-ele.png)
 1. 首先判断了 rootContainerElement是不是一个 document或者 Fragment(文档片段节点)，示例中传过来的是 .box这个 div，显然不是，
 2. 所以 doc这个变量就被赋值为 rootContainerElement.ownerDocument，这个东西其实就是document元素，
 3. 把这个document传到下面的 listenTo里了，【事件委托也就是在这里做的】，
@@ -128,7 +128,7 @@ switch (dependency) {
 ```
 这个方法其实就是注册事件的入口<br/>
 变量：registrationNameDependencies<br/>
-![avatar](../images/react/registernamedpen.png)<br/>
+![avatar](../../images/react/registernamedpen.png)<br/>
 可以看到，React是给事件名做了一些跨浏览器兼容事情的，比如传入 onChange事件，会自动对应上 blur change click focus等多种浏览器原生事件<br/>
 
 1. 除了 scroll focus blur cancel close方法走【trapCapturedEvent】方法，
@@ -166,15 +166,15 @@ function addEventBubbleListener(element, eventType, listener) {
 
 ## 小结
 流程图如下：<br/>
-![avatar](../images/react/react-event-reagister-self.png)<br/>
+![avatar](../../images/react/react-event-reagister-self.png)<br/>
 ----<br/>
-![avatar](../images/react/react-event-reagister-s.png)<br/>
+![avatar](../../images/react/react-event-reagister-s.png)<br/>
 
 # 事件分发
 该案例总trapBubbledEvent方法中会对document添加onClick事件，回调为dispatchInteractiveEvent\dispatchEvent <br/>
 
 点击案例中注册click事件的div后，触发dispatchEvent事件<br/>
-![avatar](../images/react/dispatch-click.png)
+![avatar](../../images/react/dispatch-click.png)
 
 
 
@@ -203,7 +203,7 @@ function dispatchEvent(topLevelType, nativeEvent) {
 ```
 
 变量targetInst为FiberNode类型
-![avatar](../images/react/fiber-node-target-inst.png)
+![avatar](../../images/react/fiber-node-target-inst.png)
 
 ### getClosestInstanceFromNode
 通过node获取最近的祖先react【组件实例】（ReactDOMComponent or ReactDOMTextComponent）
@@ -370,7 +370,7 @@ var SimpleEventPlugin = {
 
 getPooled就是从 event对象池中取出合成事件，这种操作是 React的一大亮点，将所有的事件缓存在对象池中,可以大大降低对象创建和销毁的时间，提升性能
 这个方法是位于 SyntheticEvent这个对象上，流程示意图如下：
-![avatar](../images/react/event-constructor-getpoled.png)
+![avatar](../../images/react/event-constructor-getpoled.png)
 
 #### getPooledEvent：获取（构造）合成事件
 ```
@@ -436,13 +436,13 @@ _assign(SyntheticEvent.prototype, {
  ```
  
 流程图<br/>
-![avatar](../images/react/accumulateTowPhaseDisp.png)
+![avatar](../../images/react/accumulateTowPhaseDisp.png)
  
  
 traverseTwoPhase<br/>
 作用：方法名称结合代码暗示，处理两个事件流的阶段（捕获、冒泡）<br/>
 调用栈<br/>
-![avatar](../images/react/getlistener-stack.png)  
+![avatar](../../images/react/getlistener-stack.png)  
 ```
 function traverseTwoPhase(inst, fn, arg) { // fn ：accumulateDirectionalDispatches
   var path = [];
@@ -494,7 +494,7 @@ accumulateInto<br/>
 作用：合并
 
  案例中click事件回调<br/>
-![avatar](../images/react/get-event-callback.png) 
+![avatar](../../images/react/get-event-callback.png) 
 
 
 ## runEventsInBatch：批处理合成事件
@@ -544,7 +544,7 @@ var invokeGuardedCallbackImpl = function (name, func, context, a, b, c, d, e, f)
 
 1. funcArgs是什么呢？其实就是合成事件对象，包括原生浏览器事件对象的基本上所有属性和方法，除此之外还另外挂载了额外其他一些跟 React合成事件相关的属性和方法，
 2. 而 func则就是传入的事件回调函数，对于本示例来说，就等于clickHandler这个回调方法：
-![avatar](../images/react/invoke-guard-call-impl.png)
+![avatar](../../images/react/invoke-guard-call-impl.png)
 
 ## 事件清理
 事件执行完毕之后，接下来就是一些清理工作了，因为 React采用了对象池的方式来管理合成事件，所以当事件执行完毕之后就要清理释放掉，减少内存占用<br/>
@@ -644,4 +644,4 @@ SyntheticEvent.extend = function (Interface) {
 ```
  
 # 总结
-![avatar](../images/react/shijianjizhi-chufa-zhixing.png)
+![avatar](../../images/react/shijianjizhi-chufa-zhixing.png)

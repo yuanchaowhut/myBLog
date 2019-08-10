@@ -5,7 +5,9 @@
 - [服务端渲染](#%E6%9C%8D%E5%8A%A1%E7%AB%AF%E6%B8%B2%E6%9F%93)
 - [Context](#context)
   - [用Context作为共享数据的媒介 <br/>](#%E7%94%A8context%E4%BD%9C%E4%B8%BA%E5%85%B1%E4%BA%AB%E6%95%B0%E6%8D%AE%E7%9A%84%E5%AA%92%E4%BB%8B-br)
+  - [Class.contextType 与 ReactContext.Consumer区别](#classcontexttype-%E4%B8%8E-reactcontextconsumer%E5%8C%BA%E5%88%AB)
   - [使用Context开发组件](#%E4%BD%BF%E7%94%A8context%E5%BC%80%E5%8F%91%E7%BB%84%E4%BB%B6)
+  - [Context的源码实现？](#context%E7%9A%84%E6%BA%90%E7%A0%81%E5%AE%9E%E7%8E%B0)
 - [无状态组件 与 类组件](#%E6%97%A0%E7%8A%B6%E6%80%81%E7%BB%84%E4%BB%B6-%E4%B8%8E-%E7%B1%BB%E7%BB%84%E4%BB%B6)
   - [写法](#%E5%86%99%E6%B3%95)
   - [状态和生命周期](#%E7%8A%B6%E6%80%81%E5%92%8C%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F)
@@ -54,9 +56,20 @@ App根节点组件提供的Context对象可以看成是App级的全局作用域�
 2. 组件级的数据共享：如[react-router](./react-router.md)
 如果组件的功能不能单靠组件自身来完成，还需要依赖额外的子组件，那么可以利用Context构建一个由多个子组件组合的组件
 
+## Class.contextType 与 ReactContext.Consumer区别
+Class.contextType：只能访问最近的context，并且只能访问这一个<br/>
+    - Class.contextType使用方式，对消费组件添加静态属性contextType，通过this.context即可拿到
+ReactContext.Consumer则可以访问多个context<br/>
+    - 子级只允许是一个 Function
+
+
+
 ## 使用Context开发组件
 [参考](https://juejin.im/post/5a90e0545188257a63112977)
 
+## Context的源码实现？
+尚未研究
+[参考](https://github.com/jsonz1993/react-source-learn/issues/5)
 
 # 无状态组件 与 类组件
 ## 写法
